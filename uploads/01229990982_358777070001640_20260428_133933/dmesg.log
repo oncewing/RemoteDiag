@@ -1,0 +1,775 @@
+[229064.847592] type=1400 audit(1777249960.930:364): avc: denied { read write } for pid=2177 comm="wnetdm" path="/data/wdmconfig/wnetdm.db-journal" dev="ubifs" ino=3418 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229064.847823] type=1400 audit(1777249960.930:365): avc: denied { setattr } for pid=2177 comm="wnetdm" name="wnetdm.db-journal" dev="ubifs" ino=3418 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229064.848051] type=1400 audit(1777249960.940:366): avc: denied { unlink } for pid=2177 comm="wnetdm" name="wnetdm.db-journal" dev="ubifs" ino=3418 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229072.817237] type=1400 audit(1777249968.910:367): avc: denied { read write } for pid=10436 comm="iptables" path="socket:[24430]" dev="sockfs" ino=24430 scontext=system_u:system_r:iptables_t:s0-s15:c0.c1023 tcontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tclass=netlink_route_socket permissive=1
+[229073.005384] HTB: quantum of class 10001 is big. Consider r2q change.
+[229073.044978] HTB: quantum of class 10010 is big. Consider r2q change.
+[229073.096466] HTB: quantum of class 10020 is big. Consider r2q change.
+[229074.167392] type=1400 audit(1777249970.260:368): avc: denied { read } for pid=459 comm=756470206374206C697374656E6572 name="localtime" dev="ubifs" ino=8885 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=lnk_file permissive=1
+[229074.175161] type=1400 audit(1777249970.270:369): avc: denied { read } for pid=408 comm="logd.auditd" name="localtime" dev="ubifs" ino=8885 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=lnk_file permissive=1
+[229074.202101] type=1400 audit(1777249970.300:370): avc: denied { sendto } for pid=10300 comm="dnsmasq" path="/dev/log" scontext=system_u:system_r:dnsmasq_t:s0-s15:c0.c1023 tcontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tclass=unix_dgram_socket permissive=1
+[229074.322437] HTB: quantum of class 10030 is big. Consider r2q change.
+[229074.724936] type=1400 audit(1777249970.820:371): avc: denied { write } for pid=10605 comm="dnsmasq" name="log" dev="devtmpfs" ino=22563 scontext=system_u:system_r:dnsmasq_t:s0-s15:c0.c1023 tcontext=system_u:object_r:device_t:s0 tclass=sock_file permissive=1
+[229121.948812] type=1400 audit(1777250018.040:372): avc: denied { read } for pid=2177 comm="wnetdm" name="2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229121.951464] type=1400 audit(1777250018.040:373): avc: denied { open } for pid=2177 comm="wnetdm" path="/data/www/usage/data/2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229121.951688] type=1400 audit(1777250018.040:374): avc: denied { getattr } for pid=2177 comm="wnetdm" path="/data/www/usage/data/2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229137.059022] type=1400 audit(1777250033.150:375): avc: denied { create } for pid=11012 comm="ping" scontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tcontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tclass=icmp_socket permissive=1
+[229137.063201] type=1400 audit(1777250033.150:376): avc: denied { read } for pid=11012 comm="ping" name="unix" dev="proc" ino=4026531955 scontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tcontext=system_u:object_r:proc_net_t:s0 tclass=file permissive=1
+[229137.063411] type=1400 audit(1777250033.150:377): avc: denied { setopt } for pid=11012 comm="ping" scontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tcontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tclass=icmp_socket permissive=1
+[229137.063515] type=1400 audit(1777250033.160:378): avc: denied { getopt } for pid=11012 comm="ping" scontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tcontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tclass=icmp_socket permissive=1
+[229137.063602] type=1400 audit(1777250033.160:379): avc: denied { write } for pid=11012 comm="ping" scontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tcontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tclass=icmp_socket permissive=1
+[229137.063677] type=1400 audit(1777250033.160:380): avc: denied { read } for pid=11012 comm="ping" lport=3626 scontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tcontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tclass=icmp_socket permissive=1
+[229144.868319] type=1400 audit(1777250040.960:381): avc: denied { execute } for pid=11041 comm="sh" name="shellat7" dev="ubifs" ino=476 scontext=system_u:system_r:adbd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229144.929473] type=1400 audit(1777250040.970:382): avc: denied { execute_no_trans } for pid=11041 comm="sh" path="/data/shellat7" dev="ubifs" ino=476 scontext=system_u:system_r:adbd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229145.421051] type=1400 audit(1777250041.510:383): avc: denied { getattr } for pid=459 comm=69706120647269766572206E746679 path="/usr/share/zoneinfo/ROK" dev="ubifs" ino=7517 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=file permissive=1
+[229145.443542] type=1400 audit(1777250041.520:384): avc: denied { getattr } for pid=408 comm="logd.auditd" path="/usr/share/zoneinfo/ROK" dev="ubifs" ino=7517 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=file permissive=1
+[229146.639499] type=1400 audit(1777250042.730:385): avc: denied { read } for pid=460 comm="QCMAP_Connectio" name="lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229146.639762] type=1400 audit(1777250042.730:386): avc: denied { open } for pid=460 comm="QCMAP_Connectio" path="/data/lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229146.639890] type=1400 audit(1777250042.730:387): avc: denied { getattr } for pid=460 comm="QCMAP_Connectio" path="/data/lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229157.692244] HTB: quantum of class 10001 is big. Consider r2q change.
+[229157.707379] HTB: quantum of class 10010 is big. Consider r2q change.
+[229157.766801] HTB: quantum of class 10020 is big. Consider r2q change.
+[229158.023834] type=1400 audit(1777250054.120:388): avc: denied { search } for pid=459 comm=6E65746C696E6B20736F636B6574 name="zoneinfo" dev="ubifs" ino=6413 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=dir permissive=1
+[229158.111928] HTB: quantum of class 10030 is big. Consider r2q change.
+[229159.140640] type=1400 audit(1777250055.230:389): avc: denied { append } for pid=1936 comm="syslogd" name="local1" dev="ubifs" ino=788 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229159.152513] type=1400 audit(1777250055.230:390): avc: denied { open } for pid=1936 comm="syslogd" path="/data/logs/local1" dev="ubifs" ino=788 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229159.152723] type=1400 audit(1777250055.230:391): avc: denied { getattr } for pid=1936 comm="syslogd" path="/data/logs/local1" dev="ubifs" ino=788 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229159.152839] type=1400 audit(1777250055.230:392): avc: denied { search } for pid=408 comm="logd.auditd" name="zoneinfo" dev="ubifs" ino=6413 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=dir permissive=1
+[229159.453971] type=1400 audit(1777250055.550:393): avc: denied { write } for pid=11443 comm="dnsmasq" name="log" dev="devtmpfs" ino=22563 scontext=system_u:system_r:dnsmasq_t:s0-s15:c0.c1023 tcontext=system_u:object_r:device_t:s0 tclass=sock_file permissive=1
+[229173.362992] type=1400 audit(1777250069.460:394): avc: denied { read } for pid=459 comm=6E65746C696E6B20736F636B6574 name="localtime" dev="ubifs" ino=8885 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=lnk_file permissive=1
+[229173.446358] type=1400 audit(1777250069.540:395): avc: denied { read write } for pid=11622 comm="iptables" path="socket:[24430]" dev="sockfs" ino=24430 scontext=system_u:system_r:iptables_t:s0-s15:c0.c1023 tcontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tclass=netlink_route_socket permissive=1
+[229173.447588] type=1400 audit(1777250069.540:396): avc: denied { read } for pid=408 comm="logd.auditd" name="localtime" dev="ubifs" ino=8885 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=lnk_file permissive=1
+[229173.526494] __ipa3_del_rt_rule: 1 callbacks suppressed
+[229173.526500] ipa __ipa3_del_rt_rule:1772 bad params
+[229173.526514] ipa3_del_rt_rule: 1 callbacks suppressed
+[229173.526516] ipa ipa3_del_rt_rule:1855 failed to del rt rule 0
+[229174.071432] type=1400 audit(1777250070.160:397): avc: denied { sendto } for pid=11443 comm="dnsmasq" path="/dev/log" scontext=system_u:system_r:dnsmasq_t:s0-s15:c0.c1023 tcontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tclass=unix_dgram_socket permissive=1
+[229179.055611] type=1400 audit(1777250075.150:398): avc: denied { read } for pid=2177 comm="wnetdm" name="2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229179.066794] type=1400 audit(1777250075.150:399): avc: denied { open } for pid=2177 comm="wnetdm" path="/data/www/usage/data/2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229179.067415] type=1400 audit(1777250075.150:400): avc: denied { getattr } for pid=2177 comm="wnetdm" path="/data/www/usage/data/2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229179.067839] type=1400 audit(1777250075.160:401): avc: denied { lock } for pid=2177 comm="wnetdm" path="/data/wdmconfig/wnetdm.db" dev="ubifs" ino=364 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229179.077253] type=1400 audit(1777250075.160:402): avc: denied { create } for pid=2177 comm="wnetdm" name="wnetdm.db-journal" scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229179.077597] type=1400 audit(1777250075.170:403): avc: denied { read write } for pid=2177 comm="wnetdm" path="/data/wdmconfig/wnetdm.db-journal" dev="ubifs" ino=3426 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229179.077879] type=1400 audit(1777250075.170:404): avc: denied { setattr } for pid=2177 comm="wnetdm" name="wnetdm.db-journal" dev="ubifs" ino=3426 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229179.078032] type=1400 audit(1777250075.170:405): avc: denied { unlink } for pid=2177 comm="wnetdm" name="wnetdm.db-journal" dev="ubifs" ino=3426 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229184.202042] type=1400 audit(1777250080.300:406): avc: denied { execute } for pid=11779 comm="sh" name="shellat7" dev="ubifs" ino=476 scontext=system_u:system_r:adbd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229184.256193] type=1400 audit(1777250080.300:407): avc: denied { execute_no_trans } for pid=11779 comm="sh" path="/data/shellat7" dev="ubifs" ino=476 scontext=system_u:system_r:adbd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229185.524858] HTB: quantum of class 10001 is big. Consider r2q change.
+[229185.538447] HTB: quantum of class 10010 is big. Consider r2q change.
+[229185.605231] HTB: quantum of class 10020 is big. Consider r2q change.
+[229186.102251] HTB: quantum of class 10030 is big. Consider r2q change.
+[229187.607494] type=1400 audit(1777250083.700:408): avc: denied { getattr } for pid=459 comm="firewall-cfg" path="/usr/share/zoneinfo/ROK" dev="ubifs" ino=7517 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=file permissive=1
+[229187.609532] type=1400 audit(1777250083.700:409): avc: denied { getattr } for pid=408 comm="logd.auditd" path="/usr/share/zoneinfo/ROK" dev="ubifs" ino=7517 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=file permissive=1
+[229188.429314] type=1400 audit(1777250084.520:410): avc: denied { read } for pid=460 comm="QCMAP_Connectio" name="lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229188.429516] type=1400 audit(1777250084.520:411): avc: denied { open } for pid=460 comm="QCMAP_Connectio" path="/data/lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229188.429622] type=1400 audit(1777250084.520:412): avc: denied { getattr } for pid=460 comm="QCMAP_Connectio" path="/data/lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229216.229444] type=1400 audit(1777250112.320:413): avc: denied { search } for pid=459 comm="cmd-queue" name="zoneinfo" dev="ubifs" ino=6413 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=dir permissive=1
+[229216.359644] HTB: quantum of class 10001 is big. Consider r2q change.
+[229216.375341] HTB: quantum of class 10010 is big. Consider r2q change.
+[229216.412069] HTB: quantum of class 10020 is big. Consider r2q change.
+[229216.442934] HTB: quantum of class 10030 is big. Consider r2q change.
+[229217.623393] type=1400 audit(1777250113.720:414): avc: denied { append } for pid=1936 comm="syslogd" name="local1" dev="ubifs" ino=788 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229217.625440] type=1400 audit(1777250113.720:415): avc: denied { open } for pid=1936 comm="syslogd" path="/data/logs/local1" dev="ubifs" ino=788 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229217.625587] type=1400 audit(1777250113.720:416): avc: denied { getattr } for pid=1936 comm="syslogd" path="/data/logs/local1" dev="ubifs" ino=788 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229217.625676] type=1400 audit(1777250113.720:417): avc: denied { search } for pid=408 comm="logd.auditd" name="zoneinfo" dev="ubifs" ino=6413 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=dir permissive=1
+[229236.138116] type=1400 audit(1777250132.230:418): avc: denied { lock } for pid=2177 comm="wnetdm" path="/data/wdmconfig/wnetdm.db" dev="ubifs" ino=364 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229236.150456] type=1400 audit(1777250132.230:419): avc: denied { create } for pid=2177 comm="wnetdm" name="wnetdm.db-journal" scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229236.159690] type=1400 audit(1777250132.240:420): avc: denied { read write } for pid=2177 comm="wnetdm" path="/data/wdmconfig/wnetdm.db-journal" dev="ubifs" ino=3430 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229236.159938] type=1400 audit(1777250132.240:421): avc: denied { setattr } for pid=2177 comm="wnetdm" name="wnetdm.db-journal" dev="ubifs" ino=3430 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229236.160061] type=1400 audit(1777250132.240:422): avc: denied { unlink } for pid=2177 comm="wnetdm" name="wnetdm.db-journal" dev="ubifs" ino=3430 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229247.532954] type=1400 audit(1777250143.630:423): avc: denied { read } for pid=459 comm=6E65746C696E6B20736F636B6574 name="localtime" dev="ubifs" ino=8885 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=lnk_file permissive=1
+[229247.616371] type=1400 audit(1777250143.710:424): avc: denied { read write } for pid=12768 comm="iptables" path="socket:[24430]" dev="sockfs" ino=24430 scontext=system_u:system_r:iptables_t:s0-s15:c0.c1023 tcontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tclass=netlink_route_socket permissive=1
+[229247.617653] type=1400 audit(1777250143.710:425): avc: denied { read } for pid=408 comm="logd.auditd" name="localtime" dev="ubifs" ino=8885 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=lnk_file permissive=1
+[229248.242492] type=1400 audit(1777250144.340:426): avc: denied { sendto } for pid=12518 comm="dnsmasq" path="/dev/log" scontext=system_u:system_r:dnsmasq_t:s0-s15:c0.c1023 tcontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tclass=unix_dgram_socket permissive=1
+[229248.397748] type=1400 audit(1777250144.490:427): avc: denied { write } for pid=12849 comm="dnsmasq" name="log" dev="devtmpfs" ino=22563 scontext=system_u:system_r:dnsmasq_t:s0-s15:c0.c1023 tcontext=system_u:object_r:device_t:s0 tclass=sock_file permissive=1
+[229257.317355] type=1400 audit(1777250153.410:428): avc: denied { execute } for pid=12925 comm="sh" name="shellat7" dev="ubifs" ino=476 scontext=system_u:system_r:adbd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229257.376322] type=1400 audit(1777250153.410:429): avc: denied { execute_no_trans } for pid=12925 comm="sh" path="/data/shellat7" dev="ubifs" ino=476 scontext=system_u:system_r:adbd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229258.887498] HTB: quantum of class 10001 is big. Consider r2q change.
+[229258.907594] HTB: quantum of class 10010 is big. Consider r2q change.
+[229258.978819] HTB: quantum of class 10020 is big. Consider r2q change.
+[229259.140654] HTB: quantum of class 10030 is big. Consider r2q change.
+[229260.599144] type=1400 audit(1777250156.690:430): avc: denied { getattr } for pid=459 comm="firewall-cfg" path="/usr/share/zoneinfo/ROK" dev="ubifs" ino=7517 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=file permissive=1
+[229260.603388] type=1400 audit(1777250156.690:431): avc: denied { getattr } for pid=408 comm="logd.auditd" path="/usr/share/zoneinfo/ROK" dev="ubifs" ino=7517 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=file permissive=1
+[229261.423856] type=1400 audit(1777250157.520:432): avc: denied { read } for pid=460 comm="QCMAP_Connectio" name="lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229261.424059] type=1400 audit(1777250157.520:433): avc: denied { open } for pid=460 comm="QCMAP_Connectio" path="/data/lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229261.424163] type=1400 audit(1777250157.520:434): avc: denied { getattr } for pid=460 comm="QCMAP_Connectio" path="/data/lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229275.497896] __ipa3_del_rt_rule: 1 callbacks suppressed
+[229275.497901] ipa __ipa3_del_rt_rule:1772 bad params
+[229275.497915] ipa3_del_rt_rule: 1 callbacks suppressed
+[229275.497918] ipa ipa3_del_rt_rule:1855 failed to del rt rule 0
+[229285.605823] type=1400 audit(1777250181.700:435): avc: denied { search } for pid=459 comm=6E65746C696E6B20736F636B6574 name="zoneinfo" dev="ubifs" ino=6413 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=dir permissive=1
+[229285.611149] type=1400 audit(1777250181.700:436): avc: denied { search } for pid=408 comm="logd.auditd" name="zoneinfo" dev="ubifs" ino=6413 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=dir permissive=1
+[229286.638531] HTB: quantum of class 10001 is big. Consider r2q change.
+[229286.667272] HTB: quantum of class 10010 is big. Consider r2q change.
+[229286.713242] HTB: quantum of class 10020 is big. Consider r2q change.
+[229287.097091] HTB: quantum of class 10030 is big. Consider r2q change.
+[229288.343504] type=1400 audit(1777250184.440:437): avc: denied { write } for pid=13663 comm="dnsmasq" name="log" dev="devtmpfs" ino=22563 scontext=system_u:system_r:dnsmasq_t:s0-s15:c0.c1023 tcontext=system_u:object_r:device_t:s0 tclass=sock_file permissive=1
+[229288.650535] type=1400 audit(1777250184.740:438): avc: denied { read } for pid=459 comm="cmd-queue" name="localtime" dev="ubifs" ino=8885 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=lnk_file permissive=1
+[229293.196941] type=1400 audit(1777250189.290:439): avc: denied { read } for pid=2177 comm="wnetdm" name="2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229293.201378] type=1400 audit(1777250189.290:440): avc: denied { open } for pid=2177 comm="wnetdm" path="/data/www/usage/data/2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229293.208849] type=1400 audit(1777250189.290:441): avc: denied { getattr } for pid=2177 comm="wnetdm" path="/data/www/usage/data/2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229302.045495] type=1400 audit(1777250198.140:442): avc: denied { read write } for pid=13837 comm="iptables" path="socket:[24430]" dev="sockfs" ino=24430 scontext=system_u:system_r:iptables_t:s0-s15:c0.c1023 tcontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tclass=netlink_route_socket permissive=1
+[229302.046724] type=1400 audit(1777250198.140:443): avc: denied { read } for pid=408 comm="logd.auditd" name="localtime" dev="ubifs" ino=8885 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=lnk_file permissive=1
+[229302.133957] __ipa3_del_rt_rule: 1 callbacks suppressed
+[229302.133963] ipa __ipa3_del_rt_rule:1772 bad params
+[229302.133976] ipa3_del_rt_rule: 1 callbacks suppressed
+[229302.133979] ipa ipa3_del_rt_rule:1855 failed to del rt rule 0
+[229302.668876] type=1400 audit(1777250198.760:444): avc: denied { sendto } for pid=13663 comm="dnsmasq" path="/dev/log" scontext=system_u:system_r:dnsmasq_t:s0-s15:c0.c1023 tcontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tclass=unix_dgram_socket permissive=1
+[229311.809790] type=1400 audit(1777250207.900:445): avc: denied { execute } for pid=13994 comm="sh" name="shellat7" dev="ubifs" ino=476 scontext=system_u:system_r:adbd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229311.861747] type=1400 audit(1777250207.910:446): avc: denied { execute_no_trans } for pid=13994 comm="sh" path="/data/shellat7" dev="ubifs" ino=476 scontext=system_u:system_r:adbd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229313.178004] HTB: quantum of class 10001 is big. Consider r2q change.
+[229313.200718] HTB: quantum of class 10010 is big. Consider r2q change.
+[229313.227033] HTB: quantum of class 10020 is big. Consider r2q change.
+[229313.265206] HTB: quantum of class 10030 is big. Consider r2q change.
+[229314.767024] type=1400 audit(1777250210.850:447): avc: denied { getattr } for pid=459 comm="firewall-cfg" path="/usr/share/zoneinfo/ROK" dev="ubifs" ino=7517 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=file permissive=1
+[229314.769548] type=1400 audit(1777250210.860:448): avc: denied { getattr } for pid=408 comm="logd.auditd" path="/usr/share/zoneinfo/ROK" dev="ubifs" ino=7517 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=file permissive=1
+[229315.597338] type=1400 audit(1777250211.690:449): avc: denied { read } for pid=460 comm="QCMAP_Connectio" name="lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229315.597538] type=1400 audit(1777250211.690:450): avc: denied { open } for pid=460 comm="QCMAP_Connectio" path="/data/lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229315.597683] type=1400 audit(1777250211.690:451): avc: denied { getattr } for pid=460 comm="QCMAP_Connectio" path="/data/lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229347.977021] type=1400 audit(1777250244.070:452): avc: denied { search } for pid=459 comm="firewall-cfg" name="zoneinfo" dev="ubifs" ino=6413 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=dir permissive=1
+[229347.978179] type=1400 audit(1777250244.070:453): avc: denied { search } for pid=408 comm="logd.auditd" name="zoneinfo" dev="ubifs" ino=6413 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=dir permissive=1
+[229350.248866] type=1400 audit(1777250246.340:454): avc: denied { read } for pid=2177 comm="wnetdm" name="2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229350.266256] type=1400 audit(1777250246.350:455): avc: denied { open } for pid=2177 comm="wnetdm" path="/data/www/usage/data/2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229350.266909] type=1400 audit(1777250246.350:456): avc: denied { getattr } for pid=2177 comm="wnetdm" path="/data/www/usage/data/2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229360.674510] type=1400 audit(1777250256.770:457): avc: denied { read write } for pid=14655 comm="iptables" path="socket:[24430]" dev="sockfs" ino=24430 scontext=system_u:system_r:iptables_t:s0-s15:c0.c1023 tcontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tclass=netlink_route_socket permissive=1
+[229360.870278] HTB: quantum of class 10001 is big. Consider r2q change.
+[229360.895634] HTB: quantum of class 10010 is big. Consider r2q change.
+[229360.971557] HTB: quantum of class 10020 is big. Consider r2q change.
+[229361.124723] HTB: quantum of class 10030 is big. Consider r2q change.
+[229362.122598] type=1400 audit(1777250258.220:458): avc: denied { sendto } for pid=14531 comm="dnsmasq" path="/dev/log" scontext=system_u:system_r:dnsmasq_t:s0-s15:c0.c1023 tcontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tclass=unix_dgram_socket permissive=1
+[229362.124652] type=1400 audit(1777250258.220:459): avc: denied { read } for pid=408 comm="logd.auditd" name="localtime" dev="ubifs" ino=8885 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=lnk_file permissive=1
+[229362.404726] type=1400 audit(1777250258.500:460): avc: denied { read } for pid=459 comm=6E65746C696E6B20736F636B6574 name="localtime" dev="ubifs" ino=8885 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=lnk_file permissive=1
+[229362.542288] type=1400 audit(1777250258.640:461): avc: denied { write } for pid=14811 comm="dnsmasq" name="log" dev="devtmpfs" ino=22563 scontext=system_u:system_r:dnsmasq_t:s0-s15:c0.c1023 tcontext=system_u:object_r:device_t:s0 tclass=sock_file permissive=1
+[229378.670222] type=1400 audit(1777250274.760:462): avc: denied { execute } for pid=14990 comm="sh" name="shellat7" dev="ubifs" ino=476 scontext=system_u:system_r:adbd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229378.701769] type=1400 audit(1777250274.770:463): avc: denied { execute_no_trans } for pid=14990 comm="sh" path="/data/shellat7" dev="ubifs" ino=476 scontext=system_u:system_r:adbd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229380.127538] type=1400 audit(1777250276.220:464): avc: denied { read } for pid=460 comm="QCMAP_Connectio" name="lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229380.127747] type=1400 audit(1777250276.220:465): avc: denied { open } for pid=460 comm="QCMAP_Connectio" path="/data/lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229380.127852] type=1400 audit(1777250276.220:466): avc: denied { getattr } for pid=460 comm="QCMAP_Connectio" path="/data/lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229380.493558] type=1400 audit(1777250276.590:467): avc: denied { getattr } for pid=459 comm="firewall-cfg" path="/usr/share/zoneinfo/ROK" dev="ubifs" ino=7517 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=file permissive=1
+[229380.494852] type=1400 audit(1777250276.590:468): avc: denied { getattr } for pid=408 comm="logd.auditd" path="/usr/share/zoneinfo/ROK" dev="ubifs" ino=7517 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=file permissive=1
+[229394.843798] HTB: quantum of class 10001 is big. Consider r2q change.
+[229394.865449] HTB: quantum of class 10010 is big. Consider r2q change.
+[229394.907097] HTB: quantum of class 10020 is big. Consider r2q change.
+[229395.156885] HTB: quantum of class 10030 is big. Consider r2q change.
+[229407.332859] type=1400 audit(1777250303.430:469): avc: denied { read } for pid=2177 comm="wnetdm" name="2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229407.341530] type=1400 audit(1777250303.430:470): avc: denied { open } for pid=2177 comm="wnetdm" path="/data/www/usage/data/2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229407.342089] type=1400 audit(1777250303.430:471): avc: denied { getattr } for pid=2177 comm="wnetdm" path="/data/www/usage/data/2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229411.651610] type=1400 audit(1777250307.740:472): avc: denied { append } for pid=1936 comm="syslogd" name="local1" dev="ubifs" ino=788 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229411.670436] type=1400 audit(1777250307.740:473): avc: denied { open } for pid=1936 comm="syslogd" path="/data/logs/local1" dev="ubifs" ino=788 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229411.670685] type=1400 audit(1777250307.740:474): avc: denied { getattr } for pid=1936 comm="syslogd" path="/data/logs/local1" dev="ubifs" ino=788 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229411.670807] type=1400 audit(1777250307.750:475): avc: denied { search } for pid=408 comm="logd.auditd" name="zoneinfo" dev="ubifs" ino=6413 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=dir permissive=1
+[229411.690022] type=1400 audit(1777250307.780:476): avc: denied { search } for pid=459 comm=6E65746C696E6B20736F636B6574 name="zoneinfo" dev="ubifs" ino=6413 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=dir permissive=1
+[229411.854666] __ipa3_del_rt_rule: 1 callbacks suppressed
+[229411.854671] ipa __ipa3_del_rt_rule:1772 bad params
+[229411.854685] ipa3_del_rt_rule: 1 callbacks suppressed
+[229411.854688] ipa ipa3_del_rt_rule:1855 failed to del rt rule 0
+[229427.116015] type=1400 audit(1777250323.210:477): avc: denied { read write } for pid=15773 comm="iptables" path="socket:[24430]" dev="sockfs" ino=24430 scontext=system_u:system_r:iptables_t:s0-s15:c0.c1023 tcontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tclass=netlink_route_socket permissive=1
+[229427.183397] type=1400 audit(1777250323.270:478): avc: denied { read } for pid=459 comm=69706120647269766572206E746679 name="localtime" dev="ubifs" ino=8885 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=lnk_file permissive=1
+[229427.275380] HTB: quantum of class 10001 is big. Consider r2q change.
+[229427.288847] HTB: quantum of class 10010 is big. Consider r2q change.
+[229427.325960] HTB: quantum of class 10020 is big. Consider r2q change.
+[229427.363451] HTB: quantum of class 10030 is big. Consider r2q change.
+[229428.493885] type=1400 audit(1777250324.590:479): avc: denied { sendto } for pid=15648 comm="dnsmasq" path="/dev/log" scontext=system_u:system_r:dnsmasq_t:s0-s15:c0.c1023 tcontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tclass=unix_dgram_socket permissive=1
+[229428.496114] type=1400 audit(1777250324.590:480): avc: denied { read } for pid=408 comm="logd.auditd" name="localtime" dev="ubifs" ino=8885 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=lnk_file permissive=1
+[229428.727016] type=1400 audit(1777250324.820:481): avc: denied { write } for pid=15919 comm="dnsmasq" name="log" dev="devtmpfs" ino=22563 scontext=system_u:system_r:dnsmasq_t:s0-s15:c0.c1023 tcontext=system_u:object_r:device_t:s0 tclass=sock_file permissive=1
+[229464.405940] type=1400 audit(1777250360.500:482): avc: denied { read } for pid=2177 comm="wnetdm" name="2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229464.406135] type=1400 audit(1777250360.500:483): avc: denied { open } for pid=2177 comm="wnetdm" path="/data/www/usage/data/2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229464.406244] type=1400 audit(1777250360.500:484): avc: denied { getattr } for pid=2177 comm="wnetdm" path="/data/www/usage/data/2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229464.406331] type=1400 audit(1777250360.500:485): avc: denied { lock } for pid=2177 comm="wnetdm" path="/data/wdmconfig/wnetdm.db" dev="ubifs" ino=364 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229464.406455] type=1400 audit(1777250360.500:486): avc: denied { create } for pid=2177 comm="wnetdm" name="wnetdm.db-journal" scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229464.415544] type=1400 audit(1777250360.500:487): avc: denied { read write } for pid=2177 comm="wnetdm" path="/data/wdmconfig/wnetdm.db-journal" dev="ubifs" ino=3442 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229464.432693] type=1400 audit(1777250360.510:488): avc: denied { setattr } for pid=2177 comm="wnetdm" name="wnetdm.db-journal" dev="ubifs" ino=3442 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229464.432882] type=1400 audit(1777250360.510:489): avc: denied { unlink } for pid=2177 comm="wnetdm" name="wnetdm.db-journal" dev="ubifs" ino=3442 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229466.189541] type=1400 audit(1777250362.280:490): avc: denied { execute } for pid=16159 comm="sh" name="shellat7" dev="ubifs" ino=476 scontext=system_u:system_r:adbd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229466.249048] type=1400 audit(1777250362.290:491): avc: denied { execute_no_trans } for pid=16159 comm="sh" path="/data/shellat7" dev="ubifs" ino=476 scontext=system_u:system_r:adbd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229466.861275] type=1400 audit(1777250362.960:492): avc: denied { getattr } for pid=459 comm=6E65746C696E6B20736F636B6574 path="/usr/share/zoneinfo/ROK" dev="ubifs" ino=7517 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=file permissive=1
+[229466.866235] type=1400 audit(1777250362.960:493): avc: denied { getattr } for pid=408 comm="logd.auditd" path="/usr/share/zoneinfo/ROK" dev="ubifs" ino=7517 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=file permissive=1
+[229467.835164] type=1400 audit(1777250363.930:494): avc: denied { read } for pid=460 comm="QCMAP_Connectio" name="lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229467.835477] type=1400 audit(1777250363.930:495): avc: denied { open } for pid=460 comm="QCMAP_Connectio" path="/data/lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229467.835619] type=1400 audit(1777250363.930:496): avc: denied { getattr } for pid=460 comm="QCMAP_Connectio" path="/data/lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229480.937554] HTB: quantum of class 10001 is big. Consider r2q change.
+[229480.986256] HTB: quantum of class 10010 is big. Consider r2q change.
+[229481.027779] HTB: quantum of class 10020 is big. Consider r2q change.
+[229481.194305] HTB: quantum of class 10030 is big. Consider r2q change.
+[229482.263166] type=1400 audit(1777250378.360:497): avc: denied { append } for pid=1936 comm="syslogd" name="local1" dev="ubifs" ino=788 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229482.265058] type=1400 audit(1777250378.360:498): avc: denied { open } for pid=1936 comm="syslogd" path="/data/logs/local1" dev="ubifs" ino=788 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229482.265201] type=1400 audit(1777250378.360:499): avc: denied { getattr } for pid=1936 comm="syslogd" path="/data/logs/local1" dev="ubifs" ino=788 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229482.265338] type=1400 audit(1777250378.360:500): avc: denied { search } for pid=408 comm="logd.auditd" name="zoneinfo" dev="ubifs" ino=6413 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=dir permissive=1
+[229482.718532] type=1400 audit(1777250378.810:501): avc: denied { search } for pid=459 comm="firewall-cfg" name="zoneinfo" dev="ubifs" ino=6413 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=dir permissive=1
+[229498.966013] type=1400 audit(1777250395.060:502): avc: denied { read write } for pid=16746 comm="iptables" path="socket:[24430]" dev="sockfs" ino=24430 scontext=system_u:system_r:iptables_t:s0-s15:c0.c1023 tcontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tclass=netlink_route_socket permissive=1
+[229499.040604] __ipa3_del_rt_rule: 1 callbacks suppressed
+[229499.040611] ipa __ipa3_del_rt_rule:1772 bad params
+[229499.040625] ipa3_del_rt_rule: 1 callbacks suppressed
+[229499.040628] ipa ipa3_del_rt_rule:1855 failed to del rt rule 0
+[229499.867794] type=1400 audit(1777250395.960:503): avc: denied { write } for pid=16827 comm="dnsmasq" name="log" dev="devtmpfs" ino=22563 scontext=system_u:system_r:dnsmasq_t:s0-s15:c0.c1023 tcontext=system_u:object_r:device_t:s0 tclass=sock_file permissive=1
+[229500.367433] type=1400 audit(1777250396.460:504): avc: denied { read } for pid=459 comm="firewall-cfg" name="localtime" dev="ubifs" ino=8885 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=lnk_file permissive=1
+[229500.368614] type=1400 audit(1777250396.460:505): avc: denied { read } for pid=408 comm="logd.auditd" name="localtime" dev="ubifs" ino=8885 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=lnk_file permissive=1
+[229514.137382] HTB: quantum of class 10001 is big. Consider r2q change.
+[229514.156756] HTB: quantum of class 10010 is big. Consider r2q change.
+[229514.186471] HTB: quantum of class 10020 is big. Consider r2q change.
+[229514.242567] HTB: quantum of class 10030 is big. Consider r2q change.
+[229514.444333] type=1400 audit(1777250410.540:506): avc: denied { sendto } for pid=16827 comm="dnsmasq" path="/dev/log" scontext=system_u:system_r:dnsmasq_t:s0-s15:c0.c1023 tcontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tclass=unix_dgram_socket permissive=1
+[229516.046825] type=1400 audit(1777250412.140:507): avc: denied { getattr } for pid=459 comm="cmd-queue" path="/usr/share/zoneinfo/ROK" dev="ubifs" ino=7517 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=file permissive=1
+[229516.723203] type=1400 audit(1777250412.820:508): avc: denied { read } for pid=460 comm="QCMAP_Connectio" name="lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229516.723406] type=1400 audit(1777250412.820:509): avc: denied { open } for pid=460 comm="QCMAP_Connectio" path="/data/lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229516.723773] type=1400 audit(1777250412.820:510): avc: denied { getattr } for pid=460 comm="QCMAP_Connectio" path="/data/lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229521.492778] type=1400 audit(1777250417.590:511): avc: denied { read } for pid=2177 comm="wnetdm" name="2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229521.501511] type=1400 audit(1777250417.590:512): avc: denied { getattr } for pid=408 comm="logd.auditd" path="/usr/share/zoneinfo/ROK" dev="ubifs" ino=7517 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=file permissive=1
+[229521.501866] type=1400 audit(1777250417.590:513): avc: denied { open } for pid=2177 comm="wnetdm" path="/data/www/usage/data/2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229521.502122] type=1400 audit(1777250417.590:514): avc: denied { getattr } for pid=2177 comm="wnetdm" path="/data/www/usage/data/2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229521.516228] type=1400 audit(1777250417.600:515): avc: denied { lock } for pid=2177 comm="wnetdm" path="/data/wdmconfig/wnetdm.db" dev="ubifs" ino=364 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229528.829972] type=1400 audit(1777250424.920:516): avc: denied { execute } for pid=17243 comm="sh" name="shellat7" dev="ubifs" ino=476 scontext=system_u:system_r:adbd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229528.904075] type=1400 audit(1777250424.930:517): avc: denied { execute_no_trans } for pid=17243 comm="sh" path="/data/shellat7" dev="ubifs" ino=476 scontext=system_u:system_r:adbd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229543.803160] HTB: quantum of class 10001 is big. Consider r2q change.
+[229543.832964] HTB: quantum of class 10010 is big. Consider r2q change.
+[229543.875136] HTB: quantum of class 10020 is big. Consider r2q change.
+[229544.151980] HTB: quantum of class 10030 is big. Consider r2q change.
+[229544.455918] type=1400 audit(1777250440.550:518): avc: denied { search } for pid=459 comm=6E65746C696E6B20736F636B6574 name="zoneinfo" dev="ubifs" ino=6413 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=dir permissive=1
+[229544.456237] type=1400 audit(1777250440.550:519): avc: denied { search } for pid=408 comm="logd.auditd" name="zoneinfo" dev="ubifs" ino=6413 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=dir permissive=1
+[229571.267211] type=1400 audit(1777250467.360:520): avc: denied { read } for pid=459 comm="cmd-queue" name="localtime" dev="ubifs" ino=8885 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=lnk_file permissive=1
+[229571.385469] type=1400 audit(1777250467.480:521): avc: denied { read write } for pid=17872 comm="iptables" path="socket:[24430]" dev="sockfs" ino=24430 scontext=system_u:system_r:iptables_t:s0-s15:c0.c1023 tcontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tclass=netlink_route_socket permissive=1
+[229571.386848] type=1400 audit(1777250467.480:522): avc: denied { read } for pid=408 comm="logd.auditd" name="localtime" dev="ubifs" ino=8885 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=lnk_file permissive=1
+[229571.457814] __ipa3_del_rt_rule: 1 callbacks suppressed
+[229571.457819] ipa __ipa3_del_rt_rule:1772 bad params
+[229571.457833] ipa3_del_rt_rule: 1 callbacks suppressed
+[229571.457836] ipa ipa3_del_rt_rule:1855 failed to del rt rule 0
+[229572.004599] type=1400 audit(1777250468.100:523): avc: denied { sendto } for pid=17637 comm="dnsmasq" path="/dev/log" scontext=system_u:system_r:dnsmasq_t:s0-s15:c0.c1023 tcontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tclass=unix_dgram_socket permissive=1
+[229572.160355] type=1400 audit(1777250468.250:524): avc: denied { write } for pid=17953 comm="dnsmasq" name="log" dev="devtmpfs" ino=22563 scontext=system_u:system_r:dnsmasq_t:s0-s15:c0.c1023 tcontext=system_u:object_r:device_t:s0 tclass=sock_file permissive=1
+[229578.553838] type=1400 audit(1777250474.650:525): avc: denied { read } for pid=2177 comm="wnetdm" name="2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229578.561587] type=1400 audit(1777250474.650:526): avc: denied { open } for pid=2177 comm="wnetdm" path="/data/www/usage/data/2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229578.562192] type=1400 audit(1777250474.650:527): avc: denied { getattr } for pid=2177 comm="wnetdm" path="/data/www/usage/data/2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229578.576567] type=1400 audit(1777250474.660:528): avc: denied { create } for pid=2177 comm="wnetdm" name="wnetdm.db-journal" scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229578.577191] type=1400 audit(1777250474.660:529): avc: denied { read write } for pid=2177 comm="wnetdm" path="/data/wdmconfig/wnetdm.db-journal" dev="ubifs" ino=3446 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229578.577606] type=1400 audit(1777250474.660:530): avc: denied { setattr } for pid=2177 comm="wnetdm" name="wnetdm.db-journal" dev="ubifs" ino=3446 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229578.577983] type=1400 audit(1777250474.670:531): avc: denied { unlink } for pid=2177 comm="wnetdm" name="wnetdm.db-journal" dev="ubifs" ino=3446 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229586.202468] type=1400 audit(1777250482.300:532): avc: denied { execute } for pid=18029 comm="sh" name="shellat7" dev="ubifs" ino=476 scontext=system_u:system_r:adbd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229586.268822] type=1400 audit(1777250482.300:533): avc: denied { execute_no_trans } for pid=18029 comm="sh" path="/data/shellat7" dev="ubifs" ino=476 scontext=system_u:system_r:adbd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229587.857836] HTB: quantum of class 10001 is big. Consider r2q change.
+[229587.886246] HTB: quantum of class 10010 is big. Consider r2q change.
+[229587.956378] HTB: quantum of class 10020 is big. Consider r2q change.
+[229588.138684] HTB: quantum of class 10030 is big. Consider r2q change.
+[229589.561474] type=1400 audit(1777250485.650:534): avc: denied { getattr } for pid=459 comm="firewall-cfg" path="/usr/share/zoneinfo/ROK" dev="ubifs" ino=7517 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=file permissive=1
+[229589.563448] type=1400 audit(1777250485.660:535): avc: denied { getattr } for pid=408 comm="logd.auditd" path="/usr/share/zoneinfo/ROK" dev="ubifs" ino=7517 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=file permissive=1
+[229590.395249] type=1400 audit(1777250486.490:536): avc: denied { read } for pid=460 comm="QCMAP_Connectio" name="lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229590.395450] type=1400 audit(1777250486.490:537): avc: denied { open } for pid=460 comm="QCMAP_Connectio" path="/data/lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229590.395554] type=1400 audit(1777250486.490:538): avc: denied { getattr } for pid=460 comm="QCMAP_Connectio" path="/data/lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229604.147625] type=1400 audit(1777250500.240:539): avc: denied { search } for pid=459 comm="cmd-queue" name="zoneinfo" dev="ubifs" ino=6413 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=dir permissive=1
+[229604.356574] type=1400 audit(1777250500.450:540): avc: denied { append } for pid=1936 comm="syslogd" name="local1" dev="ubifs" ino=788 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229604.356753] type=1400 audit(1777250500.450:541): avc: denied { open } for pid=1936 comm="syslogd" path="/data/logs/local1" dev="ubifs" ino=788 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229604.356857] type=1400 audit(1777250500.450:542): avc: denied { getattr } for pid=1936 comm="syslogd" path="/data/logs/local1" dev="ubifs" ino=788 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229616.063229] HTB: quantum of class 10001 is big. Consider r2q change.
+[229616.071532] type=1400 audit(1777250512.170:543): avc: denied { search } for pid=408 comm="logd.klogd" name="zoneinfo" dev="ubifs" ino=6413 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=dir permissive=1
+[229616.086685] HTB: quantum of class 10010 is big. Consider r2q change.
+[229616.116617] HTB: quantum of class 10020 is big. Consider r2q change.
+[229616.271457] HTB: quantum of class 10030 is big. Consider r2q change.
+[229617.508856] type=1400 audit(1777250513.600:544): avc: denied { write } for pid=18763 comm="dnsmasq" name="log" dev="devtmpfs" ino=22563 scontext=system_u:system_r:dnsmasq_t:s0-s15:c0.c1023 tcontext=system_u:object_r:device_t:s0 tclass=sock_file permissive=1
+[229617.657714] type=1400 audit(1777250513.750:545): avc: denied { read } for pid=459 comm="firewall-cfg" name="localtime" dev="ubifs" ino=8885 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=lnk_file permissive=1
+[229634.354949] type=1400 audit(1777250530.450:546): avc: denied { read write } for pid=18949 comm="iptables" path="socket:[24430]" dev="sockfs" ino=24430 scontext=system_u:system_r:iptables_t:s0-s15:c0.c1023 tcontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tclass=netlink_route_socket permissive=1
+[229634.356219] type=1400 audit(1777250530.450:547): avc: denied { read } for pid=408 comm="logd.auditd" name="localtime" dev="ubifs" ino=8885 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=lnk_file permissive=1
+[229634.974508] type=1400 audit(1777250531.070:548): avc: denied { sendto } for pid=18763 comm="dnsmasq" path="/dev/log" scontext=system_u:system_r:dnsmasq_t:s0-s15:c0.c1023 tcontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tclass=unix_dgram_socket permissive=1
+[229635.629876] type=1400 audit(1777250531.720:549): avc: denied { read } for pid=2177 comm="wnetdm" name="2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229635.630059] type=1400 audit(1777250531.720:550): avc: denied { open } for pid=2177 comm="wnetdm" path="/data/www/usage/data/2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229635.630158] type=1400 audit(1777250531.720:551): avc: denied { getattr } for pid=2177 comm="wnetdm" path="/data/www/usage/data/2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229635.630247] type=1400 audit(1777250531.720:552): avc: denied { lock } for pid=2177 comm="wnetdm" path="/data/wdmconfig/wnetdm.db" dev="ubifs" ino=364 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229645.079548] type=1400 audit(1777250541.170:553): avc: denied { execute } for pid=19119 comm="sh" name="shellat7" dev="ubifs" ino=476 scontext=system_u:system_r:adbd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229645.140707] type=1400 audit(1777250541.180:554): avc: denied { execute_no_trans } for pid=19119 comm="sh" path="/data/shellat7" dev="ubifs" ino=476 scontext=system_u:system_r:adbd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229646.284968] type=1400 audit(1777250542.380:555): avc: denied { getattr } for pid=459 comm=6E65746C696E6B20736F636B6574 path="/usr/share/zoneinfo/ROK" dev="ubifs" ino=7517 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=file permissive=1
+[229646.475809] HTB: quantum of class 10001 is big. Consider r2q change.
+[229646.494612] HTB: quantum of class 10010 is big. Consider r2q change.
+[229646.546396] HTB: quantum of class 10020 is big. Consider r2q change.
+[229646.585082] HTB: quantum of class 10030 is big. Consider r2q change.
+[229649.041577] type=1400 audit(1777250545.130:556): avc: denied { read } for pid=460 comm="QCMAP_Connectio" name="lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229649.042282] type=1400 audit(1777250545.130:557): avc: denied { open } for pid=460 comm="QCMAP_Connectio" path="/data/lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229649.042414] type=1400 audit(1777250545.130:558): avc: denied { getattr } for pid=460 comm="QCMAP_Connectio" path="/data/lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229649.042503] type=1400 audit(1777250545.140:559): avc: denied { getattr } for pid=408 comm="logd.auditd" path="/usr/share/zoneinfo/ROK" dev="ubifs" ino=7517 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=file permissive=1
+[229677.526644] type=1400 audit(1777250573.620:560): avc: denied { search } for pid=459 comm="cmd-queue" name="zoneinfo" dev="ubifs" ino=6413 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=dir permissive=1
+[229677.526978] type=1400 audit(1777250573.620:561): avc: denied { search } for pid=408 comm="logd.auditd" name="zoneinfo" dev="ubifs" ino=6413 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=dir permissive=1
+[229688.830700] type=1400 audit(1777250584.920:562): avc: denied { read write } for pid=19783 comm="iptables" path="socket:[24430]" dev="sockfs" ino=24430 scontext=system_u:system_r:iptables_t:s0-s15:c0.c1023 tcontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tclass=netlink_route_socket permissive=1
+[229689.031637] HTB: quantum of class 10001 is big. Consider r2q change.
+[229689.050628] HTB: quantum of class 10010 is big. Consider r2q change.
+[229689.104917] HTB: quantum of class 10020 is big. Consider r2q change.
+[229689.175401] type=1400 audit(1777250585.270:563): avc: denied { read } for pid=459 comm=6E65746C696E6B20736F636B6574 name="localtime" dev="ubifs" ino=8885 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=lnk_file permissive=1
+[229689.248075] HTB: quantum of class 10030 is big. Consider r2q change.
+[229690.248747] type=1400 audit(1777250586.340:564): avc: denied { sendto } for pid=19656 comm="dnsmasq" path="/dev/log" scontext=system_u:system_r:dnsmasq_t:s0-s15:c0.c1023 tcontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tclass=unix_dgram_socket permissive=1
+[229690.256738] type=1400 audit(1777250586.340:565): avc: denied { read } for pid=408 comm="logd.auditd" name="localtime" dev="ubifs" ino=8885 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=lnk_file permissive=1
+[229690.602911] type=1400 audit(1777250586.700:566): avc: denied { write } for pid=19935 comm="dnsmasq" name="log" dev="devtmpfs" ino=22563 scontext=system_u:system_r:dnsmasq_t:s0-s15:c0.c1023 tcontext=system_u:object_r:device_t:s0 tclass=sock_file permissive=1
+[229692.680170] type=1400 audit(1777250588.780:567): avc: denied { read } for pid=2177 comm="wnetdm" name="2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229692.688273] type=1400 audit(1777250588.780:568): avc: denied { open } for pid=2177 comm="wnetdm" path="/data/www/usage/data/2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229692.688670] type=1400 audit(1777250588.780:569): avc: denied { getattr } for pid=2177 comm="wnetdm" path="/data/www/usage/data/2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229692.688936] type=1400 audit(1777250588.780:570): avc: denied { create } for pid=2177 comm="wnetdm" name="wnetdm.db-journal" scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229692.697070] type=1400 audit(1777250588.780:571): avc: denied { read write } for pid=2177 comm="wnetdm" path="/data/wdmconfig/wnetdm.db-journal" dev="ubifs" ino=3450 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229692.697466] type=1400 audit(1777250588.790:572): avc: denied { setattr } for pid=2177 comm="wnetdm" name="wnetdm.db-journal" dev="ubifs" ino=3450 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229692.697722] type=1400 audit(1777250588.790:573): avc: denied { unlink } for pid=2177 comm="wnetdm" name="wnetdm.db-journal" dev="ubifs" ino=3450 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229706.833711] type=1400 audit(1777250602.930:574): avc: denied { execute } for pid=20091 comm="sh" name="shellat7" dev="ubifs" ino=476 scontext=system_u:system_r:adbd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229706.881310] type=1400 audit(1777250602.930:575): avc: denied { execute_no_trans } for pid=20091 comm="sh" path="/data/shellat7" dev="ubifs" ino=476 scontext=system_u:system_r:adbd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229707.672553] __ipa3_del_rt_rule: 1 callbacks suppressed
+[229707.672559] ipa __ipa3_del_rt_rule:1772 bad params
+[229707.672572] ipa3_del_rt_rule: 1 callbacks suppressed
+[229707.672575] ipa ipa3_del_rt_rule:1855 failed to del rt rule 0
+[229708.619458] type=1400 audit(1777250604.710:576): avc: denied { read } for pid=460 comm="QCMAP_Connectio" name="lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229708.620025] type=1400 audit(1777250604.710:577): avc: denied { open } for pid=460 comm="QCMAP_Connectio" path="/data/lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229708.620154] type=1400 audit(1777250604.710:578): avc: denied { getattr } for pid=460 comm="QCMAP_Connectio" path="/data/lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229708.620246] type=1400 audit(1777250604.710:579): avc: denied { getattr } for pid=408 comm="logd.auditd" path="/usr/share/zoneinfo/ROK" dev="ubifs" ino=7517 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=file permissive=1
+[229708.981162] type=1400 audit(1777250605.070:580): avc: denied { getattr } for pid=459 comm="firewall-cfg" path="/usr/share/zoneinfo/ROK" dev="ubifs" ino=7517 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=file permissive=1
+[229718.697903] HTB: quantum of class 10001 is big. Consider r2q change.
+[229718.729785] HTB: quantum of class 10010 is big. Consider r2q change.
+[229718.801560] HTB: quantum of class 10020 is big. Consider r2q change.
+[229719.120274] HTB: quantum of class 10030 is big. Consider r2q change.
+[229738.374857] type=1400 audit(1777250634.470:581): avc: denied { append } for pid=1936 comm="syslogd" name="local1" dev="ubifs" ino=788 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229738.375329] type=1400 audit(1777250634.470:582): avc: denied { open } for pid=1936 comm="syslogd" path="/data/logs/local1" dev="ubifs" ino=788 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229738.375700] type=1400 audit(1777250634.470:583): avc: denied { getattr } for pid=1936 comm="syslogd" path="/data/logs/local1" dev="ubifs" ino=788 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229738.625896] __ipa3_del_rt_rule: 1 callbacks suppressed
+[229738.625902] ipa __ipa3_del_rt_rule:1772 bad params
+[229738.625916] ipa3_del_rt_rule: 1 callbacks suppressed
+[229738.625919] ipa ipa3_del_rt_rule:1855 failed to del rt rule 0
+[229738.631473] type=1400 audit(1777250634.730:584): avc: denied { search } for pid=408 comm="logd.klogd" name="zoneinfo" dev="ubifs" ino=6413 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=dir permissive=1
+[229749.776750] type=1400 audit(1777250645.870:585): avc: denied { lock } for pid=2177 comm="wnetdm" path="/data/wdmconfig/wnetdm.db" dev="ubifs" ino=364 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229749.786301] type=1400 audit(1777250645.870:586): avc: denied { create } for pid=2177 comm="wnetdm" name="wnetdm.db-journal" scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229749.786678] type=1400 audit(1777250645.880:587): avc: denied { read write } for pid=2177 comm="wnetdm" path="/data/wdmconfig/wnetdm.db-journal" dev="ubifs" ino=3454 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229749.786864] type=1400 audit(1777250645.880:588): avc: denied { setattr } for pid=2177 comm="wnetdm" name="wnetdm.db-journal" dev="ubifs" ino=3454 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229749.787009] type=1400 audit(1777250645.880:589): avc: denied { unlink } for pid=2177 comm="wnetdm" name="wnetdm.db-journal" dev="ubifs" ino=3454 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229753.978714] type=1400 audit(1777250650.070:590): avc: denied { read write } for pid=20911 comm="iptables" path="socket:[24430]" dev="sockfs" ino=24430 scontext=system_u:system_r:iptables_t:s0-s15:c0.c1023 tcontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tclass=netlink_route_socket permissive=1
+[229754.126295] HTB: quantum of class 10001 is big. Consider r2q change.
+[229754.146535] HTB: quantum of class 10010 is big. Consider r2q change.
+[229754.182689] HTB: quantum of class 10020 is big. Consider r2q change.
+[229754.333817] HTB: quantum of class 10030 is big. Consider r2q change.
+[229754.861328] type=1400 audit(1777250650.960:591): avc: denied { read } for pid=459 comm="cmd-queue" name="localtime" dev="ubifs" ino=8885 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=lnk_file permissive=1
+[229755.339815] type=1400 audit(1777250651.430:592): avc: denied { sendto } for pid=20786 comm="dnsmasq" path="/dev/log" scontext=system_u:system_r:dnsmasq_t:s0-s15:c0.c1023 tcontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tclass=unix_dgram_socket permissive=1
+[229755.342641] type=1400 audit(1777250651.430:593): avc: denied { read } for pid=408 comm="logd.auditd" name="localtime" dev="ubifs" ino=8885 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=lnk_file permissive=1
+[229755.720183] type=1400 audit(1777250651.810:594): avc: denied { write } for pid=21061 comm="dnsmasq" name="log" dev="devtmpfs" ino=22563 scontext=system_u:system_r:dnsmasq_t:s0-s15:c0.c1023 tcontext=system_u:object_r:device_t:s0 tclass=sock_file permissive=1
+[229782.977401] type=1400 audit(1777250679.070:595): avc: denied { execute } for pid=21261 comm="sh" name="shellat7" dev="ubifs" ino=476 scontext=system_u:system_r:adbd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229783.037133] type=1400 audit(1777250679.070:596): avc: denied { execute_no_trans } for pid=21261 comm="sh" path="/data/shellat7" dev="ubifs" ino=476 scontext=system_u:system_r:adbd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229783.780802] __ipa3_del_rt_rule: 1 callbacks suppressed
+[229783.780808] ipa __ipa3_del_rt_rule:1772 bad params
+[229783.781583] ipa3_del_rt_rule: 1 callbacks suppressed
+[229783.781587] ipa ipa3_del_rt_rule:1855 failed to del rt rule 0
+[229784.617922] type=1400 audit(1777250680.710:597): avc: denied { read } for pid=460 comm="QCMAP_Connectio" name="lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229784.618491] type=1400 audit(1777250680.710:598): avc: denied { open } for pid=460 comm="QCMAP_Connectio" path="/data/lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229784.618624] type=1400 audit(1777250680.710:599): avc: denied { getattr } for pid=460 comm="QCMAP_Connectio" path="/data/lighttpd.conf" dev="ubifs" ino=74 scontext=system_u:system_r:qcmap_cm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229784.618714] type=1400 audit(1777250680.710:600): avc: denied { getattr } for pid=408 comm="logd.auditd" path="/usr/share/zoneinfo/ROK" dev="ubifs" ino=7517 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=file permissive=1
+[229784.979997] type=1400 audit(1777250681.070:601): avc: denied { getattr } for pid=459 comm="firewall-cfg" path="/usr/share/zoneinfo/ROK" dev="ubifs" ino=7517 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=file permissive=1
+[229798.085672] HTB: quantum of class 10001 is big. Consider r2q change.
+[229798.107297] HTB: quantum of class 10010 is big. Consider r2q change.
+[229798.136640] HTB: quantum of class 10020 is big. Consider r2q change.
+[229798.288397] HTB: quantum of class 10030 is big. Consider r2q change.
+[229800.721407] type=1400 audit(1777250696.820:602): avc: denied { append } for pid=1936 comm="syslogd" name="local1" dev="ubifs" ino=788 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229800.721588] type=1400 audit(1777250696.820:603): avc: denied { open } for pid=1936 comm="syslogd" path="/data/logs/local1" dev="ubifs" ino=788 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229800.721688] type=1400 audit(1777250696.820:604): avc: denied { getattr } for pid=1936 comm="syslogd" path="/data/logs/local1" dev="ubifs" ino=788 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229806.838215] type=1400 audit(1777250702.930:605): avc: denied { read } for pid=2177 comm="wnetdm" name="2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229806.847857] type=1400 audit(1777250702.930:606): avc: denied { search } for pid=408 comm="logd.auditd" name="zoneinfo" dev="ubifs" ino=6413 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=dir permissive=1
+[229806.848081] type=1400 audit(1777250702.930:607): avc: denied { open } for pid=2177 comm="wnetdm" path="/data/www/usage/data/2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229806.848201] type=1400 audit(1777250702.930:608): avc: denied { getattr } for pid=2177 comm="wnetdm" path="/data/www/usage/data/2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[229806.848304] type=1400 audit(1777250702.940:609): avc: denied { lock } for pid=2177 comm="wnetdm" path="/data/wdmconfig/wnetdm.db" dev="ubifs" ino=364 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229806.849289] type=1400 audit(1777250702.940:610): avc: denied { create } for pid=2177 comm="wnetdm" name="wnetdm.db-journal" scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229806.855034] type=1400 audit(1777250702.940:611): avc: denied { read write } for pid=2177 comm="wnetdm" path="/data/wdmconfig/wnetdm.db-journal" dev="ubifs" ino=3458 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229806.855193] type=1400 audit(1777250702.940:612): avc: denied { setattr } for pid=2177 comm="wnetdm" name="wnetdm.db-journal" dev="ubifs" ino=3458 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229806.855290] type=1400 audit(1777250702.950:613): avc: denied { unlink } for pid=2177 comm="wnetdm" name="wnetdm.db-journal" dev="ubifs" ino=3458 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[229809.068275] coresight-dummy soc:dummy_source: Dummy source disabled
+[229809.071219] coresight: stop usb bypass
+[229809.072020] coresight coresight-tmc-etr: TMC has been stopped.
+[229809.072124] coresight coresight-tmc-etr: TMC-ETR disabled
+[229861.318112] type=1400 audit(1777250757.410:614): avc: denied { create } for pid=22033 comm="ping" scontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tcontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tclass=icmp_socket permissive=1
+[229861.322393] type=1400 audit(1777250757.410:615): avc: denied { read } for pid=22033 comm="ping" name="unix" dev="proc" ino=4026531955 scontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tcontext=system_u:object_r:proc_net_t:s0 tclass=file permissive=1
+[229861.322666] type=1400 audit(1777250757.410:616): avc: denied { setopt } for pid=22033 comm="ping" scontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tcontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tclass=icmp_socket permissive=1
+[229861.322774] type=1400 audit(1777250757.420:617): avc: denied { getopt } for pid=22033 comm="ping" scontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tcontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tclass=icmp_socket permissive=1
+[229861.322858] type=1400 audit(1777250757.420:618): avc: denied { write } for pid=22033 comm="ping" scontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tcontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tclass=icmp_socket permissive=1
+[229861.322937] type=1400 audit(1777250757.420:619): avc: denied { read } for pid=22033 comm="ping" lport=3627 scontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tcontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tclass=icmp_socket permissive=1
+[229925.168465] type=1400 audit(1777250821.260:620): avc: denied { create } for pid=22353 comm="ping" scontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tcontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tclass=icmp_socket permissive=1
+[230104.186992] type=1400 audit(1777251000.280:621): avc: denied { kill } for pid=2176 comm="qmi_ip_multicli" capability=5 scontext=system_u:system_r:qmi_ip_multiclient_t:s0-s15:c0.c1023 tcontext=system_u:system_r:qmi_ip_multiclient_t:s0-s15:c0.c1023 tclass=capability permissive=1
+[230256.447672] type=1400 audit(1777251152.540:622): avc: denied { write } for pid=1942 comm="QCMAP_Web_CLIEN" name="2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[234443.312059] type=1400 audit(1777255339.410:623): avc: denied { read } for pid=10122 comm="ping" name="unix" dev="proc" ino=4026531955 scontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tcontext=system_u:object_r:proc_net_t:s0 tclass=file permissive=1
+[234622.873386] type=1400 audit(1777255518.970:624): avc: denied { write } for pid=10906 comm="sh" name="boot_hsusb_comp" dev="ubifs" ino=79 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:adbd_system_data_t:s0 tclass=file permissive=1
+[234622.876203] type=1400 audit(1777255518.970:625): avc: denied { open } for pid=10906 comm="sh" path="/etc/usb/boot_hsusb_comp" dev="ubifs" ino=79 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:adbd_system_data_t:s0 tclass=file permissive=1
+[234622.887642] type=1400 audit(1777255518.980:626): avc: denied { read write } for pid=10907 comm="usb_composition" path="socket:[17269]" dev="sockfs" ino=17269 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tclass=unix_stream_socket permissive=1
+[234622.888195] type=1400 audit(1777255518.980:627): avc: denied { read write } for pid=10907 comm="usb_composition" path="socket:[17552]" dev="sockfs" ino=17552 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tclass=unix_dgram_socket permissive=1
+[234622.888396] type=1400 audit(1777255518.980:628): avc: denied { read } for pid=10907 comm="usb_composition" path="/dev/input/event1" dev="devtmpfs" ino=6544 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:event_device_t:s0 tclass=chr_file permissive=1
+[234622.979536] type=1400 audit(1777255519.070:629): avc: denied { search } for pid=10907 comm="usb_composition" name="data" dev="tmpfs" ino=12042 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:qcmap_tmp_t:s0 tclass=dir permissive=1
+[234622.980052] type=1400 audit(1777255519.070:630): avc: denied { dac_override } for pid=10907 comm="usb_composition" capability=1 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tclass=capability permissive=1
+[234622.980204] type=1400 audit(1777255519.070:631): avc: denied { write } for pid=10907 comm="usb_composition" name="data" dev="tmpfs" ino=12042 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:qcmap_tmp_t:s0 tclass=dir permissive=1
+[234622.980304] type=1400 audit(1777255519.070:632): avc: denied { add_name } for pid=10907 comm="usb_composition" name="usb_qti_comp" scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:qcmap_tmp_t:s0 tclass=dir permissive=1
+[234622.980393] type=1400 audit(1777255519.070:633): avc: denied { create } for pid=10907 comm="usb_composition" name="usb_qti_comp" scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:qcmap_tmp_t:s0 tclass=file permissive=1
+[234622.980476] type=1400 audit(1777255519.070:634): avc: denied { write open } for pid=10907 comm="usb_composition" path="/tmp/data/usb_qti_comp" dev="tmpfs" ino=1678567 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:qcmap_tmp_t:s0 tclass=file permissive=1
+[234622.980599] type=1400 audit(1777255519.070:635): avc: denied { getattr } for pid=10907 comm="usb_composition" path="/tmp/data/usb_qti_comp" dev="tmpfs" ino=1678567 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:qcmap_tmp_t:s0 tclass=file permissive=1
+[234623.010080] type=1400 audit(1777255519.100:636): avc: denied { getattr } for pid=10907 comm="usb_composition" path="/usr/sbin/flash_erase" dev="ubifs" ino=3721 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:mtd_tools_exec_t:s0 tclass=file permissive=1
+[234623.011269] type=1400 audit(1777255519.100:637): avc: denied { execute } for pid=10934 comm="usb_composition" name="flash_erase" dev="ubifs" ino=3721 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:mtd_tools_exec_t:s0 tclass=file permissive=1
+[234623.017769] type=1400 audit(1777255519.110:638): avc: denied { read open } for pid=10934 comm="usb_composition" path="/usr/sbin/flash_erase" dev="ubifs" ino=3721 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:mtd_tools_exec_t:s0 tclass=file permissive=1
+[234623.017974] type=1400 audit(1777255519.110:639): avc: denied { execute_no_trans } for pid=10934 comm="usb_composition" path="/usr/sbin/flash_erase" dev="ubifs" ino=3721 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:mtd_tools_exec_t:s0 tclass=file permissive=1
+[234623.018090] type=1400 audit(1777255519.110:640): avc: denied { map } for pid=10934 comm="flash_erase" path="/usr/sbin/flash_erase" dev="ubifs" ino=3721 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:mtd_tools_exec_t:s0 tclass=file permissive=1
+[234623.018183] type=1400 audit(1777255519.110:641): avc: denied { read write } for pid=10934 comm="flash_erase" name="mtd31" dev="devtmpfs" ino=8819 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:mtd_device_t:s0 tclass=chr_file permissive=1
+[234623.021250] type=1400 audit(1777255519.110:642): avc: denied { open } for pid=10934 comm="flash_erase" path="/dev/mtd31" dev="devtmpfs" ino=8819 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:mtd_device_t:s0 tclass=chr_file permissive=1
+[234623.021484] type=1400 audit(1777255519.110:643): avc: denied { getattr } for pid=10934 comm="flash_erase" path="/dev/mtd31" dev="devtmpfs" ino=8819 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:mtd_device_t:s0 tclass=chr_file permissive=1
+[234623.031126] type=1400 audit(1777255519.120:644): avc: denied { ioctl } for pid=10934 comm="flash_erase" path="/dev/mtd31" dev="devtmpfs" ino=8819 ioctlcmd=0x4d0b scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:mtd_device_t:s0 tclass=chr_file permissive=1
+[234623.044025] type=1400 audit(1777255519.140:645): avc: denied { read } for pid=10935 comm="nandwrite" name="usb_qti_comp" dev="tmpfs" ino=1678567 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:qcmap_tmp_t:s0 tclass=file permissive=1
+[234623.062401] type=1400 audit(1777255519.160:646): avc: denied { read } for pid=10937 comm="woorinet_usb" name="woorinet-run.env" dev="ubifs" ino=9237 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=file permissive=1
+[234623.064601] type=1400 audit(1777255519.160:647): avc: denied { open } for pid=10937 comm="woorinet_usb" path="/etc/woorinet-run.env" dev="ubifs" ino=9237 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=file permissive=1
+[234623.090524] type=1400 audit(1777255519.180:648): avc: denied { kill } for pid=10945 comm="woorinet_usb" capability=5 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tclass=capability permissive=1
+[234623.202510] Switching to composition number 90E7
+[234623.239856] dwc3 a600000.dwc3: ep1in: can't queue to disabled endpoint
+[234623.240061] dwc3 a600000.dwc3: ep1in: can't queue to disabled endpoint
+[234623.240238] dwc3 a600000.dwc3: ep1in: can't queue to disabled endpoint
+[234623.240453] dwc3 a600000.dwc3: ep1in: can't queue to disabled endpoint
+[234623.240599] dwc3 a600000.dwc3: ep1in: can't queue to disabled endpoint
+[234623.240728] dwc3 a600000.dwc3: ep1in: can't queue to disabled endpoint
+[234623.243327] type=1400 audit(1777255519.340:649): avc: denied { read } for pid=408 comm="logd.klogd" name="localtime" dev="ubifs" ino=8885 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=lnk_file permissive=1
+[234623.244781] dwc3 a600000.dwc3: ep1in: can't queue to disabled endpoint
+[234623.245198] dwc3 a600000.dwc3: ep3out: can't queue to disabled endpoint
+[234623.246646] dwc3 a600000.dwc3: ep3out: can't queue to disabled endpoint
+[234623.247826] dwc3 a600000.dwc3: ep3out: can't queue to disabled endpoint
+[234623.283574] f_cdev_poll: Failed due to NULL device or disconnected.
+[234623.302970] dwc3 a600000.dwc3: request 00000000 was not queued to ep0out
+[234623.390226] dwc3 a600000.dwc3: request 00000000 was not queued to ep0out
+[234623.575473] WOORINET bs_rndis_mac_addr_get: 00:00:00:00:00:00
+[234623.575513] msm-dwc3 a600000.ssusb: ep [gsi-epin1,29] already configured as msm endpoint
+[234623.575521] msm-dwc3 a600000.ssusb: ep [gsi-epout1,30] already configured as msm endpoint
+[234623.587114] systemd-udevd[11040]: Using default interface naming scheme 'v243'.
+[234623.598192] type=1400 audit(1777255519.690:650): avc: denied { read } for pid=459 comm=6E65746C696E6B20736F636B6574 name="localtime" dev="ubifs" ino=8885 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=lnk_file permissive=1
+[234623.599272] RNDIS_IPA NetDev was initialized
+[234623.599730] msm-dwc3 a600000.ssusb: ep [gsi-epin2,31] already configured as msm endpoint
+[234623.618444] RNDIS_IPA NetDev was opened
+[234623.633090] netlink: 4 bytes leftover after parsing attributes in process `QCMAP_Connectio'.
+[234623.647249] \n add rndis to bridge start
+[234623.658549] bridge0: port 2(rndis0) entered blocking state
+[234623.658563] bridge0: port 2(rndis0) entered disabled state
+[234623.662189] device rndis0 entered promiscuous mode
+[234623.669731] \n add rndis to bridge stop
+[234623.692770] android_work: sent uevent USB_STATE=DISCONNECTED
+[234623.712507] systemd-udevd[11040]: android0: Process '/etc/udev/scripts/automtp.sh' failed with exit code 1.
+[234623.797575] msm-dwc3 a600000.ssusb: Could not get usb psy
+[234623.958354] msm-dwc3 a600000.ssusb: Could not get usb psy
+[234623.958415] android_work: did not send uevent (0 0 00000000)
+[234624.005239] android_work: sent uevent USB_STATE=CONNECTED
+[234624.034584] systemd-udevd[11040]: android0: Process '/etc/udev/scripts/automtp.sh' failed with exit code 1.
+[234624.092091] configfs-gadget gadget: high-speed config #1: c
+[234624.096964] type=1400 audit(1777255520.190:651): avc: denied { write } for pid=688 comm="diag-router" name="kpi_values" dev="sysfs" ino=14428 scontext=system_u:system_r:diag-router_t:s0-s15:c0.c1023 tcontext=system_u:object_r:sysfs_t:s0 tclass=file permissive=1
+[234624.103714] msm-dwc3 a600000.ssusb: Could not get usb psy
+[234624.109740] android_work: sent uevent USB_STATE=CONFIGURED
+[234624.116169] ipa_usb_notify_cb: Set net_ready_trigger
+[234624.137431] systemd-udevd[11034]: android0: Process '/etc/udev/scripts/automtp.sh' failed with exit code 1.
+[234624.436848] IPv6: ADDRCONF(NETDEV_CHANGE): rndis0: link becomes ready
+[234624.439411] bridge0: port 2(rndis0) entered blocking state
+[234624.439440] bridge0: port 2(rndis0) entered forwarding state
+[234624.471008] RNDIS_IPA@rndis_ipa_start_xmit@1027@ctx:systemd-udevd: Missing pipe connected and/or iface up
+[234624.481146] ipa_usb_notify_cb: Set net_ready_trigger
+[234624.481162] RNDIS_IPA NetDev pipes were connected
+[234627.668236] type=1400 audit(1777255523.760:652): avc: denied { sendto } for pid=21658 comm="dnsmasq" path="/dev/log" scontext=system_u:system_r:dnsmasq_t:s0-s15:c0.c1023 tcontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tclass=unix_dgram_socket permissive=1
+[234627.749614] QCMAP: rndis0 Client Mac Address 4e:27:73:ad:a9:5e
+[234627.749706] QCMAP: rndis0 Client IP Address 192.168.225.134
+[234664.652455] type=1400 audit(1777255560.750:653): avc: denied { read } for pid=2177 comm="wnetdm" name="2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[234664.661323] type=1400 audit(1777255560.750:654): avc: denied { open } for pid=2177 comm="wnetdm" path="/data/www/usage/data/2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[234664.661696] type=1400 audit(1777255560.750:655): avc: denied { getattr } for pid=2177 comm="wnetdm" path="/data/www/usage/data/2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[234717.758241] type=1400 audit(1777255613.850:656): avc: denied { getattr } for pid=459 comm=756470206374206C697374656E6572 path="/usr/share/zoneinfo/ROK" dev="ubifs" ino=7517 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=file permissive=1
+[234717.774733] type=1400 audit(1777255613.850:657): avc: denied { getattr } for pid=408 comm="logd.auditd" path="/usr/share/zoneinfo/ROK" dev="ubifs" ino=7517 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=file permissive=1
+[234773.856327] msm-dwc3 a600000.ssusb: Could not get usb psy
+[234773.857961] bridge0: port 2(rndis0) entered disabled state
+[234773.890588] RNDIS_IPA NetDev pipes disconnected (0 outstanding clr)
+[234773.924873] device rndis0 left promiscuous mode
+[234773.928718] bridge0: port 2(rndis0) entered disabled state
+[234783.253396] dwc3 a600000.dwc3: request 00000000 was not queued to ep1out
+[234783.258158] f_cdev_poll: Failed due to NULL device or disconnected.
+[234783.310704] msm-dwc3 a600000.ssusb: Could not get usb psy
+[234783.311278] android_work: sent uevent USB_STATE=DISCONNECTED
+[234783.339824] systemd-udevd[12014]: android0: Process '/etc/udev/scripts/automtp.sh' failed with exit code 1.
+[234783.377016] msm-dwc3 a600000.ssusb: Could not get usb psy
+[234783.377032] android_work: did not send uevent (0 0 00000000)
+[234783.431691] android_work: sent uevent USB_STATE=CONNECTED
+[234783.449671] systemd-udevd[12014]: android0: Process '/etc/udev/scripts/automtp.sh' failed with exit code 1.
+[234783.470598] configfs-gadget gadget: high-speed config #1: c
+[234783.475702] msm-dwc3 a600000.ssusb: Could not get usb psy
+[234783.475794] android_work: sent uevent USB_STATE=CONFIGURED
+[234783.491637] ipa_usb_notify_cb: Set net_ready_trigger
+[234783.507853] systemd-udevd[12005]: android0: Process '/etc/udev/scripts/automtp.sh' failed with exit code 1.
+[234783.631022] rndis_ipa_start_xmit: 2029 callbacks suppressed
+[234783.631031] RNDIS_IPA@rndis_ipa_start_xmit@1027@ctx:kworker/u2:4: Missing pipe connected and/or iface up
+[234783.656401] ipa_usb_notify_cb: Set net_ready_trigger
+[234783.656414] RNDIS_IPA NetDev pipes were connected
+[234783.728851] bridge0: port 2(rndis0) entered blocking state
+[234783.728865] bridge0: port 2(rndis0) entered disabled state
+[234783.743448] device rndis0 entered promiscuous mode
+[234783.748365] bridge0: port 2(rndis0) entered blocking state
+[234783.748380] bridge0: port 2(rndis0) entered forwarding state
+[234786.389685] QCMAP: rndis0 Client Mac Address 4e:27:73:ad:a9:5e
+[234786.389761] QCMAP: rndis0 Client IP Address 192.168.225.134
+[234788.210940] msm-dwc3 a600000.ssusb: Could not get usb psy
+[234788.213434] bridge0: port 2(rndis0) entered disabled state
+[234788.265684] RNDIS_IPA NetDev pipes disconnected (0 outstanding clr)
+[234788.294652] device rndis0 left promiscuous mode
+[234788.305901] bridge0: port 2(rndis0) entered disabled state
+[234798.712579] dwc3 a600000.dwc3: request 00000000 was not queued to ep1out
+[234798.761052] msm-dwc3 a600000.ssusb: Could not get usb psy
+[234798.761103] android_work: did not send uevent (1 1 00000000)
+[234798.822930] configfs-gadget gadget: high-speed config #1: c
+[234798.823304] msm-dwc3 a600000.ssusb: Could not get usb psy
+[234798.823375] android_work: sent uevent USB_STATE=CONFIGURED
+[234798.841698] ipa_usb_notify_cb: Set net_ready_trigger
+[234798.855010] systemd-udevd[12172]: android0: Process '/etc/udev/scripts/automtp.sh' failed with exit code 1.
+[234798.991048] rndis_ipa_start_xmit: 4555 callbacks suppressed
+[234798.991059] RNDIS_IPA@rndis_ipa_start_xmit@1027@ctx:usbd: Missing pipe connected and/or iface up
+[234799.010310] ipa_usb_notify_cb: Set net_ready_trigger
+[234799.010325] RNDIS_IPA NetDev pipes were connected
+[234799.105418] bridge0: port 2(rndis0) entered blocking state
+[234799.105432] bridge0: port 2(rndis0) entered disabled state
+[234799.112495] device rndis0 entered promiscuous mode
+[234799.117645] bridge0: port 2(rndis0) entered blocking state
+[234799.117659] bridge0: port 2(rndis0) entered forwarding state
+[234801.503477] QCMAP: rndis0 Client Mac Address 4e:27:73:ad:a9:5e
+[234801.503541] QCMAP: rndis0 Client IP Address 192.168.225.134
+[234881.206968] msm-dwc3 a600000.ssusb: Could not get usb psy
+[234881.208607] bridge0: port 2(rndis0) entered disabled state
+[234881.249116] RNDIS_IPA NetDev pipes disconnected (0 outstanding clr)
+[234881.277417] device rndis0 left promiscuous mode
+[234881.283688] bridge0: port 2(rndis0) entered disabled state
+[234881.316032] dwc3 a600000.dwc3: request 00000000 was not queued to ep1out
+[234881.334430] msm-dwc3 a600000.ssusb: Could not get usb psy
+[234881.334516] android_work: sent uevent USB_STATE=DISCONNECTED
+[234881.355649] android_work: sent uevent USB_STATE=CONNECTED
+[234881.368322] systemd-udevd[12650]: android0: Process '/etc/udev/scripts/automtp.sh' failed with exit code 1.
+[234881.381346] systemd-udevd[12650]: android0: Process '/etc/udev/scripts/automtp.sh' failed with exit code 1.
+[234881.572284] configfs-gadget gadget: high-speed config #1: c
+[234881.572661] msm-dwc3 a600000.ssusb: Could not get usb psy
+[234881.572736] android_work: sent uevent USB_STATE=CONFIGURED
+[234881.591767] ipa_usb_notify_cb: Set net_ready_trigger
+[234881.603097] systemd-udevd[12643]: android0: Process '/etc/udev/scripts/automtp.sh' failed with exit code 1.
+[234881.659698] msm-dwc3 a600000.ssusb: Could not get usb psy
+[234893.723016] msm-dwc3 a600000.ssusb: Could not get usb psy
+[234893.723170] android_work: sent uevent USB_STATE=DISCONNECTED
+[234893.732690] android_work: sent uevent USB_STATE=CONNECTED
+[234893.752426] systemd-udevd[12736]: android0: Process '/etc/udev/scripts/automtp.sh' failed with exit code 1.
+[234893.772037] configfs-gadget gadget: high-speed config #1: c
+[234893.772426] msm-dwc3 a600000.ssusb: Could not get usb psy
+[234893.772502] android_work: sent uevent USB_STATE=CONFIGURED
+[234893.783674] systemd-udevd[12736]: android0: Process '/etc/udev/scripts/automtp.sh' failed with exit code 1.
+[234893.791968] ipa_usb_notify_cb: Set net_ready_trigger
+[234893.801122] systemd-udevd[12736]: android0: Process '/etc/udev/scripts/automtp.sh' failed with exit code 1.
+[234893.941038] rndis_ipa_start_xmit: 1073 callbacks suppressed
+[234893.941048] RNDIS_IPA@rndis_ipa_start_xmit@1027@ctx:usbd: Missing pipe connected and/or iface up
+[234893.955819] ipa_usb_notify_cb: Set net_ready_trigger
+[234893.955833] RNDIS_IPA NetDev pipes were connected
+[234894.040576] bridge0: port 2(rndis0) entered blocking state
+[234894.040590] bridge0: port 2(rndis0) entered disabled state
+[234894.044339] device rndis0 entered promiscuous mode
+[234894.053245] bridge0: port 2(rndis0) entered blocking state
+[234894.053261] bridge0: port 2(rndis0) entered forwarding state
+[234896.821500] QCMAP: rndis0 Client Mac Address 4e:27:73:ad:a9:5e
+[234896.821565] QCMAP: rndis0 Client IP Address 192.168.225.134
+[234906.918095] type=1400 audit(1777255803.010:658): avc: denied { write } for pid=1942 comm="QCMAP_Web_CLIEN" name="2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[244520.199635] type=1400 audit(1777265416.290:659): avc: denied { getattr } for pid=29610 comm="df" name="/" dev="binder" ino=1 scontext=system_u:system_r:adbd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:binderfs_t:s0 tclass=filesystem permissive=1
+[244520.225472] type=1400 audit(1777265416.290:660): avc: denied { search } for pid=408 comm="logd.auditd" name="zoneinfo" dev="ubifs" ino=6413 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=dir permissive=1
+[244522.023946] type=1400 audit(1777265418.120:661): avc: denied { search } for pid=459 comm=756470206374206C697374656E6572 name="zoneinfo" dev="ubifs" ino=6413 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=dir permissive=1
+[244551.383389] type=1400 audit(1777265447.480:662): avc: denied { lock } for pid=2177 comm="wnetdm" path="/data/wdmconfig/wnetdm.db" dev="ubifs" ino=364 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[244551.392391] type=1400 audit(1777265447.480:663): avc: denied { getattr } for pid=2177 comm="wnetdm" path="/data/wdmconfig/wnetdm.db" dev="ubifs" ino=364 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[245682.726076] type=1400 audit(1777266578.820:664): avc: denied { append } for pid=1936 comm="syslogd" name="local1" dev="ubifs" ino=788 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[245682.726351] type=1400 audit(1777266578.820:665): avc: denied { open } for pid=1936 comm="syslogd" path="/data/logs/local1" dev="ubifs" ino=788 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[245688.873815] type=1400 audit(1777266584.970:666): avc: denied { write } for pid=3384 comm="fota_scr" name="fotascr_resp_url.tmp" dev="ubifs" ino=2084 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[245694.408224] type=1400 audit(1777266590.500:667): avc: denied { create } for pid=2177 comm="wnetdm" name="wnetdm.db-journal" scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[245694.416630] type=1400 audit(1777266590.500:668): avc: denied { read } for pid=2177 comm="wnetdm" path="/data/wdmconfig/wnetdm.db-journal" dev="ubifs" ino=3530 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[245694.416879] type=1400 audit(1777266590.510:669): avc: denied { setattr } for pid=2177 comm="wnetdm" name="wnetdm.db-journal" dev="ubifs" ino=3530 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[245694.416997] type=1400 audit(1777266590.510:670): avc: denied { unlink } for pid=2177 comm="wnetdm" name="wnetdm.db-journal" dev="ubifs" ino=3530 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[252181.388560] 12345
+[252207.251827] 12345
+[252455.837595] 12345
+[252464.050389] 12345
+[256061.715675] type=1400 audit(1777276957.810:671): avc: denied { write } for pid=26354 comm="sh" name="boot_hsusb_comp" dev="ubifs" ino=79 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:adbd_system_data_t:s0 tclass=file permissive=1
+[256061.719370] type=1400 audit(1777276957.810:672): avc: denied { open } for pid=26354 comm="sh" path="/etc/usb/boot_hsusb_comp" dev="ubifs" ino=79 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:adbd_system_data_t:s0 tclass=file permissive=1
+[256061.730709] type=1400 audit(1777276957.820:673): avc: denied { read write } for pid=26355 comm="usb_composition" path="socket:[17269]" dev="sockfs" ino=17269 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tclass=unix_stream_socket permissive=1
+[256061.737873] type=1400 audit(1777276957.820:674): avc: denied { read } for pid=26355 comm="usb_composition" path="/dev/input/event1" dev="devtmpfs" ino=6544 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:event_device_t:s0 tclass=chr_file permissive=1
+[256061.811264] type=1400 audit(1777276957.900:675): avc: denied { search } for pid=26355 comm="usb_composition" name="data" dev="tmpfs" ino=12042 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:qcmap_tmp_t:s0 tclass=dir permissive=1
+[256061.811902] type=1400 audit(1777276957.900:676): avc: denied { write } for pid=26355 comm="usb_composition" name="usb_qti_comp" dev="tmpfs" ino=1678567 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:qcmap_tmp_t:s0 tclass=file permissive=1
+[256061.812031] type=1400 audit(1777276957.900:677): avc: denied { open } for pid=26355 comm="usb_composition" path="/tmp/data/usb_qti_comp" dev="tmpfs" ino=1678567 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:qcmap_tmp_t:s0 tclass=file permissive=1
+[256061.812125] type=1400 audit(1777276957.900:678): avc: denied { getattr } for pid=26355 comm="usb_composition" path="/tmp/data/usb_qti_comp" dev="tmpfs" ino=1678567 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:qcmap_tmp_t:s0 tclass=file permissive=1
+[256061.812207] type=1400 audit(1777276957.910:679): avc: denied { read } for pid=408 comm="logd.auditd" name="localtime" dev="ubifs" ino=8885 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=lnk_file permissive=1
+[256061.836964] type=1400 audit(1777276957.930:680): avc: denied { getattr } for pid=26355 comm="usb_composition" path="/usr/sbin/flash_erase" dev="ubifs" ino=3721 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:mtd_tools_exec_t:s0 tclass=file permissive=1
+[256061.837595] type=1400 audit(1777276957.930:681): avc: denied { execute } for pid=26378 comm="usb_composition" name="flash_erase" dev="ubifs" ino=3721 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:mtd_tools_exec_t:s0 tclass=file permissive=1
+[256061.845266] type=1400 audit(1777276957.930:682): avc: denied { read open } for pid=26378 comm="usb_composition" path="/usr/sbin/flash_erase" dev="ubifs" ino=3721 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:mtd_tools_exec_t:s0 tclass=file permissive=1
+[256061.845458] type=1400 audit(1777276957.930:683): avc: denied { execute_no_trans } for pid=26378 comm="usb_composition" path="/usr/sbin/flash_erase" dev="ubifs" ino=3721 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:mtd_tools_exec_t:s0 tclass=file permissive=1
+[256061.845562] type=1400 audit(1777276957.930:684): avc: denied { map } for pid=26378 comm="flash_erase" path="/usr/sbin/flash_erase" dev="ubifs" ino=3721 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:mtd_tools_exec_t:s0 tclass=file permissive=1
+[256061.845655] type=1400 audit(1777276957.940:685): avc: denied { read write } for pid=26378 comm="flash_erase" name="mtd31" dev="devtmpfs" ino=8819 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:mtd_device_t:s0 tclass=chr_file permissive=1
+[256061.851329] type=1400 audit(1777276957.940:686): avc: denied { open } for pid=26378 comm="flash_erase" path="/dev/mtd31" dev="devtmpfs" ino=8819 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:mtd_device_t:s0 tclass=chr_file permissive=1
+[256061.851515] type=1400 audit(1777276957.940:687): avc: denied { getattr } for pid=26378 comm="flash_erase" path="/dev/mtd31" dev="devtmpfs" ino=8819 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:mtd_device_t:s0 tclass=chr_file permissive=1
+[256061.852261] type=1400 audit(1777276957.950:688): avc: denied { ioctl } for pid=26378 comm="flash_erase" path="/dev/mtd31" dev="devtmpfs" ino=8819 ioctlcmd=0x4d0b scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:mtd_device_t:s0 tclass=chr_file permissive=1
+[256061.870101] type=1400 audit(1777276957.960:689): avc: denied { read } for pid=26379 comm="nandwrite" name="usb_qti_comp" dev="tmpfs" ino=1678567 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:qcmap_tmp_t:s0 tclass=file permissive=1
+[256061.889233] type=1400 audit(1777276957.980:690): avc: denied { read } for pid=26381 comm="woorinet_usb" name="woorinet-run.env" dev="ubifs" ino=9237 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=file permissive=1
+[256061.894455] type=1400 audit(1777276957.980:691): avc: denied { open } for pid=26381 comm="woorinet_usb" path="/etc/woorinet-run.env" dev="ubifs" ino=9237 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=file permissive=1
+[256062.028609] Switching to composition number 90E7
+[256062.065798] __dwc3_gadget_ep_queue: 22 callbacks suppressed
+[256062.065808] dwc3 a600000.dwc3: ep3out: can't queue to disabled endpoint
+[256062.067053] dwc3 a600000.dwc3: ep3out: can't queue to disabled endpoint
+[256062.068220] dwc3 a600000.dwc3: ep3out: can't queue to disabled endpoint
+[256062.069383] dwc3 a600000.dwc3: ep3out: can't queue to disabled endpoint
+[256062.071564] dwc3 a600000.dwc3: ep3out: can't queue to disabled endpoint
+[256062.076327] dwc3 a600000.dwc3: ep3out: can't queue to disabled endpoint
+[256062.077588] dwc3 a600000.dwc3: ep3out: can't queue to disabled endpoint
+[256062.078777] dwc3 a600000.dwc3: ep3out: can't queue to disabled endpoint
+[256062.079910] dwc3 a600000.dwc3: ep3out: can't queue to disabled endpoint
+[256062.081689] dwc3 a600000.dwc3: ep3out: can't queue to disabled endpoint
+[256062.105125] f_cdev_poll: Failed due to NULL device or disconnected.
+[256062.125703] dwc3 a600000.dwc3: request 00000000 was not queued to ep0out
+[256062.140847] RNDIS_IPA NetDev pipes disconnected (0 outstanding clr)
+[256062.147281] dwc3 a600000.dwc3: request 00000000 was not queued to ep0out
+[256062.157544] bridge0: port 2(rndis0) entered disabled state
+[256062.179842] RNDIS_IPA NetDev queue is stopped
+[256062.183788] bridge0: port 2(rndis0) entered disabled state
+[256062.190235] device rndis0 left promiscuous mode
+[256062.190252] bridge0: port 2(rndis0) entered disabled state
+[256062.201449] __ipa_add_flt_get_ep_idx: 1 callbacks suppressed
+[256062.201455] ipa __ipa_add_flt_get_ep_idx:1223 ep not connected ep_idx=0
+[256062.231106] type=1400 audit(1777276958.320:692): avc: denied { create } for pid=2095 comm="set_iptables_de" name="core.set_iptables_de" scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:coredump_data_t:s0 tclass=file permissive=1
+[256062.241143] RNDIS_IPA NetDev was cleaned
+[256062.241564] ------------[ cut here ]------------
+[256062.241586] WARNING: CPU: 0 PID: 26422 at drivers/usb/gadget/configfs.c:596 configfs_unlink+0x15c/0x28c
+[256062.241590] Unable to locate function to unbind
+[256062.241593] Modules linked in: qca_ssdk(OE) qps615_ioss qps615 phylink ioss embms_kernel(O) rmnet_eth(O) rmnet_core(O)
+[256062.241613] CPU: 0 PID: 26422 Comm: rm Tainted: G        W  OE     5.4.295-perf #1
+[256062.241616] Hardware name: Qualcomm Technologies, Inc. SDXLEMUR (Flattened Device Tree)
+[256062.241637] [<b010ef3c>] (unwind_backtrace) from [<b010c25c>] (show_stack+0x10/0x14)
+[256062.241646] [<b010c25c>] (show_stack) from [<b011e608>] (__warn+0xbc/0xc0)
+[256062.241654] [<b011e608>] (__warn) from [<b011e690>] (warn_slowpath_fmt+0x84/0x9c)
+[256062.241662] [<b011e690>] (warn_slowpath_fmt) from [<b02ee838>] (configfs_unlink+0x15c/0x28c)
+[256062.241673] [<b02ee838>] (configfs_unlink) from [<b02704c0>] (vfs_unlink+0x114/0x2a8)
+[256062.241682] [<b02704c0>] (vfs_unlink) from [<b0270794>] (do_unlinkat+0x140/0x260)
+[256062.241690] [<b0270794>] (do_unlinkat) from [<b0101000>] (ret_fast_syscall+0x0/0x54)
+[256062.241694] Exception stack(0xdec35fa8 to 0xdec35ff0)
+[256062.241700] 5fa0:                   aeeb9ebc 00000000 aeeb9ebc 00000002 00000000 00000608
+[256062.241707] 5fc0: aeeb9ebc 00000000 00000000 0000000a 00587988 005873d8 00587988 00000000
+[256062.241712] 5fe0: 00587afc aeeb9b5c 0054cd73 a6e43678
+[256062.241716] ---[ end trace ed06f38496830592 ]---
+[256062.241772] ------------[ cut here ]------------
+[256062.241782] WARNING: CPU: 0 PID: 26422 at drivers/usb/gadget/configfs.c:596 configfs_unlink+0x15c/0x28c
+[256062.241785] Unable to locate function to unbind
+[256062.241787] Modules linked in: qca_ssdk(OE) qps615_ioss qps615 phylink ioss embms_kernel(O) rmnet_eth(O) rmnet_core(O)
+[256062.241801] CPU: 0 PID: 26422 Comm: rm Tainted: G        W  OE     5.4.295-perf #1
+[256062.241804] Hardware name: Qualcomm Technologies, Inc. SDXLEMUR (Flattened Device Tree)
+[256062.241816] [<b010ef3c>] (unwind_backtrace) from [<b010c25c>] (show_stack+0x10/0x14)
+[256062.241823] [<b010c25c>] (show_stack) from [<b011e608>] (__warn+0xbc/0xc0)
+[256062.241830] [<b011e608>] (__warn) from [<b011e690>] (warn_slowpath_fmt+0x84/0x9c)
+[256062.241838] [<b011e690>] (warn_slowpath_fmt) from [<b02ee838>] (configfs_unlink+0x15c/0x28c)
+[256062.241846] [<b02ee838>] (configfs_unlink) from [<b02704c0>] (vfs_unlink+0x114/0x2a8)
+[256062.241853] [<b02704c0>] (vfs_unlink) from [<b0270794>] (do_unlinkat+0x140/0x260)
+[256062.241860] [<b0270794>] (do_unlinkat) from [<b0101000>] (ret_fast_syscall+0x0/0x54)
+[256062.241864] Exception stack(0xdec35fa8 to 0xdec35ff0)
+[256062.241870] 5fa0:                   aeeb9ecb 00000000 aeeb9ecb 00000002 00000000 00000608
+[256062.241876] 5fc0: aeeb9ecb 00000000 00000000 0000000a 00587988 005873d8 00587988 00000000
+[256062.241881] 5fe0: 00587afc aeeb9b5c 0054cd73 a6e43678
+[256062.241885] ---[ end trace ed06f38496830593 ]---
+[256062.260515] \n add rndis to bridge start
+[256062.321126] type=1400 audit(1777276958.410:693): avc: denied { read write open } for pid=2095 comm="set_iptables_de" path="/data/coredump/core.set_iptables_de" dev="ubifs" ino=3718 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:coredump_data_t:s0 tclass=file permissive=1
+[256062.463825] netlink: 4 bytes leftover after parsing attributes in process `QCMAP_Connectio'.
+[256062.515684] \n add rndis to bridge stop
+[256062.682813] type=1400 audit(1777276958.780:694): avc: denied { sendto } for pid=21658 comm="dnsmasq" path="/dev/log" scontext=system_u:system_r:dnsmasq_t:s0-s15:c0.c1023 tcontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tclass=unix_dgram_socket permissive=1
+[256062.836424] WOORINET bs_rndis_mac_addr_get: 00:00:00:00:00:00
+[256062.836462] msm-dwc3 a600000.ssusb: ep [gsi-epin1,29] already configured as msm endpoint
+[256062.836470] msm-dwc3 a600000.ssusb: ep [gsi-epout1,30] already configured as msm endpoint
+[256062.845847] systemd-udevd[26472]: Using default interface naming scheme 'v243'.
+[256062.854158] RNDIS_IPA NetDev was initialized
+[256062.877526] RNDIS_IPA NetDev was opened
+[256062.883697] netlink: 4 bytes leftover after parsing attributes in process `QCMAP_Connectio'.
+[256062.932826] android_work: sent uevent USB_STATE=DISCONNECTED
+[256062.952175] systemd-udevd[26471]: android0: Process '/etc/udev/scripts/automtp.sh' failed with exit code 1.
+[256062.986696] \n add rndis to bridge start
+[256062.995432] bridge0: port 2(rndis0) entered blocking state
+[256062.995445] bridge0: port 2(rndis0) entered disabled state
+[256062.998200] device rndis0 entered promiscuous mode
+[256063.005295] \n add rndis to bridge stop
+[256063.040230] msm-dwc3 a600000.ssusb: Could not get usb psy
+[256063.139903] msm-dwc3 a600000.ssusb: Could not get usb psy
+[256063.139949] android_work: did not send uevent (0 0 00000000)
+[256063.198260] android_work: sent uevent USB_STATE=CONNECTED
+[256063.211771] systemd-udevd[26472]: android0: Process '/etc/udev/scripts/automtp.sh' failed with exit code 1.
+[256063.341998] configfs-gadget gadget: high-speed config #1: c
+[256063.343276] msm-dwc3 a600000.ssusb: Could not get usb psy
+[256063.352182] android_work: sent uevent USB_STATE=CONFIGURED
+[256063.371444] systemd-udevd[26472]: android0: Process '/etc/udev/scripts/automtp.sh' failed with exit code 1.
+[256063.792072] IPv6: ADDRCONF(NETDEV_CHANGE): rndis0: link becomes ready
+[256063.793445] type=1400 audit(1777276959.890:695): avc: denied { getattr } for pid=459 comm=6E65746C696E6B20736F636B6574 path="/usr/share/zoneinfo/ROK" dev="ubifs" ino=7517 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=file permissive=1
+[256063.794945] bridge0: port 2(rndis0) entered blocking state
+[256063.794966] bridge0: port 2(rndis0) entered forwarding state
+[256063.830589] ipa_usb_notify_cb: Set net_ready_trigger
+[256063.830604] RNDIS_IPA NetDev pipes were connected
+[256063.990307] QCMAP: rndis0 Client Mac Address 96:15:ee:83:51:d4
+[256063.990399] QCMAP: rndis0 Client IP Address 192.168.225.134
+[256063.990827] type=1400 audit(1777276960.080:696): avc: denied { add_name } for pid=26570 comm="dnsmasq_script." name="kpi_values" scontext=system_u:system_r:dnsmasq_t:s0-s15:c0.c1023 tcontext=system_u:object_r:sysfs_t:s0 tclass=dir permissive=1
+[256064.000672] type=1400 audit(1777276960.080:697): avc: denied { create } for pid=26570 comm="dnsmasq_script." name="kpi_values" scontext=system_u:system_r:dnsmasq_t:s0-s15:c0.c1023 tcontext=system_u:object_r:sysfs_t:s0 tclass=file permissive=1
+[256064.022583] type=1400 audit(1777276960.090:698): avc: denied { getattr } for pid=408 comm="logd.auditd" path="/usr/share/zoneinfo/ROK" dev="ubifs" ino=7517 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=file permissive=1
+[256096.242594] type=1400 audit(1777276992.340:699): avc: denied { read } for pid=2177 comm="wnetdm" name="2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[256096.249744] type=1400 audit(1777276992.340:700): avc: denied { open } for pid=2177 comm="wnetdm" path="/data/www/usage/data/2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[256096.250123] type=1400 audit(1777276992.340:701): avc: denied { getattr } for pid=2177 comm="wnetdm" path="/data/www/usage/data/2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[256359.070597] type=1400 audit(1777277255.170:702): avc: denied { write } for pid=1942 comm="QCMAP_Web_CLIEN" name="2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[256840.578481] type=1400 audit(1777277736.670:703): avc: denied { write } for pid=30725 comm="sh" name="boot_hsusb_comp" dev="ubifs" ino=79 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:adbd_system_data_t:s0 tclass=file permissive=1
+[256840.581290] type=1400 audit(1777277736.670:704): avc: denied { open } for pid=30725 comm="sh" path="/etc/usb/boot_hsusb_comp" dev="ubifs" ino=79 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:adbd_system_data_t:s0 tclass=file permissive=1
+[256840.587551] type=1400 audit(1777277736.680:705): avc: denied { read write } for pid=30726 comm="usb_composition" path="socket:[17552]" dev="sockfs" ino=17552 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tclass=unix_dgram_socket permissive=1
+[256840.655246] type=1400 audit(1777277736.750:706): avc: denied { search } for pid=30726 comm="usb_composition" name="data" dev="tmpfs" ino=12042 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:qcmap_tmp_t:s0 tclass=dir permissive=1
+[256840.711832] type=1400 audit(1777277736.810:707): avc: denied { read } for pid=30752 comm="woorinet_usb" name="woorinet-run.env" dev="ubifs" ino=9237 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=file permissive=1
+[256840.714069] type=1400 audit(1777277736.810:708): avc: denied { open } for pid=30752 comm="woorinet_usb" path="/etc/woorinet-run.env" dev="ubifs" ino=9237 scontext=system_u:system_r:usb_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=file permissive=1
+[256840.844986] Switching to composition number 90E7
+[256840.873293] f_cdev_poll: Failed due to NULL device or disconnected.
+[256840.878173] bridge0: port 2(rndis0) entered disabled state
+[256840.896711] RNDIS_IPA NetDev pipes disconnected (0 outstanding clr)
+[256840.901517] RNDIS_IPA NetDev queue is stopped
+[256840.903555] bridge0: port 2(rndis0) entered disabled state
+[256840.913433] device rndis0 left promiscuous mode
+[256840.913454] bridge0: port 2(rndis0) entered disabled state
+[256840.925375] __ipa_add_flt_get_ep_idx: 1 callbacks suppressed
+[256840.925381] ipa __ipa_add_flt_get_ep_idx:1223 ep not connected ep_idx=0
+[256840.959986] \n add rndis to bridge start
+[256840.971033] RNDIS_IPA NetDev was cleaned
+[256841.084641] \n add rndis to bridge stop
+[256841.300544] WOORINET bs_rndis_mac_addr_get: 00:00:00:00:00:00
+[256841.300583] msm-dwc3 a600000.ssusb: ep [gsi-epin1,29] already configured as msm endpoint
+[256841.300592] msm-dwc3 a600000.ssusb: ep [gsi-epout1,30] already configured as msm endpoint
+[256841.312001] systemd-udevd[30794]: Using default interface naming scheme 'v243'.
+[256841.319791] RNDIS_IPA NetDev was initialized
+[256841.321172] msm-dwc3 a600000.ssusb: ep [gsi-epin2,31] already configured as msm endpoint
+[256841.348898] RNDIS_IPA NetDev was opened
+[256841.368332] netlink: 4 bytes leftover after parsing attributes in process `QCMAP_Connectio'.
+[256841.386957] \n add rndis to bridge start
+[256841.400653] bridge0: port 2(rndis0) entered blocking state
+[256841.400667] bridge0: port 2(rndis0) entered disabled state
+[256841.406111] android_work: sent uevent USB_STATE=DISCONNECTED
+[256841.423474] device rndis0 entered promiscuous mode
+[256841.430180] \n add rndis to bridge stop
+[256841.441579] systemd-udevd[30802]: android0: Process '/etc/udev/scripts/automtp.sh' failed with exit code 1.
+[256841.509743] msm-dwc3 a600000.ssusb: Could not get usb psy
+[256841.608216] msm-dwc3 a600000.ssusb: Could not get usb psy
+[256841.608262] android_work: did not send uevent (0 0 00000000)
+[256841.657457] android_work: sent uevent USB_STATE=CONNECTED
+[256841.681665] systemd-udevd[30794]: android0: Process '/etc/udev/scripts/automtp.sh' failed with exit code 1.
+[256841.798974] configfs-gadget gadget: high-speed config #1: c
+[256841.802573] msm-dwc3 a600000.ssusb: Could not get usb psy
+[256841.811110] android_work: sent uevent USB_STATE=CONFIGURED
+[256841.823811] type=1400 audit(1777277737.920:709): avc: denied { write } for pid=688 comm="diag-router" name="kpi_values" dev="sysfs" ino=14428 scontext=system_u:system_r:diag-router_t:s0-s15:c0.c1023 tcontext=system_u:object_r:sysfs_t:s0 tclass=file permissive=1
+[256841.828281] ipa_usb_notify_cb: Set net_ready_trigger
+[256841.839497] systemd-udevd[30794]: android0: Process '/etc/udev/scripts/automtp.sh' failed with exit code 1.
+[256842.552093] IPv6: ADDRCONF(NETDEV_CHANGE): rndis0: link becomes ready
+[256842.554964] bridge0: port 2(rndis0) entered blocking state
+[256842.554986] bridge0: port 2(rndis0) entered forwarding state
+[256842.581565] ipa_usb_notify_cb: Set net_ready_trigger
+[256842.581579] RNDIS_IPA NetDev pipes were connected
+[256842.770418] QCMAP: rndis0 Client Mac Address 62:33:8f:a1:30:81
+[256842.770482] QCMAP: rndis0 Client IP Address 192.168.225.134
+[259223.286900] type=1400 audit(1777280119.380:710): avc: denied { sendto } for pid=228 comm="tftp_server" path="/dev/log" scontext=system_u:system_r:tftp_server_t:s0-s15:c0.c1023 tcontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tclass=unix_dgram_socket permissive=1
+[259225.331486] type=1400 audit(1777280121.430:711): avc: denied { search } for pid=459 comm=756470206374206C697374656E6572 name="zoneinfo" dev="ubifs" ino=6413 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=dir permissive=1
+[259225.332643] type=1400 audit(1777280121.430:712): avc: denied { search } for pid=408 comm="logd.auditd" name="zoneinfo" dev="ubifs" ino=6413 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:locale_t:s0 tclass=dir permissive=1
+[259239.672452] type=1400 audit(1777280135.770:713): avc: denied { lock } for pid=2177 comm="wnetdm" path="/data/wdmconfig/wnetdm.db" dev="ubifs" ino=364 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[259239.681627] type=1400 audit(1777280135.770:714): avc: denied { getattr } for pid=2177 comm="wnetdm" path="/data/wdmconfig/wnetdm.db" dev="ubifs" ino=364 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[259411.117522] type=1400 audit(1777280307.210:715): avc: denied { create } for pid=2177 comm="wnetdm" name="wnetdm.db-journal" scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[259411.127447] type=1400 audit(1777280307.210:716): avc: denied { read write open } for pid=2177 comm="wnetdm" path="/data/wdmconfig/wnetdm.db-journal" dev="ubifs" ino=3788 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[259411.127939] type=1400 audit(1777280307.210:717): avc: denied { setattr } for pid=2177 comm="wnetdm" name="wnetdm.db-journal" dev="ubifs" ino=3788 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[259411.128234] type=1400 audit(1777280307.220:718): avc: denied { unlink } for pid=2177 comm="wnetdm" name="wnetdm.db-journal" dev="ubifs" ino=3788 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[260160.352269] systemd-tmpfiles[15996]: [/etc/tmpfiles.d/data_systemd_tmpfiles.conf:21] Duplicate line for path "/run/lock", ignoring.
+[260160.352390] systemd-tmpfiles[15996]: /etc/tmpfiles.d/data_systemd_tmpfiles.conf:25: Line references path below legacy directory /var/run/, updating /var/run/pmip → /run/pmip; please update the tmpfiles.d/ drop-in file accordingly.
+[260160.362604] systemd-tmpfiles[15996]: [/etc/tmpfiles.d/ipacm.conf:8] Unknown command type 'g'.
+[260160.370655] systemd-tmpfiles[15996]: /etc/tmpfiles.d/openvpn.conf:1: Line references path below legacy directory /var/run/, updating /var/run/openvpn → /run/openvpn; please update the tmpfiles.d/ drop-in file accordingly.
+[260160.372864] systemd-tmpfiles[15996]: /etc/tmpfiles.d/platform.conf:38: Line references path below legacy directory /var/run/, updating /var/run/resolv.conf → /run/resolv.conf; please update the tmpfiles.d/ drop-in file accordingly.
+[263987.284043] type=1400 audit(1777284883.380:719): avc: denied { append } for pid=1936 comm="syslogd" name="local1" dev="ubifs" ino=788 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:data_t:s0 tclass=file permissive=1
+[307360.540710] type=1400 audit(1777328256.630:720): avc: denied { kill } for pid=2176 comm="qmi_ip_multicli" capability=5 scontext=system_u:system_r:qmi_ip_multiclient_t:s0-s15:c0.c1023 tcontext=system_u:system_r:qmi_ip_multiclient_t:s0-s15:c0.c1023 tclass=capability permissive=1
+[316362.658336] type=1400 audit(1777337258.750:721): avc: denied { read } for pid=459 comm=756470206374206C697374656E6572 name="localtime" dev="ubifs" ino=8885 scontext=system_u:system_r:ipacm_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=lnk_file permissive=1
+[318025.657806] type=1400 audit(1777338921.750:722): avc: denied { create } for pid=5116 comm="ping" scontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tcontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tclass=icmp_socket permissive=1
+[318025.668711] type=1400 audit(1777338921.750:723): avc: denied { read } for pid=408 comm="logd.auditd" name="localtime" dev="ubifs" ino=8885 scontext=system_u:system_r:alogd_t:s0-s15:c0.c1023 tcontext=system_u:object_r:etc_t:s0 tclass=lnk_file permissive=1
+[318025.668882] type=1400 audit(1777338921.760:724): avc: denied { read } for pid=5116 comm="ping" name="unix" dev="proc" ino=4026531955 scontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tcontext=system_u:object_r:proc_net_t:s0 tclass=file permissive=1
+[318025.668984] type=1400 audit(1777338921.760:725): avc: denied { setopt } for pid=5116 comm="ping" scontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tcontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tclass=icmp_socket permissive=1
+[318025.669073] type=1400 audit(1777338921.760:726): avc: denied { getopt } for pid=5116 comm="ping" scontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tcontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tclass=icmp_socket permissive=1
+[318025.672470] type=1400 audit(1777338921.770:727): avc: denied { write } for pid=5116 comm="ping" scontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tcontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tclass=icmp_socket permissive=1
+[318025.672782] type=1400 audit(1777338921.770:728): avc: denied { read } for pid=5116 comm="ping" lport=3702 scontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tcontext=system_u:system_r:ping_t:s0-s15:c0.c1023 tclass=icmp_socket permissive=1
+[318051.732456] type=1400 audit(1777338947.830:729): avc: denied { read } for pid=2177 comm="wnetdm" name="2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[318051.735723] type=1400 audit(1777338947.830:730): avc: denied { open } for pid=2177 comm="wnetdm" path="/data/www/usage/data/2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[318051.736068] type=1400 audit(1777338947.830:731): avc: denied { getattr } for pid=2177 comm="wnetdm" path="/data/www/usage/data/2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1
+[318705.485387] type=1400 audit(1777339601.580:732): avc: denied { write } for pid=1942 comm="QCMAP_Web_CLIEN" name="2026.04" dev="ubifs" ino=460 scontext=system_u:system_r:initrc_t:s0-s15:c0.c1023 tcontext=system_u:object_r:httpd_data_t:s0 tclass=file permissive=1

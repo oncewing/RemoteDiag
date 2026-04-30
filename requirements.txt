@@ -1,0 +1,4 @@
+# Python 3.5 compatible
+flask==1.1.4
+flask-socketio==4.3.2
+eventlet==0.30.3

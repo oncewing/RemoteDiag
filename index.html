@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Woorinet RemoteDiag</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<!-- Login overlay -->
+<div id="login-overlay" class="login-overlay">
+  <div class="login-box">
+    <div class="login-logo">⚙ Woorinet RemoteDiag</div>
+    <div id="login-error" class="login-error" style="display:none"></div>
+    <input id="login-user" class="login-input" type="text" placeholder="사용자명" autocomplete="username">
+    <input id="login-pass" class="login-input" type="password" placeholder="비밀번호" autocomplete="current-password"
+           onkeydown="if(event.key==='Enter') doLogin()">
+    <button class="login-btn" onclick="doLogin()">로그인</button>
+  </div>
+</div>
+
+<header>
+  <h1>⚙ <span style="font-size:18px">Woorinet RemoteDiag</span></h1>
+  <div class="spacer"></div>
+
+  <!-- Agent status -->
+  <div id="agent-bar" class="agent-bar disconnected">
+    <span id="agent-dot" class="status-dot"></span>
+    <span id="agent-text">에이전트 미연결</span>
+    <a class="btn-sm primary" id="btn-download-exe" href="/download/agent.exe" download>⬇ agent.exe</a>
+  </div>
+
+  <!-- User info -->
+  <div class="user-bar">
+    <span id="user-label" class="dim-text"></span>
+    <button class="btn-sm danger" onclick="doLogout()">로그아웃</button>
+  </div>
+</header>
+
+<!-- Agent setup guide (shown when disconnected) -->
+<div id="setup-banner" class="setup-banner" style="display:none">
+  <div class="setup-steps">
+    <strong>에이전트 설정 방법</strong>
+    <ol>
+      <li>
+        <a class="btn-sm primary" id="banner-btn-exe" href="/download/agent.exe" download>⬇ agent.exe 다운로드</a>
+      </li>
+      <li>Windows PC에서 실행:<br>
+        <code id="setup-cmd">agent.exe</code>
+      </li>
+      <li>서버 URL 입력 후 에이전트가 연결되면 이 안내가 사라집니다.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="layout">
+
+  <!-- ── Sidebar ── -->
+  <aside>
+    <div class="aside-section">
+      <h3>시리얼 포트 (AT)</h3>
+      <div class="port-row">
+        <select id="port-select"><option value="">포트 선택</option></select>
+        <button class="btn-sm" onclick="refreshPorts()" title="새로고침">↺</button>
+      </div>
+      <div class="port-row">
+        <select id="baud-select">
+          <option value="115200">115200</option>
+          <option value="9600">9600</option>
+          <option value="57600">57600</option>
+          <option value="38400">38400</option>
+        </select>
+        <button class="btn-sm success" onclick="openPort()">열기</button>
+        <button class="btn-sm danger" onclick="closePort()">닫기</button>
+      </div>
+      <div id="port-status" class="dim-text" style="font-size:10px;margin-top:4px"></div>
+    </div>
+
+    <div class="aside-section">
+      <h3>ADB 디바이스</h3>
+      <button class="btn-sm primary" onclick="refreshDevices()" style="width:100%">↺ 새로고침</button>
+      <div id="device-list" class="device-list" style="margin-top:6px">
+        <span class="dim-text">시리얼 포트를 먼저 연결하세요</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── Main ── -->
+  <main>
+    <div class="tab-bar" id="tab-bar">
+      <div class="tab" data-tab="adb-info"  onclick="switchTab('adb-info')">디바이스 정보</div>
+      <div class="tab" data-tab="at"        onclick="switchTab('at')">AT Command</div>
+      <div class="tab" data-tab="adb-shell" onclick="switchTab('adb-shell')">ADB Shell</div>
+      <div class="tab" data-tab="logs"      onclick="switchTab('logs')">Logs</div>
+      <div class="tab" data-tab="kmsg"      onclick="switchTab('kmsg')">kmsg</div>
+      <div class="tab" data-tab="remote"    onclick="switchTab('remote')">원격 제어</div>
+      <div class="tab" data-tab="guide"     onclick="switchTab('guide')">사용 가이드</div>
+    </div>
+
+    <!-- ADB Shell -->
+    <div id="panel-adb-shell" class="panel">
+      <div class="terminal-wrap">
+        <div id="term-adb" class="terminal"></div>
+        <div class="cmd-input-row">
+          <span class="cmd-prefix">$</span>
+          <input id="adb-input" class="cmd-input" placeholder="shell 명령어 (예: getprop ro.product.model)"
+                 autocomplete="off" onkeydown="handleKey(event,'adb')">
+          <button class="btn-run" onclick="runAdbShell()">실행</button>
+          <button class="btn-sm" onclick="clearTerm('term-adb')">지우기</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Device Info -->
+    <div id="panel-adb-info" class="panel">
+      <div style="padding:8px 10px;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;flex-shrink:0">
+        <button class="btn-sm primary" onclick="loadAllDeviceInfo()">⟳ 전체 새로고침</button>
+        <span class="dim-text" id="info-status"></span>
+      </div>
+      <div id="info-sections" style="flex:1;overflow-y:auto;padding:8px">
+
+        <!-- Section 1: AT 정보 -->
+        <div class="info-section">
+          <div class="info-section-hdr" onclick="toggleSection('sec-at')">
+            <span class="sec-arrow" id="arrow-sec-at">▶</span>
+            <span class="sec-title">AT 정보</span>
+            <button class="btn-sm" onclick="refreshSection('sec-at'); event.stopPropagation()">새로고침</button>
+          </div>
+          <div class="info-section-body" id="sec-at" style="display:none">
+            <pre class="info-pre" id="pre-sec-at"><span class="dim-text">새로고침 버튼을 클릭하세요. (AT 포트가 열려 있어야 합니다)</span></pre>
+          </div>
+        </div>
+
+        <!-- Section 2: 네트워크 -->
+        <div class="info-section">
+          <div class="info-section-hdr" onclick="toggleSection('sec-ifconfig')">
+            <span class="sec-arrow" id="arrow-sec-ifconfig">▶</span>
+            <span class="sec-title">네트워크</span>
+            <button class="btn-sm" onclick="refreshSection('sec-ifconfig'); event.stopPropagation()">새로고침</button>
+          </div>
+          <div class="info-section-body" id="sec-ifconfig" style="display:none">
+            <pre class="info-pre" id="pre-sec-ifconfig"><span class="dim-text">새로고침 버튼을 클릭하세요.</span></pre>
+          </div>
+        </div>
+
+        <!-- Section 3: DNS -->
+        <div class="info-section">
+          <div class="info-section-hdr" onclick="toggleSection('sec-dns')">
+            <span class="sec-arrow" id="arrow-sec-dns">▶</span>
+            <span class="sec-title">DNS/DHCP 정보</span>
+            <button class="btn-sm" onclick="refreshSection('sec-dns'); event.stopPropagation()">새로고침</button>
+          </div>
+          <div class="info-section-body" id="sec-dns" style="display:none">
+            <div id="pre-sec-dns" class="info-pre"><span class="dim-text">새로고침 버튼을 클릭하세요.</span></div>
+          </div>
+        </div>
+
+        <!-- Section 4: 메모리 -->
+        <div class="info-section">
+          <div class="info-section-hdr" onclick="toggleSection('sec-mem')">
+            <span class="sec-arrow" id="arrow-sec-mem">▶</span>
+            <span class="sec-title">메모리 정보</span>
+            <button class="btn-sm" onclick="refreshSection('sec-mem'); event.stopPropagation()">새로고침</button>
+          </div>
+          <div class="info-section-body" id="sec-mem" style="display:none">
+            <pre class="info-pre" id="pre-sec-mem"><span class="dim-text">새로고침 버튼을 클릭하세요.</span></pre>
+          </div>
+        </div>
+
+        <!-- Section 5: 프로세스 -->
+        <div class="info-section">
+          <div class="info-section-hdr" onclick="toggleSection('sec-ps')">
+            <span class="sec-arrow" id="arrow-sec-ps">▶</span>
+            <span class="sec-title">프로세스 정보</span>
+            <button class="btn-sm" onclick="refreshSection('sec-ps'); event.stopPropagation()">새로고침</button>
+          </div>
+          <div class="info-section-body" id="sec-ps" style="display:none">
+            <pre class="info-pre" id="pre-sec-ps"><span class="dim-text">새로고침 버튼을 클릭하세요.</span></pre>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- AT Command -->
+    <div id="panel-at" class="panel">
+      <div class="at-controls">
+        <span class="dim-text">포트:</span>
+        <span id="at-port-display" style="color:var(--accent)">미연결</span>
+        <span style="margin-left:auto;color:var(--text-dim);font-size:11px">timeout(s):</span>
+        <input type="number" id="at-timeout" value="5" min="1" max="30"
+               style="width:60px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:3px 6px;border-radius:var(--radius);font-family:var(--font-mono)">
+      </div>
+      <div class="terminal-wrap">
+        <div id="term-at" class="terminal"></div>
+        <div class="cmd-input-row">
+          <span class="cmd-prefix" style="color:var(--yellow)">AT</span>
+          <input id="at-input" class="cmd-input" placeholder="명령어 입력 (예: AT+CSQ  또는  +CGMI)"
+                 autocomplete="off" onkeydown="handleKey(event,'at')">
+          <button class="btn-run" style="background:var(--yellow)" onclick="runAtCommand()">전송</button>
+          <button class="btn-sm" onclick="clearTerm('term-at')">지우기</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Logs -->
+    <div id="panel-logs" class="panel">
+      <div class="logcat-controls">
+        <label>소스:</label>
+        <select id="log-source" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:3px 8px;border-radius:var(--radius);font-family:var(--font-mono);font-size:12px">
+          <option value="/data/logs/local0">local0 (/data/logs/local0)</option>
+          <option value="/data/logs/local1">local1 (/data/logs/local1)</option>
+          <option value="/var/log/messages">messages (/var/log/messages)</option>
+        </select>
+        <button class="btn-sm success" onclick="startLog()">▶ 시작</button>
+        <button class="btn-sm danger"  onclick="stopLog()">■ 정지</button>
+        <button class="btn-sm" onclick="clearTerm('term-logs')">지우기</button>
+        <span id="log-status" class="dim-text"></span>
+        <div style="margin-left:auto;display:flex;gap:4px;align-items:center">
+          <button class="btn-sm" onclick="downloadLog('/data/logs/local0','local0')">⬇ local0</button>
+          <button class="btn-sm" onclick="downloadLog('/data/logs/local1','local1')">⬇ local1</button>
+          <button class="btn-sm" onclick="downloadLog('/var/log/messages','messages')">⬇ messages</button>
+          <button class="btn-sm" id="log-upload-btn" onclick="uploadLogs()" style="background:var(--blue);color:#fff">⬆ 로그 업로드</button>
+        </div>
+      </div>
+      <div id="log-upload-status" style="padding:2px 8px;font-size:11px;color:var(--text-dim);min-height:18px"></div>
+      <div class="terminal-wrap" style="padding-top:2px">
+        <div id="term-logs" class="terminal"></div>
+      </div>
+    </div>
+
+    <!-- kmsg -->
+    <div id="panel-kmsg" class="panel">
+      <div class="logcat-controls">
+        <button class="btn-sm success" onclick="startKmsg()">▶ 시작</button>
+        <button class="btn-sm danger"  onclick="stopKmsg()">■ 정지</button>
+        <button class="btn-sm" onclick="clearTerm('term-kmsg')">지우기</button>
+        <span id="kmsg-status" class="dim-text"></span>
+        <button class="btn-sm" style="margin-left:auto" onclick="downloadKmsg()">⬇ kmsg 저장</button>
+      </div>
+      <div class="terminal-wrap" style="padding-top:4px">
+        <div id="term-kmsg" class="terminal"></div>
+      </div>
+    </div>
+
+    <!-- 원격 제어 -->
+    <div id="panel-remote" class="panel">
+      <div class="rc-toolbar">
+        <div id="rc-status-bar" class="rc-status disconnected">
+          <span id="rc-dot" class="status-dot"></span>
+          <span id="rc-status-text">비활성</span>
+        </div>
+        <button id="rc-request-btn" class="btn-sm success" onclick="rcRequest()">▶ 원격 제어 요청</button>
+        <button id="rc-stop-btn"    class="btn-sm"         onclick="rcStopRequest()" style="display:none">✕ 요청 중지</button>
+        <button id="rc-end-btn"     class="btn-sm danger"  onclick="rcEnd()" style="display:none">■ 종료</button>
+        <button class="btn-sm" onclick="rcClear()">지우기</button>
+        <span class="dim-text" style="margin-left:auto;font-size:11px">원격에서 명령을 전달합니다</span>
+      </div>
+      <div class="terminal-wrap">
+        <div id="term-remote" class="terminal"></div>
+      </div>
+    </div>
+
+    <!-- 사용 가이드 -->
+    <div id="panel-guide" class="panel">
+      <div style="flex:1;overflow-y:auto;padding:20px;line-height:1.8">
+        <h2 style="color:var(--accent);margin-bottom:16px">RemoteDiag 사용 가이드</h2>
+
+        <div class="guide-section">
+          <h3>1. 에이전트 설치 및 실행</h3>
+          <ol>
+            <li>상단 헤더의 <strong>⬇ agent.exe</strong> 버튼으로 에이전트를 다운로드합니다.</li>
+            <li>단말기가 연결된 <strong>Windows PC</strong>에서 <code>agent.exe</code>를 실행합니다.</li>
+            <li>콘솔에 서버 URL을 입력합니다. (예: <code>wss://192.168.1.100:8443</code>)</li>
+            <li>상단 에이전트 상태가 <span style="color:var(--green)">녹색</span>으로 바뀌면 연결 성공입니다.</li>
+          </ol>
+        </div>
+
+        <div class="guide-section">
+          <h3>2. ADB 디바이스 연결</h3>
+          <ol>
+            <li>왼쪽 사이드바에서 <strong>↺ 새로고침</strong>을 클릭합니다.</li>
+            <li>연결된 장치 목록에서 대상 장치를 클릭하여 선택합니다.</li>
+            <li>장치가 하나만 연결된 경우 자동으로 선택됩니다.</li>
+          </ol>
+        </div>
+
+        <div class="guide-section" data-guide-perm="adb-info">
+          <h3>3. 디바이스 정보</h3>
+          <p>장치를 선택한 후 섹션 헤더를 클릭하면 해당 정보를 읽어옵니다. <strong>새로고침</strong> 버튼으로 재조회할 수 있습니다.</p>
+          <ul>
+            <li><strong>AT 정보</strong>: AT$$DBS, AT+CGDCONT? 결과 (AT 포트가 열려 있어야 함)</li>
+            <li><strong>네트워크</strong>: 네트워크 인터페이스 정보</li>
+            <li><strong>DNS/DHCP 정보</strong>: IP 범위, DNS 서버, MTU 등 DHCP 설정 요약</li>
+            <li><strong>메모리 정보</strong>: 메모리 사용 현황</li>
+            <li><strong>프로세스 정보</strong>: 실행 중인 프로세스 목록</li>
+          </ul>
+        </div>
+
+        <div class="guide-section" data-guide-perm="at">
+          <h3>4. AT Command</h3>
+          <ol>
+            <li>왼쪽 사이드바에서 포트를 선택하고 Baudrate를 설정한 후 <strong>열기</strong>를 클릭합니다.</li>
+            <li>AT Command 탭에서 명령어를 입력하고 <strong>전송</strong>을 클릭합니다.</li>
+            <li><code>AT</code> 접두사는 자동으로 추가됩니다. (+CSQ 입력 시 AT+CSQ로 전송)</li>
+          </ol>
+        </div>
+
+        <div class="guide-section" data-guide-perm="adb-shell">
+          <h3>5. ADB Shell</h3>
+          <p>하단 입력창에 shell 명령어를 입력하고 <strong>실행</strong> 버튼 또는 Enter를 누릅니다.</p>
+          <p>↑ / ↓ 방향키로 명령 히스토리를 탐색할 수 있습니다.</p>
+        </div>
+
+        <div class="guide-section" data-guide-perm="logs">
+          <h3>6. Logs</h3>
+          <ol>
+            <li>소스 드롭다운에서 로그 파일을 선택합니다. (local0 / local1 / messages)</li>
+            <li><strong>▶ 시작</strong> 버튼을 클릭하면 실시간 로그가 표시됩니다.</li>
+            <li><strong>■ 정지</strong> 버튼으로 스트리밍을 중단합니다.</li>
+            <li><strong>⬇ 저장</strong> 버튼으로 현재까지 수신된 로그를 파일로 저장합니다.</li>
+          </ol>
+        </div>
+
+        <div class="guide-section" data-guide-perm="kmsg">
+          <h3>7. kmsg</h3>
+          <ol>
+            <li><strong>▶ 시작</strong> 버튼을 클릭하면 커널 메시지(dmesg)를 표시합니다.</li>
+            <li>탭에 머무르는 동안 <strong>5초마다 자동 갱신</strong>됩니다.</li>
+            <li>다른 탭으로 이동하면 갱신이 중단되고, 다시 돌아오면 자동으로 재개됩니다.</li>
+            <li><strong>⬇ kmsg 저장</strong> 버튼으로 현재 커널 메시지를 파일로 저장합니다.</li>
+          </ol>
+        </div>
+
+        <div class="guide-section" data-guide-perm="remote">
+          <h3>8. 원격 제어</h3>
+          <ol>
+            <li><strong>원격 제어</strong> 탭으로 이동합니다.</li>
+            <li><strong>▶ 원격 제어 요청</strong> 버튼을 클릭합니다. 서비스가 실행 중이지 않으면 5초마다 자동 재요청합니다.</li>
+            <li>요청이 수락되면 원격 제어가 활성화되고, 관리자가 입력한 명령과 실행 결과가 이 화면에 표시됩니다.</li>
+            <li><strong>■ 종료</strong> 버튼으로 세션을 종료합니다.</li>
+          </ol>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script src="/static/js/socket.io.min.js"></script>
+<script src="/static/js/app.js"></script>
+</body>
+</html>

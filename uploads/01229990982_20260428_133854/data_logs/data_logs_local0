@@ -1,0 +1,150 @@
+Apr 24 13:57:32 sdxlemur local0.info root: [==DEPASSWD==] Start!!
+Apr 24 13:57:35 sdxlemur local0.notice wdm: 2.1.9 started by User 0
+Apr 24 13:57:36 sdxlemur local0.info odl: No bootstrap report
+Apr 24 13:57:36 sdxlemur local0.info odl: CONF >> device_name: 450080290452518
+Apr 24 13:57:36 sdxlemur local0.info odl: CONF >> upload_url: ftp://assisi:12345@10.225.109.37/WR-H904/WR4/qxdmlog/450080290452518/
+Apr 24 13:57:36 sdxlemur local0.info odl: CONF >> upload_time: 23
+Apr 24 13:57:36 sdxlemur local0.info odl: CONF >> cfg_url: /data/qxdmlog/wdiagdef.cfg
+Apr 24 13:57:36 sdxlemur local0.info odl: CONF >> mask_file: /data/qxdmlog/wdiagdef.cfg
+Apr 24 13:57:36 sdxlemur local0.info odl: CONF >> mqtt_address: {wnetdm}
+Apr 24 13:57:36 sdxlemur local0.info odl: CONF >> max_file_num: 7
+Apr 24 13:57:36 sdxlemur local0.info odl: CONF >> proc_active: 0
+Apr 24 13:57:36 sdxlemur local0.info odl: CONF >> use_qmdl2_v2: 1
+Apr 24 13:57:36 sdxlemur local0.info odl: CONF >> qdss_mask: 0
+Apr 24 13:57:36 sdxlemur local0.err odl: diag_mdlog: successfully created pid file /tmp/wqxdm_pid pid: 2450
+Apr 24 13:57:37 sdxlemur local0.info root: [==DEPASSWD==] Not set yet for root!
+Apr 24 13:57:37 sdxlemur local0.info root: [==DEPASSWD==] Found imei 0
+Apr 24 13:57:37 sdxlemur local0.info wdm: delta: 10
+Apr 24 13:57:37 sdxlemur local0.info wdm: Restored pre rx: -1 - tx: -1
+Apr 24 13:57:37 sdxlemur local0.info wdm: tx report 0KB pre: 0
+Apr 24 13:57:38 sdxlemur local0.info wdm: rx report 0KB pre: 0
+Apr 24 13:57:40 sdxlemur local0.info root: [==DEPASSWD==] Done!!
+Apr 24 13:57:47 sdxlemur local0.err wdm: WDM Active: 0
+Apr 24 14:00:06 sdxlemur local0.info root: [==DEPASSWD==] Start!!
+Apr 24 14:00:09 sdxlemur local0.notice wdm: 2.1.9 started by User 0
+Apr 24 14:00:09 sdxlemur local0.info root: [==DEPASSWD==] Found imei 0
+Apr 24 14:00:10 sdxlemur local0.info root: [==DEPASSWD==] Done!!
+Apr 24 14:00:10 sdxlemur local0.info odl: No bootstrap report
+Apr 24 14:00:10 sdxlemur local0.info wdm: delta: 10
+Apr 24 14:00:10 sdxlemur local0.info odl: CONF >> device_name: 450080290452518
+Apr 24 14:00:10 sdxlemur local0.info odl: CONF >> upload_url: ftp://assisi:12345@10.225.109.37/WR-H904/WR4/qxdmlog/450080290452518/
+Apr 24 14:00:10 sdxlemur local0.info odl: CONF >> upload_time: 23
+Apr 24 14:00:10 sdxlemur local0.info odl: CONF >> cfg_url: /data/qxdmlog/wdiagdef.cfg
+Apr 24 14:00:10 sdxlemur local0.info odl: CONF >> mask_file: /data/qxdmlog/wdiagdef.cfg
+Apr 24 14:00:10 sdxlemur local0.info odl: CONF >> mqtt_address: {wnetdm}
+Apr 24 14:00:10 sdxlemur local0.info odl: CONF >> max_file_num: 7
+Apr 24 14:00:10 sdxlemur local0.info odl: CONF >> proc_active: 0
+Apr 24 14:00:10 sdxlemur local0.info odl: CONF >> use_qmdl2_v2: 1
+Apr 24 14:00:10 sdxlemur local0.info odl: CONF >> qdss_mask: 0
+Apr 24 14:00:10 sdxlemur local0.err odl: diag_mdlog: successfully created pid file /tmp/wqxdm_pid pid: 2092
+Apr 24 14:00:10 sdxlemur local0.info wdm: Restored pre rx: 0 - tx: 0
+Apr 24 14:00:11 sdxlemur local0.info wdm: tx report 0KB pre: 0
+Apr 24 14:00:11 sdxlemur local0.info wdm: rx report 0KB pre: 0
+Apr 24 14:00:20 sdxlemur local0.err wdm: WDM Active: 0
+Apr 24 14:08:17 sdxlemur local0.info root: [==DEPASSWD==] Start!!
+Apr 24 14:08:20 sdxlemur local0.info root: [==DEPASSWD==] Found imei 0
+Apr 24 14:08:20 sdxlemur local0.info root: [==DEPASSWD==] Done!!
+Apr 24 14:08:21 sdxlemur local0.notice wdm: 2.1.9 started by User 0
+Apr 24 14:08:22 sdxlemur local0.info odl: No bootstrap report
+Apr 24 14:08:22 sdxlemur local0.info odl: CONF >> device_name: 450080290452518
+Apr 24 14:08:22 sdxlemur local0.info odl: CONF >> upload_url: ftp://assisi:12345@10.225.109.37/WR-H904/WR4/qxdmlog/450080290452518/
+Apr 24 14:08:22 sdxlemur local0.info odl: CONF >> upload_time: 23
+Apr 24 14:08:22 sdxlemur local0.info odl: CONF >> cfg_url: /data/qxdmlog/wdiagdef.cfg
+Apr 24 14:08:22 sdxlemur local0.info odl: CONF >> mask_file: /data/qxdmlog/wdiagdef.cfg
+Apr 24 14:08:22 sdxlemur local0.info odl: CONF >> mqtt_address: {wnetdm}
+Apr 24 14:08:22 sdxlemur local0.info odl: CONF >> max_file_num: 7
+Apr 24 14:08:22 sdxlemur local0.info odl: CONF >> proc_active: 0
+Apr 24 14:08:22 sdxlemur local0.info odl: CONF >> use_qmdl2_v2: 1
+Apr 24 14:08:22 sdxlemur local0.info odl: CONF >> qdss_mask: 0
+Apr 24 14:08:22 sdxlemur local0.err odl: diag_mdlog: successfully created pid file /tmp/wqxdm_pid pid: 2125
+Apr 24 14:08:22 sdxlemur local0.info wdm: delta: 10
+Apr 24 14:08:22 sdxlemur local0.info wdm: Restored pre rx: 0 - tx: 0
+Apr 24 14:08:22 sdxlemur local0.info wdm: tx report 0KB pre: 0
+Apr 24 14:08:22 sdxlemur local0.info wdm: rx report 0KB pre: 0
+Apr 24 14:08:32 sdxlemur local0.err wdm: WDM Active: 0
+Apr 24 14:38:35 sdxlemur local0.info root: [==DEPASSWD==] Start!!
+Apr 24 14:38:37 sdxlemur local0.notice wdm: 2.1.9 started by User 0
+Apr 24 14:38:38 sdxlemur local0.info root: [==DEPASSWD==] Found imei 0
+Apr 24 14:38:38 sdxlemur local0.info root: [==DEPASSWD==] Done!!
+Apr 24 14:38:38 sdxlemur local0.info odl: No bootstrap report
+Apr 24 14:38:38 sdxlemur local0.info odl: CONF >> device_name: 450080290452518
+Apr 24 14:38:38 sdxlemur local0.info odl: CONF >> upload_url: ftp://assisi:12345@10.225.109.37/WR-H904/WR4/qxdmlog/450080290452518/
+Apr 24 14:38:38 sdxlemur local0.info odl: CONF >> upload_time: 23
+Apr 24 14:38:38 sdxlemur local0.info odl: CONF >> cfg_url: /data/qxdmlog/wdiagdef.cfg
+Apr 24 14:38:38 sdxlemur local0.info odl: CONF >> mask_file: /data/qxdmlog/wdiagdef.cfg
+Apr 24 14:38:38 sdxlemur local0.info odl: CONF >> mqtt_address: {wnetdm}
+Apr 24 14:38:38 sdxlemur local0.info odl: CONF >> max_file_num: 7
+Apr 24 14:38:38 sdxlemur local0.info odl: CONF >> proc_active: 0
+Apr 24 14:38:38 sdxlemur local0.info odl: CONF >> use_qmdl2_v2: 1
+Apr 24 14:38:38 sdxlemur local0.info odl: CONF >> qdss_mask: 0
+Apr 24 14:38:38 sdxlemur local0.err odl: diag_mdlog: successfully created pid file /tmp/wqxdm_pid pid: 2040
+Apr 24 14:38:38 sdxlemur local0.info wdm: delta: 10
+Apr 24 14:38:39 sdxlemur local0.info wdm: Restored pre rx: 0 - tx: 0
+Apr 24 14:38:39 sdxlemur local0.info wdm: tx report 1KB pre: 1583
+Apr 24 14:38:39 sdxlemur local0.info wdm: rx report 1KB pre: 1783
+Apr 24 14:38:48 sdxlemur local0.err wdm: WDM Active: 0
+Apr 24 14:52:42 sdxlemur local0.info root: [==DEPASSWD==] Start!!
+Apr 24 14:52:45 sdxlemur local0.info root: [==DEPASSWD==] Found imei 0
+Apr 24 14:52:46 sdxlemur local0.info root: [==DEPASSWD==] Done!!
+Apr 24 14:52:46 sdxlemur local0.notice wdm: 2.1.9 started by User 0
+Apr 24 14:52:46 sdxlemur local0.info odl: No bootstrap report
+Apr 24 14:52:46 sdxlemur local0.info odl: CONF >> device_name: 450080290452518
+Apr 24 14:52:46 sdxlemur local0.info odl: CONF >> upload_url: ftp://assisi:12345@10.225.109.37/WR-H904/WR4/qxdmlog/450080290452518/
+Apr 24 14:52:46 sdxlemur local0.info odl: CONF >> upload_time: 23
+Apr 24 14:52:46 sdxlemur local0.info odl: CONF >> cfg_url: /data/qxdmlog/wdiagdef.cfg
+Apr 24 14:52:46 sdxlemur local0.info odl: CONF >> mask_file: /data/qxdmlog/wdiagdef.cfg
+Apr 24 14:52:46 sdxlemur local0.info odl: CONF >> mqtt_address: {wnetdm}
+Apr 24 14:52:46 sdxlemur local0.info odl: CONF >> max_file_num: 7
+Apr 24 14:52:46 sdxlemur local0.info odl: CONF >> proc_active: 0
+Apr 24 14:52:46 sdxlemur local0.info odl: CONF >> use_qmdl2_v2: 1
+Apr 24 14:52:46 sdxlemur local0.info odl: CONF >> qdss_mask: 0
+Apr 24 14:52:46 sdxlemur local0.err odl: diag_mdlog: successfully created pid file /tmp/wqxdm_pid pid: 2082
+Apr 24 14:52:47 sdxlemur local0.info wdm: delta: 10
+Apr 24 14:52:47 sdxlemur local0.info wdm: Restored pre rx: 1783 - tx: 1583
+Apr 24 14:52:47 sdxlemur local0.info wdm: tx report 0KB pre: 1583
+Apr 24 14:52:47 sdxlemur local0.info wdm: rx report 0KB pre: 1783
+Apr 24 14:52:57 sdxlemur local0.err wdm: WDM Active: 0
+Apr 24 17:28:25 sdxlemur local0.info root: [==DEPASSWD==] Start!!
+Apr 24 17:28:29 sdxlemur local0.info root: [==DEPASSWD==] Found imei 0
+Apr 24 17:28:29 sdxlemur local0.info root: [==DEPASSWD==] Done!!
+Apr 24 17:28:29 sdxlemur local0.notice wdm: 2.1.9 started by User 0
+Apr 24 17:28:30 sdxlemur local0.info odl: No bootstrap report
+Apr 24 17:28:30 sdxlemur local0.info odl: CONF >> device_name: 450080290452518
+Apr 24 17:28:30 sdxlemur local0.info odl: CONF >> upload_url: ftp://assisi:12345@10.225.109.37/WR-H904/WR4/qxdmlog/450080290452518/
+Apr 24 17:28:30 sdxlemur local0.info odl: CONF >> upload_time: 23
+Apr 24 17:28:30 sdxlemur local0.info odl: CONF >> cfg_url: /data/qxdmlog/wdiagdef.cfg
+Apr 24 17:28:30 sdxlemur local0.info odl: CONF >> mask_file: /data/qxdmlog/wdiagdef.cfg
+Apr 24 17:28:30 sdxlemur local0.info odl: CONF >> mqtt_address: {wnetdm}
+Apr 24 17:28:30 sdxlemur local0.info odl: CONF >> max_file_num: 7
+Apr 24 17:28:30 sdxlemur local0.info odl: CONF >> proc_active: 0
+Apr 24 17:28:30 sdxlemur local0.info odl: CONF >> use_qmdl2_v2: 1
+Apr 24 17:28:30 sdxlemur local0.info odl: CONF >> qdss_mask: 0
+Apr 24 17:28:30 sdxlemur local0.err odl: diag_mdlog: successfully created pid file /tmp/wqxdm_pid pid: 2094
+Apr 24 17:28:31 sdxlemur local0.info wdm: delta: 10
+Apr 24 17:28:31 sdxlemur local0.info wdm: Restored pre rx: 1783 - tx: 1583
+Apr 24 17:28:31 sdxlemur local0.info wdm: tx report 7KB pre: 9487
+Apr 24 17:28:31 sdxlemur local0.info wdm: rx report 17KB pre: 19854
+Apr 24 17:28:41 sdxlemur local0.err wdm: WDM Active: 0
+Apr 24 17:55:39 sdxlemur local0.info root: [==DEPASSWD==] Start!!
+Apr 24 17:55:42 sdxlemur local0.notice wdm: 2.1.9 started by User 0
+Apr 24 17:55:43 sdxlemur local0.info root: [==DEPASSWD==] Found imei 0
+Apr 24 17:55:43 sdxlemur local0.info odl: No bootstrap report
+Apr 24 17:55:43 sdxlemur local0.info odl: CONF >> device_name: 450080290452518
+Apr 24 17:55:43 sdxlemur local0.info odl: CONF >> upload_url: ftp://assisi:12345@10.225.109.37/WR-H904/WR4/qxdmlog/450080290452518/
+Apr 24 17:55:43 sdxlemur local0.info odl: CONF >> upload_time: 23
+Apr 24 17:55:43 sdxlemur local0.info odl: CONF >> cfg_url: /data/qxdmlog/wdiagdef.cfg
+Apr 24 17:55:43 sdxlemur local0.info odl: CONF >> mask_file: /data/qxdmlog/wdiagdef.cfg
+Apr 24 17:55:43 sdxlemur local0.info odl: CONF >> mqtt_address: {wnetdm}
+Apr 24 17:55:43 sdxlemur local0.info odl: CONF >> max_file_num: 7
+Apr 24 17:55:43 sdxlemur local0.info odl: CONF >> proc_active: 0
+Apr 24 17:55:43 sdxlemur local0.info odl: CONF >> use_qmdl2_v2: 1
+Apr 24 17:55:43 sdxlemur local0.info odl: CONF >> qdss_mask: 0
+Apr 24 17:55:43 sdxlemur local0.err odl: diag_mdlog: successfully created pid file /tmp/wqxdm_pid pid: 2146
+Apr 24 17:55:43 sdxlemur local0.info root: [==DEPASSWD==] Done!!
+Apr 24 17:55:44 sdxlemur local0.info wdm: delta: 10
+Apr 24 17:55:44 sdxlemur local0.info wdm: Restored pre rx: 19854 - tx: 9487
+Apr 24 17:55:44 sdxlemur local0.info wdm: tx report 1KB pre: 10873
+Apr 24 17:55:44 sdxlemur local0.info wdm: rx report 2KB pre: 22440
+Apr 24 17:55:54 sdxlemur local0.err wdm: WDM Active: 0
+1234
+Apr 27 15:58:47 sdxlemur local0.info root: 12313212

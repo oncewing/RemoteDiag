@@ -1,0 +1,21 @@
+{
+  "user": {
+    "password_hash": "pbkdf2:sha256:150000$xr5Uvnej$4ef4913ab7bdaf5d96c7064ba48446db6ba5c7daff1b8e687565ce6bb70114fb",
+    "permissions": [
+      "at",
+      "remote"
+    ]
+  },
+  "admin": {
+    "password_hash": "pbkdf2:sha256:150000$EeQzeRhH$6d3469ef2edc1a86152f587bc5a1d0750278790626e9ea0a28182f3f57b2fa3d",
+    "permissions": [
+      "adb-shell",
+      "adb-info",
+      "at",
+      "kmsg",
+      "logs",
+      "remote",
+      "guide"
+    ]
+  }
+}

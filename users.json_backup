@@ -1,0 +1,21 @@
+{
+  "admin": {
+    "password_hash": "pbkdf2:sha256:150000$EeQzeRhH$6d3469ef2edc1a86152f587bc5a1d0750278790626e9ea0a28182f3f57b2fa3d",
+    "permissions": [
+      "adb-shell",
+      "adb-info",
+      "at",
+      "logs",
+      "kmsg",
+      "guide"
+    ]
+  },
+  "user": {
+    "password_hash": "pbkdf2:sha256:150000$zGMKVfbQ$7b8a96405b1aee3f65b4c0a1c958b8bf6ef870878d2c77bfae332aa7f9d8fe82",
+    "permissions": [
+      "adb-info",
+      "at",
+      "guide"
+    ]
+  }
+}
