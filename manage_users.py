@@ -9,8 +9,8 @@ from werkzeug.security import generate_password_hash
 
 USERS_PATH = Path(__file__).parent / "users.json"
 
-ALL_PERMISSIONS  = ["adb-shell", "adb-info", "at", "logs", "kmsg", "remote", "guide"]
-BASE_PERMISSIONS = ["adb-info", "at", "guide"]
+ALL_PERMISSIONS  = ["adb-shell", "adb-info", "at", "logs", "kmsg", "remote", "diag", "guide"]
+BASE_PERMISSIONS = ["adb-info", "at", "diag", "guide"]
 
 PERM_LABELS = {
     "adb-shell": "ADB Shell",
@@ -19,6 +19,7 @@ PERM_LABELS = {
     "logs":      "Logs",
     "kmsg":      "kmsg",
     "remote":    "원격 제어",
+    "diag":      "자동 점검",
     "guide":     "사용 가이드",
 }
 
