@@ -5,6 +5,7 @@ let selectedSerial      = '';
 let selectedPort        = '';
 let agentConnected      = false;
 let _wusbdEnableOrig    = null;   // 포트 열 때 읽은 원래 WUSBDENABLE 값
+const _devicePortMap    = {};     // serial → port (IMEI 매칭 결과)
 let logRunning      = false;
 let kmsgRunning     = false;
 let _kmsgPollTimer  = null;
@@ -155,6 +156,7 @@ async function doLogout() {
   selectedPort        = '';
   selectedSerial      = '';
   _wusbdEnableOrig    = null;
+  Object.keys(_devicePortMap).forEach(k => delete _devicePortMap[k]);
   logRunning          = false;
   kmsgRunning         = false;
   _stopKmsgPoll();
@@ -424,22 +426,23 @@ function refreshPorts() {
 // ── ADB ───────────────────────────────────────────────────────────────
 function applyDeviceList(list) {
   const el = document.getElementById('device-list');
-  if (!list || list.length === 0) {
-    el.innerHTML = '<span class="dim-text">연결된 장치 없음</span>';
-    selectedSerial = '';
+
+  // 현재 포트에 매칭된 단말기만 표시
+  const filtered = (list || []).filter(d => _devicePortMap[d.serial] === selectedPort);
+
+  if (filtered.length === 0) {
+    el.innerHTML = '<span class="dim-text">매칭된 장치 없음</span>';
+    if (selectedSerial && _devicePortMap[selectedSerial] !== selectedPort) selectedSerial = '';
     return;
   }
 
-  // 장치가 하나만 있으면 자동 선택
-  if (list.length === 1 && list[0].status === 'device') {
-    const d = list[0];
-    if (selectedSerial !== d.serial) {
-      selectedSerial = d.serial;
-      toast(`자동 선택: ${d.serial}`);
-    }
+  // 매칭 단말기 자동 선택
+  const matched = filtered.find(d => d.status === 'device');
+  if (matched && selectedSerial !== matched.serial) {
+    selectedSerial = matched.serial;
   }
 
-  el.innerHTML = list.map(d => `
+  el.innerHTML = filtered.map(d => `
     <div class="device-item ${d.serial === selectedSerial ? 'selected' : ''}"
          onclick="selectDevice('${d.serial}','${d.status}')">
       <div class="d-serial">${d.serial}</div>
@@ -474,6 +477,7 @@ async function closeDevice(serial) {
                       command: `AT*WUSBDENABLE=${restoreVal}`, timeout: 5 });
 
   if (selectedSerial === serial) selectedSerial = '';
+  delete _devicePortMap[serial];
   toast(`${serial} ADB 닫기 (WUSBDENABLE=${restoreVal})`);
 
   // 디바이스 disconnect 대기 후 목록 갱신
@@ -822,7 +826,37 @@ async function openPort() {
 
   deviceEl.innerHTML = '<span class="dim-text">연결 중...</span>';
   await new Promise(function(resolve) { setTimeout(resolve, 3000); });
-  refreshDevices();
+
+  // IMEI 매칭 (최대 5회 시도)
+  const MAX_MATCH = 5;
+  let matchRes = null;
+  for (let attempt = 1; attempt <= MAX_MATCH; attempt++) {
+    deviceEl.innerHTML =
+      `<span class="dim-text">연결 중... (${attempt}/${MAX_MATCH})</span>`;
+
+    // 디바이스 목록 갱신
+    const devRes = await sendCommand({ type: 'adb_devices' }, 'refresh_devices');
+
+    // IMEI 매칭 시도
+    matchRes = await sendCommand({ type: 'at_match_device', port }, 'at_match');
+    if (matchRes.success && matchRes.serial) {
+      Object.keys(_devicePortMap).forEach(s => { if (_devicePortMap[s] === port) delete _devicePortMap[s]; });
+      _devicePortMap[matchRes.serial] = port;
+      selectedSerial = matchRes.serial;
+      if (devRes.success) applyDeviceList(devRes.data);
+      toast(`${port} ↔ ${matchRes.serial} 자동 매칭 (${attempt}회 시도)`);
+      break;
+    }
+
+    if (attempt < MAX_MATCH) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+  }
+
+  if (!matchRes || !matchRes.success) {
+    deviceEl.innerHTML = '<span class="dim-text">매칭 실패 — 단말기 연결을 확인하세요</span>';
+    toast('IMEI 매칭 실패 (5회 시도)', true);
+  }
 }
 
 async function closePort() {
@@ -835,6 +869,8 @@ async function closePort() {
 
   const res = await sendCommand({ type: 'at_close', port });
   if (res.success) {
+    // 이 포트에 매칭된 단말기 매핑 제거
+    Object.keys(_devicePortMap).forEach(s => { if (_devicePortMap[s] === port) delete _devicePortMap[s]; });
     if (selectedPort === port) {
       selectedPort = '';
       document.getElementById('at-port-display').textContent = '미연결';

@@ -6,6 +6,7 @@ RemoteDiag Agent - Windows side
 
 import os
 import platform
+import re
 import shlex
 import signal
 import subprocess
@@ -169,6 +170,9 @@ def on_command(data: dict):
             result["success"] = r["success"]
             if not r["success"]:
                 result["error"] = r.get("stderr", "kmsg를 읽을 수 없습니다.")
+
+        elif cmd_type == "at_match_device":
+            result.update(_at_match_device(data["port"]))
 
         elif cmd_type == "log_upload":
             t = threading.Thread(
@@ -494,6 +498,31 @@ def _kmsg_stop_fn():
     if _kmsg_stop:
         _kmsg_stop.set()
         _kmsg_stop = None
+
+
+# ── Port ↔ Device IMEI 매칭 ─────────────────────────────────────────
+
+def _at_match_device(port: str) -> dict:
+    """AT 포트의 IMEI(AT+CGSN)와 ADB 단말기의 IMEI(cat /var/tmp/imei)를 비교하여 매칭."""
+    # 1. AT+CGSN으로 IMEI 획득
+    r = _at_send(port, "AT+CGSN", timeout=5)
+    m = re.search(r'\d{14,15}', r.get("response", ""))
+    if not m:
+        return {"success": False, "error": "AT+CGSN IMEI 조회 실패", "serial": None}
+    at_imei = m.group()
+
+    # 2. 연결된 ADB 단말기 IMEI와 비교
+    for device in _adb_devices():
+        if device.get("status") != "device":
+            continue
+        r2 = _adb_shell(device["serial"], "cat /var/tmp/imei", timeout=5)
+        adb_imei = r2.get("stdout", "").strip()
+        if adb_imei and adb_imei == at_imei:
+            print(f"[agent] 포트 {port} ↔ {device['serial']} (IMEI: {at_imei})")
+            return {"success": True, "serial": device["serial"], "imei": at_imei}
+
+    return {"success": False, "error": "매칭 단말기 없음",
+            "serial": None, "imei": at_imei}
 
 
 # ── Log upload ───────────────────────────────────────────────────────
