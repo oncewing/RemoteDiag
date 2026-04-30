@@ -1,9 +1,10 @@
 'use strict';
 
 // ── State ─────────────────────────────────────────────────────────────
-let selectedSerial  = '';
-let selectedPort    = '';
-let agentConnected  = false;
+let selectedSerial      = '';
+let selectedPort        = '';
+let agentConnected      = false;
+let _wusbdEnableOrig    = null;   // 포트 열 때 읽은 원래 WUSBDENABLE 값
 let logRunning      = false;
 let kmsgRunning     = false;
 let _kmsgPollTimer  = null;
@@ -141,13 +142,36 @@ async function doLogin() {
 }
 
 async function doLogout() {
+  // 시리얼 포트가 열려 있으면 ADB 원복 후 닫기
+  const port = selectedPort;
+  if (port) {
+    const restoreVal = (_wusbdEnableOrig !== null) ? _wusbdEnableOrig : 3;
+    await sendCommand({ type: 'at_command', port, command: 'AT!UNLOCK=2,"W353"', timeout: 5 });
+    await sendCommand({ type: 'at_command', port, command: `AT*WUSBDENABLE=${restoreVal}`, timeout: 5 });
+    await sendCommand({ type: 'at_close', port });
+  }
+
+  // 상태 초기화
+  selectedPort        = '';
+  selectedSerial      = '';
+  _wusbdEnableOrig    = null;
+  logRunning          = false;
+  kmsgRunning         = false;
+  _stopKmsgPoll();
+
   await fetch('/api/logout', { method: 'POST' });
   currentUser  = null;
   currentPerms = [];
   agentConnected = false;
   applyPermissions();
   showLogin();
-  document.getElementById('user-label').textContent = '';
+  document.getElementById('user-label').textContent        = '';
+  document.getElementById('device-list').innerHTML         =
+    '<span class="dim-text">시리얼 포트를 먼저 연결하세요</span>';
+  document.getElementById('port-status').textContent       = '';
+  document.getElementById('at-port-display').textContent   = '미연결';
+  document.getElementById('port-select').value             = '';
+
   // 로그아웃 후 소켓 재연결 → 세션 초기화 반영
   if (socket) {
     socket.disconnect();
@@ -161,7 +185,7 @@ function hasPermission(perm) {
 }
 
 function applyPermissions() {
-  const allTabs = ['adb-info', 'at', 'adb-shell', 'logs', 'kmsg', 'remote', 'guide'];
+  const allTabs = ['adb-info', 'diag', 'at', 'adb-shell', 'logs', 'kmsg', 'remote', 'guide'];
   allTabs.forEach(tabId => {
     const el = document.querySelector(`.tab[data-tab="${tabId}"]`);
     if (el) el.style.display = hasPermission(tabId) ? '' : 'none';
@@ -419,7 +443,11 @@ function applyDeviceList(list) {
     <div class="device-item ${d.serial === selectedSerial ? 'selected' : ''}"
          onclick="selectDevice('${d.serial}','${d.status}')">
       <div class="d-serial">${d.serial}</div>
-      <div><span class="badge ${d.status === 'device' ? 'green' : 'red'}">${d.status}</span></div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span class="badge ${d.status === 'device' ? 'green' : 'red'}">${d.status}</span>
+        <button class="btn-sm danger" style="padding:1px 7px;font-size:10px;line-height:16px"
+                onclick="event.stopPropagation();closeDevice('${d.serial}')">닫기</button>
+      </div>
       ${d.info ? `<div class="d-info">${d.info}</div>` : ''}
     </div>`).join('');
 }
@@ -431,6 +459,28 @@ function selectDevice(serial, status) {
       el.querySelector('.d-serial')?.textContent === serial));
   appendLine('term-adb', `# 디바이스 선택: ${serial} (${status})`, 't-dim');
   toast(`선택: ${serial}`);
+}
+
+async function closeDevice(serial) {
+  if (!selectedPort) { toast('시리얼 포트가 연결되지 않았습니다.', true); return; }
+  const restoreVal = (_wusbdEnableOrig !== null) ? _wusbdEnableOrig : 3;
+
+  document.getElementById('device-list').innerHTML =
+    '<span class="dim-text">ADB 닫는 중...</span>';
+
+  await sendCommand({ type: 'at_command', port: selectedPort,
+                      command: 'AT!UNLOCK=2,"W353"', timeout: 5 });
+  await sendCommand({ type: 'at_command', port: selectedPort,
+                      command: `AT*WUSBDENABLE=${restoreVal}`, timeout: 5 });
+
+  if (selectedSerial === serial) selectedSerial = '';
+  toast(`${serial} ADB 닫기 (WUSBDENABLE=${restoreVal})`);
+
+  // 디바이스 disconnect 대기 후 목록 갱신
+  document.getElementById('device-list').innerHTML =
+    '<span class="dim-text">상태 확인 중...</span>';
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  refreshDevices();
 }
 
 async function runAdbShell() {
@@ -558,12 +608,10 @@ function _renderDnsmasqConf(raw) {
   }
 
   const rows = [];
-  if (parsed.dhcpIface) rows.push(row('인터페이스', parsed.dhcpIface));
   if (parsed.dhcpStart) rows.push(row('IP 범위', `${parsed.dhcpStart} ~ ${parsed.dhcpEnd}`));
   if (parsed.dhcpMask)  rows.push(row('서브넷 마스크', parsed.dhcpMask));
   if (parsed.dhcpLease) rows.push(row('임대 시간', fmtLease(parsed.dhcpLease)));
   if (parsed.dns)       rows.push(row('DNS 서버', parsed.dns));
-  if (parsed.mtu)       rows.push(row('MTU', `${parsed.mtu} bytes`));
 
   const summary = rows.length
     ? `<table class="dns-table">${rows.join('')}</table>`
@@ -766,6 +814,7 @@ async function openPort() {
   const match  = (usbRes.response || '').match(/\*WUSBDENABLE\s*[=:]\s*(\d+)/i);
   if (match) {
     const val = parseInt(match[1], 10);
+    _wusbdEnableOrig = val;   // 원래 값 저장
     if (val !== 0 && val !== 1) {
       await sendCommand({ type: 'at_command', port, command: 'AT*WUSBDENABLE=0', timeout: 5 });
     }
@@ -885,6 +934,149 @@ function handleKey(e, type) {
 function pushHistory(arr, cmd) {
   if (arr[0] !== cmd) arr.unshift(cmd);
   if (arr.length > 100) arr.pop();
+}
+
+// ── 자동 점검 ─────────────────────────────────────────────────────────
+
+const DIAG_STEPS = [
+  { id: 'imei',    label: 'IMEI 확인' },
+  { id: 'phone',   label: 'PHONE 번호 확인' },
+  { id: 'usim',    label: 'USIM 인식' },
+  { id: 'rmnet',   label: 'RMNET_DATA IP 확인' },
+  { id: 'bridge0', label: 'BRIDGE0 인터페이스 확인' },
+];
+
+function _diagBuildTable() {
+  const tbody = document.getElementById('diag-rows');
+  tbody.innerHTML = '';
+  DIAG_STEPS.forEach(step => {
+    const tr = document.createElement('tr');
+    tr.id = 'diag-row-' + step.id;
+    tr.style.cssText = 'border-bottom:1px solid var(--border)';
+    tr.innerHTML =
+      '<td style="padding:10px 8px;width:24px;text-align:center;font-size:15px">' +
+        '<span class="diag-dot" style="color:var(--text-dim)">○</span>' +
+      '</td>' +
+      '<td style="padding:10px 12px;color:var(--text);white-space:nowrap">' + step.label + '</td>' +
+      '<td style="padding:10px 8px;color:var(--text-dim)" class="diag-msg">—</td>';
+    tbody.appendChild(tr);
+  });
+  const v = document.getElementById('diag-verdict');
+  v.style.display = 'none';
+  v.textContent   = '';
+  document.getElementById('diag-overall').textContent = '';
+}
+
+function _diagSetRow(id, state, text) {
+  const row = document.getElementById('diag-row-' + id);
+  if (!row) return;
+  const dot  = row.querySelector('.diag-dot');
+  const msg  = row.querySelector('.diag-msg');
+  const MAP  = {
+    pending: { icon: '○', color: 'var(--text-dim)' },
+    running: { icon: '⟳', color: 'var(--blue)' },
+    ok:      { icon: '✓', color: 'var(--green)' },
+    fail:    { icon: '✗', color: 'var(--red)' },
+  };
+  const s = MAP[state] || MAP.pending;
+  dot.textContent = s.icon;
+  dot.style.color = s.color;
+  if (text !== undefined) {
+    msg.textContent = text;
+    msg.style.color = state === 'fail' ? 'var(--red)'
+                    : state === 'ok'   ? 'var(--green)'
+                    : 'var(--text-dim)';
+  }
+}
+
+function _diagVerdict(ok, msg) {
+  const v = document.getElementById('diag-verdict');
+  v.style.display    = 'block';
+  v.style.background = ok ? 'rgba(80,200,120,0.12)' : 'rgba(220,80,80,0.12)';
+  v.style.color      = ok ? 'var(--green)' : 'var(--red)';
+  v.style.border     = '1px solid ' + (ok ? 'var(--green)' : 'var(--red)');
+  v.textContent      = msg;
+  document.getElementById('diag-overall').textContent = ok ? '✓ 정상' : '✗ 이상 감지';
+  document.getElementById('diag-overall').style.color = ok ? 'var(--green)' : 'var(--red)';
+}
+
+async function runDiag() {
+  if (!selectedSerial) { toast('디바이스를 먼저 선택하세요.', true); return; }
+  if (!selectedPort)   { toast('시리얼 포트를 먼저 연결하세요.', true); return; }
+
+  const btn = document.getElementById('diag-run-btn');
+  btn.disabled = true;
+  document.getElementById('diag-overall').textContent = '점검 중...';
+  document.getElementById('diag-overall').style.color = 'var(--text-dim)';
+  _diagBuildTable();
+
+  const fail = (id, msg, verdict) => {
+    _diagSetRow(id, 'fail', msg);
+    _diagVerdict(false, verdict || msg);
+    btn.disabled = false;
+  };
+
+  // ── 1. IMEI ────────────────────────────────────────────────────────
+  _diagSetRow('imei', 'running', '확인 중...');
+  const imeiRes = await sendCommand(
+    { type: 'adb_shell', serial: selectedSerial, command: 'cat /var/tmp/imei' }, 'diag');
+  const imei = (imeiRes.stdout || '').trim();
+  if (!imeiRes.success || !imei || /^0+$/.test(imei) || imei.length < 10) {
+    return fail('imei', 'IMEI 정보 오류', 'IMEI 정보 오류 — 점검 중단');
+  }
+  _diagSetRow('imei', 'ok', imei);
+
+  // ── 2. PHONE 번호 ──────────────────────────────────────────────────
+  _diagSetRow('phone', 'running', '확인 중...');
+  const phoneRes = await sendCommand(
+    { type: 'adb_shell', serial: selectedSerial, command: 'cat /var/tmp/phone_number' }, 'diag');
+  const phone = (phoneRes.stdout || '').trim().replace(/\D/g, '');
+  if (!phoneRes.success || !/^0(10|12)\d{7,8}$/.test(phone)) {
+    return fail('phone', '번호 정보 오류', '번호 정보 오류 — 점검 중단');
+  }
+  _diagSetRow('phone', 'ok', phone);
+
+  // ── 3. USIM 상태 ──────────────────────────────────────────────────
+  _diagSetRow('usim', 'running', '확인 중...');
+  const usimRes = await sendCommand(
+    { type: 'at_command', port: selectedPort, command: 'AT*WSTAT?', timeout: 5 }, 'diag');
+  const usimResp = (usimRes.response || '').toUpperCase();
+  if (usimResp.includes('READY')) {
+    _diagSetRow('usim', 'ok', 'READY');
+  } else if (usimResp.includes('OPEN')) {
+    return fail('usim', '미개통', '미개통 — 점검 중단');
+  } else {
+    return fail('usim', 'USIM 오류', 'USIM 오류 — 점검 중단');
+  }
+
+  // ── 4. RMNET IP ────────────────────────────────────────────────────
+  _diagSetRow('rmnet', 'running', '확인 중...');
+  const ipRes = await sendCommand(
+    { type: 'at_command', port: selectedPort, command: 'AT*WWANIP?', timeout: 5 }, 'diag');
+  const ipResp  = ipRes.response || '';
+  const v4match = ipResp.match(/V4:\s*(\S+)/i);
+  const v6match = ipResp.match(/V6:\s*(\S+)/i);
+  const hasV4   = v4match && v4match[1] && !/^0\.0\.0\.0$/.test(v4match[1]) && v4match[1] !== '-';
+  const hasV6   = v6match && v6match[1] && v6match[1] !== '::' && v6match[1] !== '-';
+  if (!hasV4 && !hasV6) {
+    return fail('rmnet', '무선망 NETWORK 연결 오류', '무선망 NETWORK 연결 오류 — 점검 중단');
+  }
+  const ipInfo = [hasV4 ? 'V4 ' + v4match[1] : '', hasV6 ? 'V6 ' + v6match[1] : '']
+                  .filter(Boolean).join('  ');
+  _diagSetRow('rmnet', 'ok', ipInfo);
+
+  // ── 5. BRIDGE0 인터페이스 ─────────────────────────────────────────
+  _diagSetRow('bridge0', 'running', '확인 중...');
+  const ifRes = await sendCommand(
+    { type: 'adb_shell', serial: selectedSerial, command: 'ifconfig' }, 'diag');
+  if (!ifRes.success || !(ifRes.stdout || '').includes('bridge0')) {
+    return fail('bridge0', '네트워크 인터페이스 오류', '네트워크 인터페이스 오류 — 점검 중단');
+  }
+  _diagSetRow('bridge0', 'ok', '확인됨');
+
+  // ── 전체 통과 ─────────────────────────────────────────────────────
+  _diagVerdict(true, '✓ 모든 항목 정상');
+  btn.disabled = false;
 }
 
 // ── Toast ─────────────────────────────────────────────────────────────

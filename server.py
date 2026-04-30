@@ -36,8 +36,8 @@ _remote_control_active = False
 _controller_sid    = None   # remote_control.py 연결 SID
 _remote_client_sid = None   # 원격 제어 요청한 브라우저 SID
 
-ALL_PERMISSIONS  = ["adb-shell", "adb-info", "at", "logs", "kmsg", "remote", "guide"]
-BASE_PERMISSIONS = ["adb-info", "at", "guide"]
+ALL_PERMISSIONS  = ["adb-shell", "adb-info", "at", "logs", "kmsg", "remote", "diag", "guide"]
+BASE_PERMISSIONS = ["adb-info", "at", "diag", "guide"]
 
 
 # -- User management --------------------------------------------------

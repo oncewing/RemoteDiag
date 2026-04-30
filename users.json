@@ -2,8 +2,12 @@
   "user": {
     "password_hash": "pbkdf2:sha256:150000$xr5Uvnej$4ef4913ab7bdaf5d96c7064ba48446db6ba5c7daff1b8e687565ce6bb70114fb",
     "permissions": [
+      "adb-info",
+      "diag",
+      "adb-shell",
       "at",
-      "remote"
+      "remote",
+      "guide"
     ]
   },
   "admin": {
@@ -15,7 +19,8 @@
       "kmsg",
       "logs",
       "remote",
-      "guide"
+      "guide",
+      "diag"
     ]
   }
 }

@@ -17,8 +17,9 @@ import serial
 import serial.tools.list_ports
 import socketio as sio_module
 
-# 서버 URL은 실행 시마다 콘솔에서 입력.
-SERVER_URL = ""
+# ── 빌드 시 설정값 ───────────────────────────────────────────────────
+SERVER_URL   = "wss://10.1.255.85:8443"   # 빌드 시 서버 주소 고정
+EXPIRE_DATE  = "2026-05-30"               # 사용 기한 (YYYY-MM-DD)
 
 ADB_PATH = "adb"
 AT_TIMEOUT = 5
@@ -168,6 +169,16 @@ def on_command(data: dict):
             result["success"] = r["success"]
             if not r["success"]:
                 result["error"] = r.get("stderr", "kmsg를 읽을 수 없습니다.")
+
+        elif cmd_type == "log_upload":
+            t = threading.Thread(
+                target=_do_log_upload,
+                args=(data["serial"], data.get("port", ""), browser_sid),
+                daemon=True,
+            )
+            t.start()
+            result["success"] = True
+            result["message"] = "로그 수집 시작됨"
 
         else:
             result["error"] = f"알 수 없는 명령: {cmd_type}"
@@ -485,38 +496,115 @@ def _kmsg_stop_fn():
         _kmsg_stop = None
 
 
-# ── Server URL 입력 ──────────────────────────────────────────────────
+# ── Log upload ───────────────────────────────────────────────────────
 
-def _ask_url() -> str:
-    print("=" * 50)
-    print("  RemoteDiag Agent")
-    print("=" * 50)
-    print("서버 URL을 입력하세요.")
-    print("예) wss://192.168.1.100:8443")
-    print()
+def _do_log_upload(serial: str, port: str, browser_sid: str):
+    """백그라운드: dmesg / /data/logs/* / /var/log/messages 수집 후 서버로 전송."""
+    files  = {}
+    errors = []
+
+    # 0. 전화번호 / IMEI 취득
+    r = _adb_shell(serial, "cat /var/tmp/phone_number", timeout=5)
+    phone = r.get("stdout", "").strip().replace("+", "").replace("-", "").replace(" ", "") \
+            if r["success"] else ""
+    if not phone:
+        phone = "unknown"
+
+    r = _adb_shell(serial, "cat /var/tmp/imei", timeout=5)
+    imei = r.get("stdout", "").strip() if r["success"] else ""
+    if not imei:
+        imei = "unknown"
+
+    print(f"[agent] log_upload: 전화번호={phone}  IMEI={imei}")
+
+    # 1. dmesg
+    print("[agent] log_upload: dmesg 수집 중...")
+    r = _adb_shell(serial, "dmesg", timeout=60)
+    if r["success"]:
+        files["dmesg.log"] = r["stdout"]
+    else:
+        errors.append("dmesg: " + r.get("stderr", "실패"))
+
+    # 2. /data/logs/ 파일 목록 (재귀, 최대 깊이 3)
+    print("[agent] log_upload: /data/logs 수집 중...")
+    r = _adb_shell(serial,
+                   "find /data/logs -maxdepth 3 -type f 2>/dev/null",
+                   timeout=15)
+    if r["success"]:
+        for fpath in r["stdout"].splitlines():
+            fpath = fpath.strip()
+            if not fpath:
+                continue
+            # /data/logs/sub/file → data_logs_sub_file
+            rel = fpath.lstrip("/").replace("/", "_")
+            r2 = _adb_shell(serial, f"cat '{fpath}'", timeout=60)
+            if r2["success"]:
+                files[f"data_logs/{rel}"] = r2["stdout"]
+            else:
+                errors.append(f"{fpath}: " + r2.get("stderr", "실패"))
+    else:
+        errors.append("/data/logs: " + r.get("stderr", "목록 조회 실패"))
+
+    # 3. /var/log/messages
+    print("[agent] log_upload: /var/log/messages 수집 중...")
+    r = _adb_shell(serial, "cat /var/log/messages", timeout=60)
+    if r["success"]:
+        files["var_log_messages.log"] = r["stdout"]
+    else:
+        errors.append("/var/log/messages: " + r.get("stderr", "실패"))
+
+    print(f"[agent] log_upload: {len(files)}개 파일 수집 완료, 서버 전송 중...")
+    sio.emit("log_upload_data", {
+        "browser_sid": browser_sid,
+        "device":      serial,
+        "phone":       phone,
+        "imei":        imei,
+        "files":       files,
+        "errors":      errors,
+    })
+
+
+# ── 유효기간 확인 ────────────────────────────────────────────────────
+
+def _check_expiry():
+    """EXPIRE_DATE 를 지났으면 안내 후 종료."""
+    import datetime as _dt
     try:
-        url = input("서버 URL: ").strip()
-    except (EOFError, KeyboardInterrupt):
-        return ""
-    return url
+        expire = _dt.date.fromisoformat(EXPIRE_DATE)
+    except Exception:
+        return  # 날짜 파싱 실패 시 무시
+    today = _dt.date.today()
+    if today > expire:
+        print("=" * 50)
+        print("  RemoteDiag Agent")
+        print("=" * 50)
+        print()
+        print(f"  ※ 사용 기한이 만료되었습니다.")
+        print(f"     만료일: {EXPIRE_DATE}")
+        print(f"     오늘  : {today}")
+        print()
+        print("  관리자에게 문의하세요.")
+        print()
+        try:
+            input("  Enter 키를 누르면 종료합니다...")
+        except Exception:
+            pass
+        sys.exit(0)
 
 
 # ── Main ─────────────────────────────────────────────────────────────
 
 def main():
-    global SERVER_URL
-
+    _check_expiry()
     _setup_signals()
 
-    # 매번 콘솔에서 URL 입력 (server.txt 미사용)
-    url = _ask_url()
-    if not url:
-        print("URL이 없어 종료합니다.")
-        input("Enter 키를 누르면 닫힙니다.")
-        sys.exit(1)
-
-    SERVER_URL = url
-    print(f"[agent] 서버 연결 중: {SERVER_URL}")
+    print("=" * 50)
+    print("  RemoteDiag Agent")
+    print("=" * 50)
+    print(f"  서버  : {SERVER_URL}")
+    print(f"  기한  : {EXPIRE_DATE}")
+    print("=" * 50)
+    print()
 
     while not _shutdown.is_set():
         try:
@@ -525,14 +613,15 @@ def main():
         except Exception:
             pass
         try:
+            print(f"[agent] 서버 연결 중: {SERVER_URL}")
             sio.connect(SERVER_URL, transports=["websocket"])
             while sio.connected and not _shutdown.is_set():
                 time.sleep(0.3)
         except Exception as e:
             if _shutdown.is_set():
                 break
-            print(f"[agent] 연결 실패: {e}. 5초 후 재시도...")
-            for _ in range(50):
+            print(f"[agent] 연결 실패: {e}. 3초 후 재시도...")
+            for _ in range(30):
                 if _shutdown.is_set():
                     break
                 time.sleep(0.1)
