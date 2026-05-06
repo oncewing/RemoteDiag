@@ -1,0 +1,17 @@
+[Unit]
+Description=RemoteDiag Server
+After=network.target
+
+[Service]
+Type=simple
+User=oncewing
+WorkingDirectory=/home/oncewing/RemoteDiag
+ExecStart=/usr/bin/python3 /home/oncewing/RemoteDiag/server.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+
