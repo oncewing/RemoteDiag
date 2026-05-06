@@ -29,12 +29,51 @@ app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=24)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet",
                     logger=False, engineio_logger=False)
 
-_agent_sid = None
-_browser_auth = {}   # sid -> {username, permissions}
+_agents        = {}   # agent_sid  -> {platform, node, python}
+_browser_auth  = {}   # browser_sid -> {username, permissions}
+_browser_agent = {}   # browser_sid -> agent_sid  (1:1 페어링)
+_agent_browser = {}   # agent_sid  -> browser_sid (역방향)
 _users_path = Path(__file__).parent / "users.json"
 _remote_control_active = False
-_controller_sid    = None   # remote_control.py 연결 SID
-_remote_client_sid = None   # 원격 제어 요청한 브라우저 SID
+_controller_sid    = None
+_remote_client_sid = None
+
+
+def _pair(browser_sid, agent_sid):
+    """브라우저 ↔ 에이전트 1:1 페어링 등록."""
+    _browser_agent[browser_sid] = agent_sid
+    _agent_browser[agent_sid]   = browser_sid
+    print("[server] 페어링: browser={} ↔ agent={}".format(
+        browser_sid[:8], agent_sid[:8]))
+
+
+def _unpair_browser(browser_sid):
+    agent_sid = _browser_agent.pop(browser_sid, None)
+    if agent_sid:
+        _agent_browser.pop(agent_sid, None)
+
+
+def _unpair_agent(agent_sid):
+    browser_sid = _agent_browser.pop(agent_sid, None)
+    if browser_sid:
+        _browser_agent.pop(browser_sid, None)
+    return browser_sid   # 페어링됐던 브라우저 SID 반환
+
+
+def _find_unpaired_browser():
+    """아직 에이전트와 매핑되지 않은 로그인된 브라우저 SID 반환."""
+    for b_sid in _browser_auth:
+        if b_sid not in _browser_agent:
+            return b_sid
+    return None
+
+
+def _find_unpaired_agent():
+    """아직 브라우저와 매핑되지 않은 에이전트 SID 반환."""
+    for a_sid in _agents:
+        if a_sid not in _agent_browser:
+            return a_sid
+    return None
 
 ALL_PERMISSIONS  = ["adb-shell", "adb-info", "at", "logs", "kmsg", "remote", "diag", "guide"]
 BASE_PERMISSIONS = ["adb-info", "at", "diag", "guide"]
@@ -130,7 +169,7 @@ def server_info():
     return jsonify({
         "ip":              _get_local_ip(),
         "port":            getattr(config, "PUBLIC_PORT", config.PORT),
-        "agent_connected": _agent_sid is not None,
+        "agent_connected": len(_agents) > 0,
         "exe_ready":       exe_ready,
     })
 
@@ -147,14 +186,23 @@ def on_connect():
 
 @socketio.on("disconnect")
 def on_disconnect():
-    global _agent_sid, _controller_sid, _remote_control_active
+    global _controller_sid, _remote_control_active
     sid = request.sid
     _browser_auth.pop(sid, None)
-    if sid == _agent_sid:
-        _agent_sid = None
-        socketio.emit("agent_status", {"connected": False}, room="browsers")
-        print("[server] Agent disconnected")
-    elif sid == _controller_sid:
+
+    if sid in _agents:
+        # 에이전트 끊김 → 페어링된 브라우저에만 알림
+        b_sid = _unpair_agent(sid)
+        del _agents[sid]
+        if b_sid:
+            socketio.emit("agent_status", {"connected": False}, room=b_sid)
+        print("[server] Agent disconnected: {}".format(sid[:8]))
+
+    else:
+        # 브라우저 끊김 → 페어링 해제 (에이전트는 다음 브라우저를 기다림)
+        _unpair_browser(sid)
+
+    if sid == _controller_sid:
         _controller_sid = None
         if _remote_control_active:
             _remote_control_active = False
@@ -166,19 +214,30 @@ def on_disconnect():
 @socketio.on("browser_hello")
 def on_browser_hello(_data=None):
     join_room("browsers")
-    # WebSocket 핸들러에서 session이 handshake 시점 것이라
-    # HTTP 세션에서 직접 재확인
+    browser_sid = request.sid
     username    = session.get("username")
     permissions = session.get("permissions", [])
+
     if username:
-        _browser_auth[request.sid] = {
-            "username":    username,
-            "permissions": permissions,
-        }
+        _browser_auth[browser_sid] = {"username": username, "permissions": permissions}
     else:
-        _browser_auth.pop(request.sid, None)
+        _browser_auth.pop(browser_sid, None)
+
+    # 이미 페어링된 에이전트가 살아 있는지 확인
+    agent_sid = _browser_agent.get(browser_sid)
+    if agent_sid and agent_sid not in _agents:
+        _unpair_browser(browser_sid)
+        agent_sid = None
+
+    # 페어링 안 됐고 로그인된 상태면 대기 중인 에이전트와 연결
+    if not agent_sid and username:
+        agent_sid = _find_unpaired_agent()
+        if agent_sid:
+            _pair(browser_sid, agent_sid)
+
     emit("agent_status", {
-        "connected":   _agent_sid is not None,
+        "connected":   agent_sid is not None,
+        "info":        _agents.get(agent_sid, {}),
         "username":    username,
         "permissions": permissions,
     })
@@ -186,25 +245,31 @@ def on_browser_hello(_data=None):
 
 @socketio.on("agent_hello")
 def on_agent_hello(data):
-    global _agent_sid
-    _agent_sid = request.sid
-    info = data or {}
-    print("[server] Agent connected: {}".format(info))
-    socketio.emit("agent_status", {"connected": True, "info": info}, room="browsers")
+    agent_sid = request.sid
+    info      = data or {}
+    _agents[agent_sid] = info
+    print("[server] Agent connected: {} {}".format(agent_sid[:8], info))
+
+    # 대기 중인 로그인 브라우저가 있으면 즉시 페어링
+    b_sid = _find_unpaired_browser()
+    if b_sid:
+        _pair(b_sid, agent_sid)
+        socketio.emit("agent_status", {"connected": True, "info": info}, room=b_sid)
 
 @socketio.on("command")
 def on_command(data):
-    auth = _browser_auth.get(request.sid)
-    if not auth:
+    browser_sid = request.sid
+    if not _browser_auth.get(browser_sid):
         emit("result", {"id": data.get("id"), "success": False,
                         "error": "로그인이 필요합니다."})
         return
-    if _agent_sid is None:
+    agent_sid = _browser_agent.get(browser_sid)
+    if not agent_sid or agent_sid not in _agents:
         emit("result", {"id": data.get("id"), "success": False,
                         "error": "에이전트가 연결되지 않았습니다."})
         return
-    data["browser_sid"] = request.sid
-    socketio.emit("command", data, room=_agent_sid)
+    data["browser_sid"] = browser_sid
+    socketio.emit("command", data, room=agent_sid)
 
 @socketio.on("result")
 def on_result(data):
@@ -289,11 +354,15 @@ def on_remote_control_end(_data=None):
 
 @socketio.on("logcat_line")
 def on_logcat_line(data):
-    socketio.emit("logcat_line", data, room="browsers")
+    b = _agent_browser.get(request.sid)
+    if b:
+        socketio.emit("logcat_line", data, room=b)
 
 @socketio.on("log_line")
 def on_log_line(data):
-    socketio.emit("log_line", data, room="browsers")
+    b = _agent_browser.get(request.sid)
+    if b:
+        socketio.emit("log_line", data, room=b)
 
 @socketio.on("log_upload_data")
 def on_log_upload_data(data):
@@ -334,11 +403,15 @@ def on_log_upload_data(data):
 
 @socketio.on("device_update")
 def on_device_update(data):
-    socketio.emit("device_update", data, room="browsers")
+    b = _agent_browser.get(request.sid)
+    if b:
+        socketio.emit("device_update", data, room=b)
 
 @socketio.on("port_update")
 def on_port_update(data):
-    socketio.emit("port_update", data, room="browsers")
+    b = _agent_browser.get(request.sid)
+    if b:
+        socketio.emit("port_update", data, room=b)
 
 
 # -- Helpers ----------------------------------------------------------

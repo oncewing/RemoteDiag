@@ -74,6 +74,7 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     socket.on('agent_status', (d) => {
+      const wasConnected = agentConnected;
       agentConnected = d.connected;
       if (d.username && !currentUser) {
         currentUser  = d.username;
@@ -82,11 +83,12 @@ window.addEventListener('DOMContentLoaded', () => {
         hideLogin();
       }
       updateAgentUI(d);
-      if (d.connected) {
+      if (d.connected && !wasConnected) {
         refreshDevices();
         refreshPorts();
       }
     });
+
 
     socket.on('result', (data) => {
       const { id } = data;
@@ -385,6 +387,7 @@ function sendCommand(cmd, tag) {
     }
     const id = `${tag || 'cmd'}-${++_cmdSeq}`;
     _pending[id] = resolve;
+    // 선택된 에이전트 SID 자동 포함 (서버가 라우팅에 사용)
     socket.emit('command', { ...cmd, id });
     setTimeout(() => {
       if (_pending[id]) {
