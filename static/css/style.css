@@ -139,6 +139,12 @@ aside {
 .aside-section {
   padding: 10px;
   border-bottom: 1px solid var(--border);
+  transition: opacity 0.2s;
+}
+.aside-section.section-disabled {
+  opacity: 0.35;
+  pointer-events: none;
+  user-select: none;
 }
 .aside-section h3 {
   font-size: 10px;

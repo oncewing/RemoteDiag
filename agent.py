@@ -4,11 +4,14 @@ RemoteDiag Agent - Windows side
 단말기가 연결된 Windows PC에서 실행. 서버에 WebSocket으로 연결하여 명령 수행.
 """
 
+import datetime
 import os
 import platform
 import re
 import shlex
 import signal
+import socket
+import struct
 import subprocess
 import sys
 import threading
@@ -25,6 +28,11 @@ EXPIRE_DATE  = "2026-05-30"               # 사용 기한 (YYYY-MM-DD)
 ADB_PATH = "adb"
 AT_TIMEOUT = 5
 AT_BAUDRATE = 115200
+
+SRSD_PORT    = 5002        # SRSD daemon UDP 포트
+SRSD_CMD_AT    = 2
+SRSD_CMD_SHELL = 102
+_SRSD_PROVIDER = b'woorinet\x00\x00\x00\x00\x00\x00\x00\x00'  # 16 bytes
 
 _serial_conns = {}
 _serial_lock = threading.Lock()
@@ -173,6 +181,37 @@ def on_command(data: dict):
 
         elif cmd_type == "at_match_device":
             result.update(_at_match_device(data["port"]))
+
+        elif cmd_type == "srsd_at":
+            result.update(_srsd_at(
+                data["ip"], int(data.get("port", SRSD_PORT)),
+                data["command"], float(data.get("timeout", 10))))
+
+        elif cmd_type == "srsd_shell":
+            result.update(_srsd_shell(
+                data["ip"], int(data.get("port", SRSD_PORT)),
+                data["command"], float(data.get("timeout", 30))))
+
+        elif cmd_type == "srsd_discover":
+            ips = _srsd_discover(int(data.get("port", SRSD_PORT)))
+            result["data"]    = ips
+            result["success"] = True
+
+        elif cmd_type == "srsd_log_upload":
+            t = threading.Thread(
+                target=_do_log_upload,
+                kwargs={
+                    "serial":    "",
+                    "port":      "",
+                    "browser_sid": browser_sid,
+                    "srsd_ip":   data["ip"],
+                    "srsd_port": int(data.get("port", SRSD_PORT)),
+                },
+                daemon=True,
+            )
+            t.start()
+            result["success"] = True
+            result["message"] = "로그 수집 시작됨"
 
         elif cmd_type == "log_upload":
             t = threading.Thread(
@@ -525,30 +564,233 @@ def _at_match_device(port: str) -> dict:
             "serial": None, "imei": at_imei}
 
 
+# ── SRSD 네트워크 프로토콜 ───────────────────────────────────────────
+#
+# Frame 구조:
+#   [4] frame_length  [16] provider  [16] secure  [2] command  [4] payload_size
+#   [n] payload  [2] crc16
+# Header 합계 42 bytes.  frame_length = 42 + payload_size + 2.
+# CRC16 범위: frame_length ~ payload 전체.
+
+
+def _srsd_secure() -> bytes:
+    """고정 Secure Code — 16 bytes (null padding)."""
+    return b"W35337396126969\x00"
+
+
+def _srsd_crc16(data: bytes) -> bytes:
+    """C GenCRC16 함수와 동일한 CRC16 계산 (little-endian 2 bytes 반환)."""
+    if not data:
+        return bytes([ord("0"), ord("0")])
+    wCRC = 0xFFFF
+    for byte in data:
+        ch = (byte ^ (wCRC & 0xFF)) & 0xFF
+        ch = (ch ^ ((ch << 4) & 0xFF)) & 0xFF
+        wCRC = ((wCRC >> 8) ^
+                ((ch << 8) & 0xFFFF) ^
+                ((ch << 3) & 0xFFFF) ^
+                (ch >> 4)) & 0xFFFF
+    wCRC = (~wCRC) & 0xFFFF
+    return bytes([wCRC & 0xFF, (wCRC >> 8) & 0xFF])
+
+
+def _srsd_build_frame(command: int, payload: bytes) -> bytes:
+    """SRSD 요청 프레임 생성."""
+    payload_size = len(payload)
+    frame_length = 42 + payload_size + 2
+    header = (struct.pack("<I", frame_length) +
+               _SRSD_PROVIDER +
+               _srsd_secure() +
+               struct.pack("<H", command) +
+               struct.pack("<I", payload_size))
+    crc = _srsd_crc16(header + payload)
+    return header + payload + crc
+
+
+def _srsd_send_recv(ip: str, port: int, command: int,
+                    payload: bytes, timeout: float = 10.0) -> bytes:
+    """UDP 소켓으로 SRSD 프레임을 전송하고 응답을 수신.
+    응답이 여러 UDP 패킷으로 분할될 수 있으므로 frame_length 기준으로 누적 수신."""
+    frame = _srsd_build_frame(command, payload)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        sock.sendto(frame, (ip, port))
+        resp     = b""
+        deadline = time.time() + timeout
+        while True:
+            remaining = deadline - time.time()
+            if remaining <= 0:
+                break
+            sock.settimeout(remaining)
+            try:
+                chunk, _ = sock.recvfrom(65535)
+                resp += chunk
+                # 응답 헤더의 frame_length 에 도달하면 수신 완료
+                if len(resp) >= 4:
+                    expected = struct.unpack("<I", resp[:4])[0]
+                    if len(resp) >= expected:
+                        break
+            except socket.timeout:
+                break
+        return resp
+    finally:
+        sock.close()
+
+
+_SRSD_ERRORS = {
+    "PROVIDER ERROR", "SECURE CODE ERROR", "CRC ERROR",
+    "UNSUPPORTED", "INVALID ARGUMENT", "INTERNAL ERROR",
+}
+
+def _srsd_parse(data: bytes, cmd_type: str) -> dict:
+    """응답 프레임 payload 추출 및 SRSD 오류 판별."""
+    if len(data) < 42:
+        return {"success": False,
+                "error": f"응답 데이터 부족 ({len(data)} bytes)",
+                "response": "", "stdout": "", "stderr": ""}
+    try:
+        payload_size = struct.unpack("<I", data[38:42])[0]
+        text = data[42:42 + payload_size].decode("utf-8", errors="replace").strip()
+
+        # SRSD 데몬 오류 응답 확인
+        if text in _SRSD_ERRORS:
+            return {"success": False, "error": text,
+                    "response": text, "stdout": "", "stderr": text}
+
+        if cmd_type == "at":
+            return {"success": True, "response": text}
+        return {"success": True, "stdout": text, "stderr": ""}
+    except Exception as e:
+        return {"success": False, "error": str(e),
+                "response": "", "stdout": "", "stderr": ""}
+
+
+def _srsd_at(ip: str, port: int, command: str, timeout: float = 10.0) -> dict:
+    """SRSD 네트워크를 통해 AT 명령을 전송하고 응답을 반환."""
+    payload = command.strip().encode("ascii")
+    try:
+        resp = _srsd_send_recv(ip, port, SRSD_CMD_AT, payload, timeout)
+        return _srsd_parse(resp, "at")
+    except socket.timeout:
+        return {"success": False, "error": "응답 시간 초과", "response": ""}
+    except ConnectionRefusedError:
+        return {"success": False, "error": f"{ip}:{port} 연결 거부됨", "response": ""}
+    except OSError as e:
+        return {"success": False, "error": str(e), "response": ""}
+
+
+def _srsd_shell(ip: str, port: int, command: str, timeout: float = 30.0) -> dict:
+    """SRSD 네트워크를 통해 Shell 명령을 전송하고 출력을 반환."""
+    payload = command.strip().encode("utf-8")
+    try:
+        resp = _srsd_send_recv(ip, port, SRSD_CMD_SHELL, payload, timeout)
+        return _srsd_parse(resp, "shell")
+    except socket.timeout:
+        return {"success": False, "error": "응답 시간 초과", "stdout": "", "stderr": ""}
+    except ConnectionRefusedError:
+        return {"success": False, "error": f"{ip}:{port} 연결 거부됨", "stdout": "", "stderr": ""}
+    except OSError as e:
+        return {"success": False, "error": str(e), "stdout": "", "stderr": ""}
+
+
+def _srsd_discover(port: int) -> list:
+    """로컬 네트워크 인터페이스를 분석하여 응답하는 단말기 IP 목록을 병렬로 탐색."""
+    candidates: set[str] = set()
+
+    try:
+        # ipconfig /all — 바이트로 수신 후 CP949(한글 Windows) → UTF-8 순으로 디코딩
+        raw = subprocess.run(
+            ["ipconfig", "/all"], capture_output=True, timeout=10
+        ).stdout
+        for enc in ("cp949", "utf-8"):
+            try:
+                out = raw.decode(enc)
+                break
+            except Exception:
+                out = raw.decode("utf-8", errors="replace")
+
+        # 게이트웨이 주소 (영문 / 한글)
+        for pat in [r"Default Gateway[^:]*:\s*([\d.]+)",
+                    r"기본 게이트웨이[^:]*:\s*([\d.]+)"]:
+            for m in re.finditer(pat, out):
+                gw = m.group(1).strip()
+                if gw and gw != "0.0.0.0":
+                    candidates.add(gw)
+
+        # 로컬 IPv4 → 같은 /24 서브넷의 .1 주소 추가 (영문 / 한글)
+        for pat in [r"IPv4 Address[^:]*:\s*([\d.]+)",
+                    r"IPv4 주소[^:]*:\s*([\d.]+)"]:
+            for m in re.finditer(pat, out):
+                ip = m.group(1).strip().split("(")[0].strip()
+                if ip and not ip.startswith("127.") and ip.count(".") == 3:
+                    prefix = ".".join(ip.split(".")[:3])
+                    candidates.add(prefix + ".1")
+                    candidates.add(prefix + ".2")
+    except Exception as e:
+        print(f"[agent] 탐색 ipconfig 오류: {e}")
+
+    if not candidates:
+        print("[agent] 탐색: 후보 IP 없음")
+        return []
+
+    print(f"[agent] 탐색 후보: {sorted(candidates)}")
+
+    found: list[str] = []
+    lock = threading.Lock()
+
+    def _probe(ip: str):
+        r = _srsd_at(ip, port, "AT", timeout=2.0)
+        # 에러 문자열이 없는 정상 응답이면 단말기로 판정
+        if r.get("success"):
+            with lock:
+                found.append(ip)
+            print(f"[agent] 단말기 발견: {ip}:{port}  응답={r.get('response','')!r}")
+        else:
+            print(f"[agent] 무응답: {ip}:{port}  오류={r.get('error','')}")
+
+    threads = [threading.Thread(target=_probe, args=(ip,), daemon=True)
+               for ip in candidates]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    return found
+
+
 # ── Log upload ───────────────────────────────────────────────────────
 
-def _do_log_upload(serial: str, port: str, browser_sid: str):
-    """백그라운드: dmesg / /data/logs/* / /var/log/messages 수집 후 서버로 전송."""
+def _do_log_upload(serial: str, port: str, browser_sid: str,
+                   srsd_ip: str = "", srsd_port: int = SRSD_PORT):
+    """백그라운드: dmesg / /data/logs/* / /var/log/messages 수집 후 서버로 전송.
+    srsd_ip 가 있으면 SRSD 네트워크 경로, 없으면 ADB 경로를 사용."""
+    if srsd_ip:
+        def _shell(cmd, timeout=60): return _srsd_shell(srsd_ip, srsd_port, cmd, timeout)
+        device_id = srsd_ip
+    else:
+        def _shell(cmd, timeout=60): return _adb_shell(serial, cmd, timeout)
+        device_id = serial
+
     files  = {}
     errors = []
 
     # 0. 전화번호 / IMEI 취득
-    r = _adb_shell(serial, "cat /var/tmp/phone_number", timeout=5)
+    r = _shell("cat /var/tmp/phone_number", timeout=5)
     phone = r.get("stdout", "").strip().replace("+", "").replace("-", "").replace(" ", "") \
             if r["success"] else ""
     if not phone:
         phone = "unknown"
 
-    r = _adb_shell(serial, "cat /var/tmp/imei", timeout=5)
+    r = _shell("cat /var/tmp/imei", timeout=5)
     imei = r.get("stdout", "").strip() if r["success"] else ""
     if not imei:
         imei = "unknown"
 
-    print(f"[agent] log_upload: 전화번호={phone}  IMEI={imei}")
+    print(f"[agent] log_upload: 전화번호={phone}  IMEI={imei}  경로={'SRSD' if srsd_ip else 'ADB'}")
 
     # 1. dmesg
     print("[agent] log_upload: dmesg 수집 중...")
-    r = _adb_shell(serial, "dmesg", timeout=60)
+    r = _shell("dmesg", timeout=60)
     if r["success"]:
         files["dmesg.log"] = r["stdout"]
     else:
@@ -556,17 +798,14 @@ def _do_log_upload(serial: str, port: str, browser_sid: str):
 
     # 2. /data/logs/ 파일 목록 (재귀, 최대 깊이 3)
     print("[agent] log_upload: /data/logs 수집 중...")
-    r = _adb_shell(serial,
-                   "find /data/logs -maxdepth 3 -type f 2>/dev/null",
-                   timeout=15)
+    r = _shell("find /data/logs -maxdepth 3 -type f 2>/dev/null", timeout=15)
     if r["success"]:
         for fpath in r["stdout"].splitlines():
             fpath = fpath.strip()
             if not fpath:
                 continue
-            # /data/logs/sub/file → data_logs_sub_file
             rel = fpath.lstrip("/").replace("/", "_")
-            r2 = _adb_shell(serial, f"cat '{fpath}'", timeout=60)
+            r2 = _shell(f"cat '{fpath}'", timeout=60)
             if r2["success"]:
                 files[f"data_logs/{rel}"] = r2["stdout"]
             else:
@@ -576,7 +815,7 @@ def _do_log_upload(serial: str, port: str, browser_sid: str):
 
     # 3. /var/log/messages
     print("[agent] log_upload: /var/log/messages 수집 중...")
-    r = _adb_shell(serial, "cat /var/log/messages", timeout=60)
+    r = _shell("cat /var/log/messages", timeout=60)
     if r["success"]:
         files["var_log_messages.log"] = r["stdout"]
     else:
@@ -585,7 +824,7 @@ def _do_log_upload(serial: str, port: str, browser_sid: str):
     print(f"[agent] log_upload: {len(files)}개 파일 수집 완료, 서버 전송 중...")
     sio.emit("log_upload_data", {
         "browser_sid": browser_sid,
-        "device":      serial,
+        "device":      device_id,
         "phone":       phone,
         "imei":        imei,
         "files":       files,
@@ -597,12 +836,11 @@ def _do_log_upload(serial: str, port: str, browser_sid: str):
 
 def _check_expiry():
     """EXPIRE_DATE 를 지났으면 안내 후 종료."""
-    import datetime as _dt
     try:
-        expire = _dt.date.fromisoformat(EXPIRE_DATE)
+        expire = datetime.date.fromisoformat(EXPIRE_DATE)
     except Exception:
         return  # 날짜 파싱 실패 시 무시
-    today = _dt.date.today()
+    today = datetime.date.today()
     if today > expire:
         print("=" * 50)
         print("  RemoteDiag Agent")

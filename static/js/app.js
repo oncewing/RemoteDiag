@@ -6,6 +6,46 @@ let selectedPort        = '';
 let agentConnected      = false;
 let _wusbdEnableOrig    = null;   // 포트 열 때 읽은 원래 WUSBDENABLE 값
 const _devicePortMap    = {};     // serial → port (IMEI 매칭 결과)
+
+// SRSD 네트워크 연결
+let selectedSrsdIp   = '';       // 연결된 단말기 IP
+let selectedSrsdPort = 5002;     // SRSD 데몬 UDP 포트
+
+let _srsdLogPollTimer = null;   // SRSD 모드 로그 폴링 타이머
+const SRSD_LOG_POLL_MS = 3000;
+
+// ── 범용 명령 헬퍼 (USB ↔ SRSD 자동 라우팅) ──────────────────────────
+// SRSD 연결 중이면 UDP 경로, 아니면 기존 ADB/시리얼 경로 사용
+
+async function _atCmd(command, timeout = 10, tag = 'cmd') {
+  if (selectedSrsdIp)
+    return sendCommand({ type: 'srsd_at', ip: selectedSrsdIp,
+                         port: selectedSrsdPort, command, timeout }, tag);
+  if (!selectedPort)
+    return { success: false, error: '시리얼 포트를 먼저 연결하거나 SRSD를 연결하세요.' };
+  return sendCommand({ type: 'at_command', port: selectedPort, command, timeout }, tag);
+}
+
+async function _shellCmd(command, timeout = 30, tag = 'cmd') {
+  if (selectedSrsdIp)
+    return sendCommand({ type: 'srsd_shell', ip: selectedSrsdIp,
+                         port: selectedSrsdPort, command, timeout }, tag);
+  if (!selectedSerial)
+    return { success: false, error: '디바이스를 먼저 선택하거나 SRSD를 연결하세요.' };
+  return sendCommand({ type: 'adb_shell', serial: selectedSerial, command }, tag);
+}
+
+// 연결 상태 체크 — SRSD 또는 USB 준비 여부 확인
+function _connReady({ needAt = false, needShell = false } = {}) {
+  if (selectedSrsdIp) return true;
+  if (needAt && !selectedPort) {
+    toast('시리얼 포트를 먼저 연결하거나 SRSD를 연결하세요.', true); return false;
+  }
+  if (needShell && !selectedSerial) {
+    toast('디바이스를 먼저 선택하거나 SRSD를 연결하세요.', true); return false;
+  }
+  return true;
+}
 let logRunning      = false;
 let kmsgRunning     = false;
 let _kmsgPollTimer  = null;
@@ -324,18 +364,9 @@ async function rcExecuteCmd(data) {
 
   var result;
   if (type === 'at_command') {
-    if (!selectedPort) {
-      result = { success: false, error: 'AT 포트가 연결되지 않았습니다.' };
-    } else {
-      result = await sendCommand({ type: 'at_command', port: selectedPort,
-                                   command: cmd, timeout: data.timeout || 10 });
-    }
+    result = await _atCmd(cmd, data.timeout || 10, 'rc');
   } else if (type === 'adb_shell') {
-    if (!selectedSerial) {
-      result = { success: false, error: 'ADB 디바이스가 선택되지 않았습니다.' };
-    } else {
-      result = await sendCommand({ type: 'adb_shell', serial: selectedSerial, command: cmd });
-    }
+    result = await _shellCmd(cmd, 30, 'rc');
   } else {
     result = { success: false, error: '알 수 없는 명령 타입: ' + type };
   }
@@ -491,11 +522,11 @@ async function runAdbShell() {
   const input = document.getElementById('adb-input');
   const cmd   = input.value.trim();
   if (!cmd) return;
-  if (!selectedSerial) { toast('디바이스를 먼저 선택하세요.', true); return; }
+  if (!_connReady({ needShell: true })) return;
   pushHistory(adbHistory, cmd); adbHistIdx = -1; input.value = '';
 
   appendLine('term-adb', `$ ${cmd}`, 't-cmd');
-  const res = await sendCommand({ type: 'adb_shell', serial: selectedSerial, command: cmd });
+  const res = await _shellCmd(cmd, 30, 'adb');
   if (res.stdout) appendText('term-adb', res.stdout, res.success ? '' : 't-err');
   if (res.stderr) appendText('term-adb', res.stderr, 't-err');
   if (!res.stdout && !res.stderr && res.success) appendLine('term-adb', '(출력 없음)', 't-dim');
@@ -546,9 +577,9 @@ function _setPreText(preId, text) {
 }
 
 async function _fetchSectionShell(secId, cmd) {
-  if (!selectedSerial) { toast('디바이스를 먼저 선택하세요.', true); return; }
+  if (!_connReady({ needShell: true })) return;
   _setPreContent(`pre-${secId}`, '<span class="dim-text">읽는 중...</span>');
-  const res = await sendCommand({ type: 'adb_shell', serial: selectedSerial, command: cmd });
+  const res = await _shellCmd(cmd, 30, 'sec');
   if (res.success && res.stdout) {
     _setPreText(`pre-${secId}`, res.stdout);
   } else {
@@ -558,18 +589,14 @@ async function _fetchSectionShell(secId, cmd) {
 }
 
 async function _fetchSectionAt() {
-  if (!selectedPort) {
-    _setPreContent('pre-sec-at', '<span class="t-warn">AT 포트를 먼저 열어주세요. (좌측 사이드바)</span>');
-    return;
-  }
+  if (!_connReady({ needAt: true })) return;
   _setPreContent('pre-sec-at', '<span class="dim-text">읽는 중...</span>');
-  const timeout = 10;
-  const lines   = [];
-  const r1 = await sendCommand({ type: 'at_command', port: selectedPort, command: 'AT$$DBS', timeout });
+  const lines = [];
+  const r1 = await _atCmd('AT$$DBS', 10, 'sec');
   lines.push('▶ AT$$DBS');
   lines.push(r1.response || r1.error || '(응답 없음)');
   lines.push('');
-  const r2 = await sendCommand({ type: 'at_command', port: selectedPort, command: 'AT+CGDCONT?', timeout });
+  const r2 = await _atCmd('AT+CGDCONT?', 10, 'sec');
   lines.push('▶ AT+CGDCONT?');
   lines.push(r2.response || r2.error || '(응답 없음)');
   _setPreText('pre-sec-at', lines.join('\n'));
@@ -625,10 +652,9 @@ function _renderDnsmasqConf(raw) {
 }
 
 async function _fetchSectionDns() {
-  if (!selectedSerial) { toast('디바이스를 먼저 선택하세요.', true); return; }
+  if (!_connReady({ needShell: true })) return;
   _setPreContent('pre-sec-dns', '<span class="dim-text">읽는 중...</span>');
-  const r = await sendCommand({ type: 'adb_shell', serial: selectedSerial,
-    command: 'cat /var/run/data/dnsmasq.conf.bridge0' });
+  const r = await _shellCmd('cat /var/run/data/dnsmasq.conf.bridge0', 30, 'sec');
   if (!r.success) {
     _setPreContent('pre-sec-dns', `<span class="t-err">${escapeHtml(r.error || '오류')}</span>`);
     return;
@@ -639,7 +665,7 @@ async function _fetchSectionDns() {
 
 // 전체 새로고침: 열려 있는 섹션만 다시 로드
 async function loadAllDeviceInfo() {
-  if (!selectedSerial) { toast('디바이스를 먼저 선택하세요.', true); return; }
+  if (!_connReady({ needShell: true })) return;
   const statusEl = document.getElementById('info-status');
   if (statusEl) statusEl.textContent = '읽는 중...';
   await Promise.all(Object.keys(SECTION_LOADERS).map(id => SECTION_LOADERS[id]()));
@@ -652,42 +678,80 @@ function loadSectionShell(secId, cmd) { return _fetchSectionShell(secId, cmd); }
 function loadSectionAt()               { return _fetchSectionAt(); }
 
 // ── Logs tab ──────────────────────────────────────────────────────────
+function _stopSrsdLogPoll() {
+  if (_srsdLogPollTimer) { clearInterval(_srsdLogPollTimer); _srsdLogPollTimer = null; }
+}
+
+function _setLogRunningUI(running, label = '') {
+  const startBtn  = document.getElementById('log-start-btn');
+  const stopBtn   = document.getElementById('log-stop-btn');
+  const statusEl  = document.getElementById('log-status');
+  if (startBtn) startBtn.disabled = running;
+  if (stopBtn)  stopBtn.disabled  = !running;
+  if (statusEl) {
+    statusEl.textContent = running ? `▶ ${label}` : '■ 정지';
+    statusEl.style.color = running ? 'var(--green)' : 'var(--text-dim)';
+  }
+}
+
 async function startLog() {
-  if (!selectedSerial) { toast('디바이스를 먼저 선택하세요.', true); return; }
+  if (!_connReady({ needShell: true })) return;
   if (logRunning) await stopLog();
   const path = document.getElementById('log-source').value;
-  const res  = await sendCommand({ type: 'log_start', serial: selectedSerial, path });
-  if (res.success) {
+
+  if (selectedSrsdIp) {
+    // SRSD 모드: 폴링 방식 (tail -n 100 을 3초마다 실행)
     logRunning = true;
-    document.getElementById('log-status').textContent = `▶ ${path}`;
+    _setLogRunningUI(true, `${path} [SRSD]`);
+    const poll = async () => {
+      if (!logRunning) return;
+      const r = await _shellCmd(`tail -n 100 ${path}`, 10, 'log_poll');
+      if (r.success && r.stdout) {
+        const term = document.getElementById('term-logs');
+        if (term) { term.textContent = r.stdout.replace(/\r/g, '').trimEnd(); autoScroll(term); }
+      }
+    };
+    await poll();
+    _srsdLogPollTimer = setInterval(poll, SRSD_LOG_POLL_MS);
   } else {
-    toast(res.error || '로그 시작 실패', true);
+    // USB 모드: 기존 스트리밍
+    const res = await sendCommand({ type: 'log_start', serial: selectedSerial, path });
+    if (res.success) {
+      logRunning = true;
+      _setLogRunningUI(true, path);
+    } else {
+      toast(res.error || '로그 시작 실패', true);
+    }
   }
 }
 
 async function stopLog() {
-  await sendCommand({ type: 'log_stop' });
+  _stopSrsdLogPoll();
+  if (!selectedSrsdIp) await sendCommand({ type: 'log_stop' });
   logRunning = false;
-  document.getElementById('log-status').textContent = '■ 정지';
+  _setLogRunningUI(false);
 }
 
 async function downloadLog(path, filename) {
-  if (!selectedSerial) { toast('디바이스를 먼저 선택하세요.', true); return; }
+  if (!_connReady({ needShell: true })) return;
   toast(`${filename} 읽는 중...`);
-  const res = await sendCommand({ type: 'log_get', serial: selectedSerial, path }, 'log_get');
+  const res = await _shellCmd(`cat ${path}`, 60, 'log_get');
   if (!res.success) { toast(res.error || '파일 읽기 실패', true); return; }
-  _downloadText(res.data || '', filename + '.log');
+  _downloadText(res.stdout || '', filename + '.log');
 }
 
 async function uploadLogs() {
-  if (!selectedSerial) { toast('디바이스를 먼저 선택하세요.', true); return; }
+  if (!_connReady({ needShell: true })) return;
   const btn    = document.getElementById('log-upload-btn');
   const status = document.getElementById('log-upload-status');
   btn.disabled    = true;
   btn.textContent = '수집 중...';
   status.textContent = '로그 수집 중 (dmesg, /data/logs/*, /var/log/messages) ...';
 
-  const res = await sendCommand({ type: 'log_upload', serial: selectedSerial, port: selectedPort }, 'log_upload');
+  const cmd = selectedSrsdIp
+    ? { type: 'srsd_log_upload', ip: selectedSrsdIp, port: selectedSrsdPort }
+    : { type: 'log_upload', serial: selectedSerial, port: selectedPort };
+  const res = await sendCommand(cmd, 'log_upload');
   if (!res.success) {
     toast(res.error || '업로드 요청 실패', true);
     btn.disabled    = false;
@@ -695,7 +759,6 @@ async function uploadLogs() {
     status.textContent = '';
     return;
   }
-  // 수집은 백그라운드에서 진행 중 — log_upload_result 이벤트로 완료 통보
   status.textContent = '서버로 전송 중...';
 }
 
@@ -730,21 +793,28 @@ function _stopKmsgPoll() {
 }
 
 async function _fetchKmsg() {
-  if (!selectedSerial || !kmsgRunning) return;
-  const res = await sendCommand({ type: 'kmsg_get', serial: selectedSerial }, 'kmsg_poll');
-  if (res.success && res.data) {
+  if (!kmsgRunning) return;
+  if (!selectedSrsdIp && !selectedSerial) return;
+  let data;
+  if (selectedSrsdIp) {
+    const res = await _shellCmd('dmesg', 30, 'kmsg_poll');
+    if (!res.success) return;
+    data = res.stdout;
+  } else {
+    const res = await sendCommand({ type: 'kmsg_get', serial: selectedSerial }, 'kmsg_poll');
+    if (!res.success) return;
+    data = res.data;
+  }
+  if (data) {
     const term = document.getElementById('term-kmsg');
-    if (term) {
-      term.textContent = res.data.replace(/\r/g, '').trimEnd();
-      autoScroll(term);
-    }
+    if (term) { term.textContent = data.replace(/\r/g, '').trimEnd(); autoScroll(term); }
     const ts = new Date().toLocaleTimeString();
     document.getElementById('kmsg-status').textContent = `▶ 실행 중  (갱신: ${ts})`;
   }
 }
 
 function startKmsg() {
-  if (!selectedSerial) { toast('디바이스를 먼저 선택하세요.', true); return; }
+  if (!_connReady({ needShell: true })) return;
   kmsgRunning = true;
   document.getElementById('kmsg-status').textContent = '▶ 실행 중';
   _startKmsgPoll();
@@ -757,11 +827,19 @@ function stopKmsg() {
 }
 
 async function downloadKmsg() {
-  if (!selectedSerial) { toast('디바이스를 먼저 선택하세요.', true); return; }
+  if (!_connReady({ needShell: true })) return;
   toast('kmsg 읽는 중...');
-  const res = await sendCommand({ type: 'kmsg_get', serial: selectedSerial }, 'kmsg_get');
-  if (!res.success) { toast(res.error || 'kmsg 읽기 실패', true); return; }
-  _downloadText(res.data || '', 'kmsg.log');
+  let data;
+  if (selectedSrsdIp) {
+    const res = await _shellCmd('dmesg', 30, 'kmsg_get');
+    if (!res.success) { toast(res.error || 'kmsg 읽기 실패', true); return; }
+    data = res.stdout;
+  } else {
+    const res = await sendCommand({ type: 'kmsg_get', serial: selectedSerial }, 'kmsg_get');
+    if (!res.success) { toast(res.error || 'kmsg 읽기 실패', true); return; }
+    data = res.data;
+  }
+  _downloadText(data || '', 'kmsg.log');
 }
 
 function appendLogLine(d) {
@@ -799,6 +877,7 @@ async function openPort() {
 
   selectedPort = port;
   document.getElementById('at-port-display').textContent = port;
+  _setSidebarMode('usb');
   toast(res.message);
   sendCommand({ type: 'at_ports' }, 'refresh_ports').then(r => {
     if (r.success !== false) applyPortList(r.data, r.open);
@@ -878,6 +957,7 @@ async function closePort() {
     document.getElementById('device-list').innerHTML =
       '<span class="dim-text">시리얼 포트를 먼저 연결하세요</span>';
     selectedSerial = '';
+    _setSidebarMode('none');
     toast(res.message);
     sendCommand({ type: 'at_ports' }, 'refresh_ports').then(r => {
       if (r.success !== false) applyPortList(r.data, r.open);
@@ -891,13 +971,13 @@ async function runAtCommand() {
   const input = document.getElementById('at-input');
   let cmd = input.value.trim();
   if (!cmd) return;
-  if (!selectedPort) { toast('포트를 먼저 열어주세요.', true); return; }
+  if (!_connReady({ needAt: true })) return;
   if (!cmd.toUpperCase().startsWith('AT')) cmd = 'AT' + cmd;
   pushHistory(atHistory, cmd); atHistIdx = -1; input.value = '';
 
   const timeout = parseFloat(document.getElementById('at-timeout').value) || 5;
   appendLine('term-at', `▶ ${cmd}`, 't-cmd');
-  const res = await sendCommand({ type: 'at_command', port: selectedPort, command: cmd, timeout });
+  const res = await _atCmd(cmd, timeout, 'at');
   if (res.success) {
     appendText('term-at', res.response, res.response?.includes('ERROR') ? 't-err' : 't-ok');
   } else {
@@ -1039,14 +1119,35 @@ function _diagVerdict(ok, msg) {
 }
 
 async function runDiag() {
-  if (!selectedSerial) { toast('디바이스를 먼저 선택하세요.', true); return; }
-  if (!selectedPort)   { toast('시리얼 포트를 먼저 연결하세요.', true); return; }
+  const useSrsd = !!selectedSrsdIp;
+
+  if (useSrsd) {
+    // SRSD 모드: 네트워크로 직접 접속, ADB/시리얼 포트 불필요
+  } else {
+    if (!selectedSerial) { toast('디바이스를 먼저 선택하거나 SRSD 연결을 설정하세요.', true); return; }
+    if (!selectedPort)   { toast('시리얼 포트를 먼저 연결하세요.', true); return; }
+  }
 
   const btn = document.getElementById('diag-run-btn');
   btn.disabled = true;
-  document.getElementById('diag-overall').textContent = '점검 중...';
+  const modeLabel = useSrsd ? `SRSD(${selectedSrsdIp})` : 'USB';
+  document.getElementById('diag-overall').textContent = `점검 중... [${modeLabel}]`;
   document.getElementById('diag-overall').style.color = 'var(--text-dim)';
   _diagBuildTable();
+
+  // ── 모드에 따라 명령 라우팅 ──────────────────────────────────────
+  const atCmd = (cmd, timeout = 10) => {
+    if (useSrsd)
+      return sendCommand({ type: 'srsd_at', ip: selectedSrsdIp,
+                           port: selectedSrsdPort, command: cmd, timeout }, 'diag');
+    return sendCommand({ type: 'at_command', port: selectedPort, command: cmd, timeout }, 'diag');
+  };
+  const shellCmd = (cmd, timeout = 30) => {
+    if (useSrsd)
+      return sendCommand({ type: 'srsd_shell', ip: selectedSrsdIp,
+                           port: selectedSrsdPort, command: cmd, timeout }, 'diag');
+    return sendCommand({ type: 'adb_shell', serial: selectedSerial, command: cmd }, 'diag');
+  };
 
   const fail = (id, msg, verdict) => {
     _diagSetRow(id, 'fail', msg);
@@ -1056,8 +1157,7 @@ async function runDiag() {
 
   // ── 1. IMEI ────────────────────────────────────────────────────────
   _diagSetRow('imei', 'running', '확인 중...');
-  const imeiRes = await sendCommand(
-    { type: 'adb_shell', serial: selectedSerial, command: 'cat /var/tmp/imei' }, 'diag');
+  const imeiRes = await shellCmd('cat /var/tmp/imei');
   const imei = (imeiRes.stdout || '').trim();
   if (!imeiRes.success || !imei || /^0+$/.test(imei) || imei.length < 10) {
     return fail('imei', 'IMEI 정보 오류', 'IMEI 정보 오류 — 점검 중단');
@@ -1066,8 +1166,7 @@ async function runDiag() {
 
   // ── 2. PHONE 번호 ──────────────────────────────────────────────────
   _diagSetRow('phone', 'running', '확인 중...');
-  const phoneRes = await sendCommand(
-    { type: 'adb_shell', serial: selectedSerial, command: 'cat /var/tmp/phone_number' }, 'diag');
+  const phoneRes = await shellCmd('cat /var/tmp/phone_number');
   const phone = (phoneRes.stdout || '').trim().replace(/\D/g, '');
   if (!phoneRes.success || !/^0(10|12)\d{7,8}$/.test(phone)) {
     return fail('phone', '번호 정보 오류', '번호 정보 오류 — 점검 중단');
@@ -1076,8 +1175,7 @@ async function runDiag() {
 
   // ── 3. USIM 상태 ──────────────────────────────────────────────────
   _diagSetRow('usim', 'running', '확인 중...');
-  const usimRes = await sendCommand(
-    { type: 'at_command', port: selectedPort, command: 'AT*WSTAT?', timeout: 5 }, 'diag');
+  const usimRes  = await atCmd('AT*WSTAT?', 5);
   const usimResp = (usimRes.response || '').toUpperCase();
   if (usimResp.includes('READY')) {
     _diagSetRow('usim', 'ok', 'READY');
@@ -1089,8 +1187,7 @@ async function runDiag() {
 
   // ── 4. RMNET IP ────────────────────────────────────────────────────
   _diagSetRow('rmnet', 'running', '확인 중...');
-  const ipRes = await sendCommand(
-    { type: 'at_command', port: selectedPort, command: 'AT*WWANIP?', timeout: 5 }, 'diag');
+  const ipRes   = await atCmd('AT*WWANIP?', 5);
   const ipResp  = ipRes.response || '';
   const v4match = ipResp.match(/V4:\s*(\S+)/i);
   const v6match = ipResp.match(/V6:\s*(\S+)/i);
@@ -1105,8 +1202,7 @@ async function runDiag() {
 
   // ── 5. BRIDGE0 인터페이스 ─────────────────────────────────────────
   _diagSetRow('bridge0', 'running', '확인 중...');
-  const ifRes = await sendCommand(
-    { type: 'adb_shell', serial: selectedSerial, command: 'ifconfig' }, 'diag');
+  const ifRes = await shellCmd('ifconfig');
   if (!ifRes.success || !(ifRes.stdout || '').includes('bridge0')) {
     return fail('bridge0', '네트워크 인터페이스 오류', '네트워크 인터페이스 오류 — 점검 중단');
   }
@@ -1114,9 +1210,7 @@ async function runDiag() {
 
   // ── 6. IPv4 Ping ──────────────────────────────────────────────────
   _diagSetRow('ping4', 'running', '확인 중...');
-  const ping4Res = await sendCommand(
-    { type: 'adb_shell', serial: selectedSerial,
-      command: 'ping -c 3 -W 3 8.8.8.8 2>&1' }, 'diag');
+  const ping4Res = await shellCmd('ping -c 3 -W 3 8.8.8.8 2>&1');
   const ping4Out = (ping4Res.stdout || '') + (ping4Res.stderr || '');
   const ping4Ok  = /bytes from/i.test(ping4Out) ||
     (/(\d+)\s+received/i.test(ping4Out) &&
@@ -1130,9 +1224,7 @@ async function runDiag() {
 
   // ── 7. IPv6 Ping ──────────────────────────────────────────────────
   _diagSetRow('ping6', 'running', '확인 중...');
-  const ping6Res = await sendCommand(
-    { type: 'adb_shell', serial: selectedSerial,
-      command: 'ping6 -c 3 -W 3 2001:4860:4860::8888 2>&1' }, 'diag');
+  const ping6Res = await shellCmd('ping6 -c 3 -W 3 2001:4860:4860::8888 2>&1');
   const ping6Out = (ping6Res.stdout || '') + (ping6Res.stderr || '');
   const ping6Ok  = /bytes from/i.test(ping6Out) ||
     (/(\d+)\s+received/i.test(ping6Out) &&
@@ -1153,6 +1245,80 @@ async function runDiag() {
     _diagVerdict(true, '✓ 모든 항목 정상');
   }
   btn.disabled = false;
+}
+
+// ── SRSD 네트워크 연결 ────────────────────────────────────────────────
+
+function _srsdStatusEl() { return document.getElementById('srsd-status'); }
+
+function _srsdSetStatus(msg, color) {
+  const el = _srsdStatusEl();
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = color || 'var(--text-dim)';
+}
+
+// 사이드바 상호 비활성화
+// mode: 'usb' → 네트워크 섹션 잠금 / 'network' → USB 섹션 잠금 / 'none' → 모두 해제
+function _setSidebarMode(mode) {
+  ['aside-serial', 'aside-adb'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('section-disabled', mode === 'network');
+  });
+  const net = document.getElementById('aside-network');
+  if (net) net.classList.toggle('section-disabled', mode === 'usb');
+}
+
+async function srsdDiscover() {
+  if (!agentConnected) { toast('에이전트가 연결되지 않았습니다.', true); return; }
+  const port = parseInt(document.getElementById('srsd-port').value) || 5002;
+  _srsdSetStatus('🔍 탐색 중...', 'var(--blue)');
+  const res = await sendCommand({ type: 'srsd_discover', port }, 'srsd_disc');
+  if (!res.success) {
+    _srsdSetStatus('탐색 실패: ' + (res.error || ''), 'var(--red)');
+    return;
+  }
+  const ips = res.data || [];
+  if (ips.length === 0) {
+    _srsdSetStatus('단말기를 찾지 못했습니다.', 'var(--text-dim)');
+    return;
+  }
+  document.getElementById('srsd-ip').value = ips[0];
+  _srsdSetStatus(`발견: ${ips.join(', ')}`, 'var(--green)');
+  toast(`단말기 발견: ${ips[0]}`);
+}
+
+async function srsdConnect() {
+  if (!agentConnected) { toast('에이전트가 연결되지 않았습니다.', true); return; }
+  const ip   = document.getElementById('srsd-ip').value.trim();
+  const port = parseInt(document.getElementById('srsd-port').value) || 5002;
+  if (!ip) { toast('단말기 IP를 입력하세요.', true); return; }
+
+  _srsdSetStatus('연결 확인 중...', 'var(--blue)');
+  const res = await sendCommand(
+    { type: 'srsd_at', ip, port, command: 'AT', timeout: 5 }, 'srsd_test');
+
+  if (res.success) {
+    selectedSrsdIp   = ip;
+    selectedSrsdPort = port;
+    _srsdSetStatus(`✓ ${ip}:${port} 연결됨`, 'var(--green)');
+    toast(`네트워크 연결 성공: ${ip}`);
+    _setSidebarMode('network');
+  } else {
+    selectedSrsdIp = '';
+    const err = res.error || res.response || '응답 없음';
+    _srsdSetStatus(`✗ 연결 실패: ${err}`, 'var(--red)');
+    toast('연결 실패: ' + err, true);
+  }
+}
+
+function srsdDisconnect() {
+  _stopSrsdLogPoll();
+  selectedSrsdIp = '';
+  document.getElementById('srsd-ip').value = '';
+  _srsdSetStatus('해제됨', 'var(--text-dim)');
+  toast('네트워크 연결 해제');
+  _setSidebarMode('none');
 }
 
 // ── Toast ─────────────────────────────────────────────────────────────
