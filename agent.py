@@ -22,7 +22,7 @@ import serial.tools.list_ports
 import socketio as sio_module
 
 # ── 빌드 시 설정값 ───────────────────────────────────────────────────
-SERVER_URL   = "wss://10.1.255.85:8443"   # 빌드 시 서버 주소 고정
+SERVER_URL   = "wss://10.1.255.85:40443"  # 빌드 시 서버 주소 고정
 EXPIRE_DATE  = "2026-05-30"               # 사용 기한 (YYYY-MM-DD)
 
 ADB_PATH = "adb"

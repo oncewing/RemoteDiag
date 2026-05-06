@@ -23,4 +23,4 @@ else
     sudo systemctl start nginx
 fi
 
-echo "nginx OK — listening on :8443 (SSL) -> :8000 (Flask HTTP)"
+echo "nginx OK — listening on :40443 (SSL) -> :8000 (Flask HTTP)"

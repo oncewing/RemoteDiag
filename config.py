@@ -2,7 +2,7 @@ import os
 
 HOST = "127.0.0.1"
 PORT = 8000
-PUBLIC_PORT = 8443
+PUBLIC_PORT = 40443
 CERT_DIR = os.path.join(os.path.dirname(__file__), "certs")
 CERT_FILE = os.path.join(CERT_DIR, "cert.pem")
 KEY_FILE = os.path.join(CERT_DIR, "key.pem")
