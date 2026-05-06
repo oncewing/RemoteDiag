@@ -980,6 +980,8 @@ const DIAG_STEPS = [
   { id: 'usim',    label: 'USIM 인식' },
   { id: 'rmnet',   label: 'RMNET_DATA IP 확인' },
   { id: 'bridge0', label: 'BRIDGE0 인터페이스 확인' },
+  { id: 'ping4',   label: 'IPv4 Ping (8.8.8.8)' },
+  { id: 'ping6',   label: 'IPv6 Ping (2001:4860:4860::8888)' },
 ];
 
 function _diagBuildTable() {
@@ -1110,8 +1112,46 @@ async function runDiag() {
   }
   _diagSetRow('bridge0', 'ok', '확인됨');
 
+  // ── 6. IPv4 Ping ──────────────────────────────────────────────────
+  _diagSetRow('ping4', 'running', '확인 중...');
+  const ping4Res = await sendCommand(
+    { type: 'adb_shell', serial: selectedSerial,
+      command: 'ping -c 3 -W 3 8.8.8.8 2>&1' }, 'diag');
+  const ping4Out = (ping4Res.stdout || '') + (ping4Res.stderr || '');
+  const ping4Ok  = /bytes from/i.test(ping4Out) ||
+    (/(\d+)\s+received/i.test(ping4Out) &&
+     parseInt((ping4Out.match(/(\d+)\s+received/i) || [])[1] || '0') > 0);
+  if (ping4Ok) {
+    const m4 = ping4Out.match(/\/(\d+(?:\.\d+)?)\/[\d.]+\s*ms/);
+    _diagSetRow('ping4', 'ok', m4 ? `avg ${m4[1]} ms` : '응답 있음');
+  } else {
+    _diagSetRow('ping4', 'fail', '응답 없음');
+  }
+
+  // ── 7. IPv6 Ping ──────────────────────────────────────────────────
+  _diagSetRow('ping6', 'running', '확인 중...');
+  const ping6Res = await sendCommand(
+    { type: 'adb_shell', serial: selectedSerial,
+      command: 'ping6 -c 3 -W 3 2001:4860:4860::8888 2>&1' }, 'diag');
+  const ping6Out = (ping6Res.stdout || '') + (ping6Res.stderr || '');
+  const ping6Ok  = /bytes from/i.test(ping6Out) ||
+    (/(\d+)\s+received/i.test(ping6Out) &&
+     parseInt((ping6Out.match(/(\d+)\s+received/i) || [])[1] || '0') > 0);
+  if (ping6Ok) {
+    const m6 = ping6Out.match(/\/(\d+(?:\.\d+)?)\/[\d.]+\s*ms/);
+    _diagSetRow('ping6', 'ok', m6 ? `avg ${m6[1]} ms` : '응답 있음');
+  } else {
+    _diagSetRow('ping6', 'fail', '응답 없음');
+  }
+
   // ── 전체 통과 ─────────────────────────────────────────────────────
-  _diagVerdict(true, '✓ 모든 항목 정상');
+  if (!ping4Ok || !ping6Ok) {
+    const fails = [!ping4Ok ? 'IPv4 Ping' : '', !ping6Ok ? 'IPv6 Ping' : '']
+                    .filter(Boolean).join(', ');
+    _diagVerdict(false, `✗ 이상 감지: ${fails}`);
+  } else {
+    _diagVerdict(true, '✓ 모든 항목 정상');
+  }
   btn.disabled = false;
 }
 

@@ -322,8 +322,11 @@
             <li><strong>USIM 인식</strong>: READY(정상) / OPEN(미개통) 판별</li>
             <li><strong>RMNET_DATA IP 확인</strong>: 무선망 V4/V6 IP 할당 여부</li>
             <li><strong>BRIDGE0 인터페이스 확인</strong>: 네트워크 인터페이스 존재 여부</li>
+            <li><strong>IPv4 Ping (8.8.8.8)</strong>: 외부 IPv4 망 연결 확인 (평균 RTT 표시)</li>
+            <li><strong>IPv6 Ping (2001:4860:4860::8888)</strong>: 외부 IPv6 망 연결 확인 (평균 RTT 표시)</li>
           </ul>
-          <p style="color:var(--text-dim);font-size:11px">※ 각 항목은 순서대로 실행되며, 이상 발견 시 이후 항목은 점검하지 않습니다.</p>
+          <p style="color:var(--text-dim);font-size:11px">※ 1~5번 항목은 순서대로 실행되며, 이상 발견 시 이후 항목은 점검하지 않습니다.</p>
+          <p style="color:var(--text-dim);font-size:11px">※ Ping 항목(6~7번)은 1~5번 모두 정상일 때 실행되며, 두 항목 모두 결과를 확인한 후 최종 판정합니다.</p>
         </div>
 
         <div class="guide-section" data-guide-perm="adb-info">
