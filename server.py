@@ -34,9 +34,12 @@ _browser_auth  = {}   # browser_sid -> {username, permissions, ip}
 _browser_agent = {}   # browser_sid -> agent_sid  (1:1 페어링)
 _agent_browser = {}   # agent_sid  -> browser_sid (역방향)
 _users_path = Path(__file__).parent / "users.json"
-_remote_control_active = False
-_controller_sid    = None
-_remote_client_sid = None
+
+# ── 원격 제어 (멀티 세션) ─────────────────────────────────────────────
+_controllers       = {}   # controller_sid -> {}
+_controller_browser = {}  # controller_sid -> browser_sid
+_browser_controller = {}  # browser_sid   -> controller_sid
+_rc_active         = set()  # 현재 원격 제어 활성 브라우저 sid
 
 
 def _client_ip():
@@ -195,30 +198,40 @@ def on_connect():
 
 @socketio.on("disconnect")
 def on_disconnect():
-    global _controller_sid, _remote_control_active
     sid = request.sid
     _browser_auth.pop(sid, None)
 
+    # ── 컨트롤러 끊김 ──────────────────────────────────────────────
+    if sid in _controllers:
+        del _controllers[sid]
+        b_sid = _controller_browser.pop(sid, None)
+        if b_sid:
+            _browser_controller.pop(b_sid, None)
+            _rc_active.discard(b_sid)
+            socketio.emit("remote_control_ack",
+                          {"active": False, "error": "원격 제어 서비스 연결 해제"},
+                          room=b_sid)
+        print("[server] Controller disconnected: {}".format(sid[:8]))
+        return
+
+    # ── 에이전트 끊김 ──────────────────────────────────────────────
     if sid in _agents:
-        # 에이전트 끊김 → 페어링된 브라우저에만 알림
         b_sid = _unpair_agent(sid)
         del _agents[sid]
         if b_sid:
             socketio.emit("agent_status", {"connected": False}, room=b_sid)
         print("[server] Agent disconnected: {}".format(sid[:8]))
+        return
 
-    else:
-        # 브라우저 끊김 → 페어링 해제 (에이전트는 다음 브라우저를 기다림)
-        _unpair_browser(sid)
-
-    if sid == _controller_sid:
-        _controller_sid = None
-        if _remote_control_active:
-            _remote_control_active = False
-            socketio.emit("remote_control_ack",
-                          {"active": False, "error": "원격 제어 서비스 연결 해제"},
-                          room="browsers")
-        print("[server] Controller disconnected")
+    # ── 브라우저 끊김 ──────────────────────────────────────────────
+    # 원격 제어 세션 정리
+    ctrl_sid = _browser_controller.pop(sid, None)
+    if ctrl_sid:
+        _controller_browser.pop(ctrl_sid, None)
+        socketio.emit("session_ended", {}, room=ctrl_sid)
+    _rc_active.discard(sid)
+    # 에이전트 페어링 해제
+    _unpair_browser(sid)
 
 @socketio.on("browser_hello")
 def on_browser_hello(_data=None):
@@ -251,7 +264,7 @@ def on_browser_hello(_data=None):
         "username":    username,
         "permissions": permissions,
     })
-    emit("remote_control_ack", {"active": _remote_control_active})
+    emit("remote_control_ack", {"active": browser_sid in _rc_active})
 
 @socketio.on("agent_hello")
 def on_agent_hello(data):
@@ -293,76 +306,91 @@ def on_result(data):
 
 @socketio.on("controller_hello")
 def on_controller_hello(_data=None):
-    global _controller_sid
-    _controller_sid = request.sid
+    ctrl_sid = request.sid
+    _controllers[ctrl_sid] = {}
     emit("controller_ready", {"ok": True})
-    print("[server] Controller connected")
+    print("[server] Controller connected: {}".format(ctrl_sid[:8]))
 
 @socketio.on("controller_accept")
 def on_controller_accept(_data=None):
-    global _remote_control_active
-    if request.sid != _controller_sid:
+    ctrl_sid = request.sid
+    if ctrl_sid not in _controllers:
         return
-    _remote_control_active = True
-    socketio.emit("remote_control_ack", {"active": True}, room="browsers")
-    print("[server] Remote control activated")
+    b_sid = _controller_browser.get(ctrl_sid)
+    if not b_sid:
+        return
+    _rc_active.add(b_sid)
+    socketio.emit("remote_control_ack", {"active": True}, room=b_sid)
+    print("[server] RC activated: ctrl={} browser={}".format(ctrl_sid[:8], b_sid[:8]))
 
 @socketio.on("controller_end")
 def on_controller_end(_data=None):
-    global _remote_control_active, _remote_client_sid
-    if request.sid != _controller_sid:
+    ctrl_sid = request.sid
+    if ctrl_sid not in _controllers:
         return
-    _remote_control_active = False
-    _remote_client_sid = None
-    socketio.emit("remote_control_ack", {"active": False}, room="browsers")
-    print("[server] Remote control ended by controller")
+    b_sid = _controller_browser.pop(ctrl_sid, None)
+    if b_sid:
+        _browser_controller.pop(b_sid, None)
+        _rc_active.discard(b_sid)
+        socketio.emit("remote_control_ack", {"active": False}, room=b_sid)
+    print("[server] RC ended by controller: {}".format(ctrl_sid[:8]))
 
 @socketio.on("controller_cmd")
 def on_controller_cmd(data):
-    if request.sid != _controller_sid:
+    ctrl_sid = request.sid
+    if ctrl_sid not in _controllers:
         return
-    if _remote_client_sid is None:
+    b_sid = _controller_browser.get(ctrl_sid)
+    if not b_sid:
         emit("remote_result", {"success": False,
                                "error": "클라이언트가 연결되지 않았습니다.",
                                "id": data.get("id")})
         return
-    socketio.emit("remote_cmd", data, room=_remote_client_sid)
+    socketio.emit("remote_cmd", data, room=b_sid)
 
 # ── Browser remote control events ────────────────────────────────────
 
 @socketio.on("remote_control_request")
 def on_remote_control_request(_data=None):
-    global _remote_client_sid
-    auth = _browser_auth.get(request.sid)
+    browser_sid = request.sid
+    auth = _browser_auth.get(browser_sid)
     if not auth:
         emit("remote_control_ack", {"active": False, "error": "로그인 필요"})
         return
-    if _controller_sid is None:
+
+    # 미페어링 컨트롤러 탐색
+    ctrl_sid = next((c for c in _controllers if c not in _controller_browser), None)
+    if ctrl_sid is None:
         emit("remote_control_ack",
-             {"active": False,
-              "error": "원격 제어 서비스가 실행 중이지 않습니다."})
+             {"active": False, "error": "원격 제어 서비스가 실행 중이지 않습니다."})
         return
-    _remote_client_sid = request.sid
+
+    _controller_browser[ctrl_sid] = browser_sid
+    _browser_controller[browser_sid] = ctrl_sid
     socketio.emit("remote_control_request",
-                  {"username": auth["username"]}, room=_controller_sid)
-    print("[server] Remote control request from: {}".format(auth["username"]))
+                  {"username": auth["username"]}, room=ctrl_sid)
+    print("[server] RC request: {} -> ctrl={}".format(auth["username"], ctrl_sid[:8]))
 
 @socketio.on("remote_result")
 def on_remote_result(data):
-    # 브라우저 클라이언트가 명령 실행 후 결과 전송
-    socketio.emit("remote_control_result", data, room="browsers")
-    if _controller_sid:
-        socketio.emit("remote_result", data, room=_controller_sid)
+    browser_sid = request.sid
+    # 결과를 해당 브라우저의 UI에 반영
+    socketio.emit("remote_control_result", data, room=browser_sid)
+    # 페어링된 컨트롤러로 전달
+    ctrl_sid = _browser_controller.get(browser_sid)
+    if ctrl_sid:
+        socketio.emit("remote_result", data, room=ctrl_sid)
 
 @socketio.on("remote_control_end")
 def on_remote_control_end(_data=None):
-    global _remote_control_active, _remote_client_sid
-    _remote_control_active = False
-    _remote_client_sid = None
-    socketio.emit("remote_control_ack", {"active": False}, room="browsers")
-    if _controller_sid:
-        socketio.emit("session_ended", {}, room=_controller_sid)
-    print("[server] Remote control ended by browser")
+    browser_sid = request.sid
+    ctrl_sid = _browser_controller.pop(browser_sid, None)
+    if ctrl_sid:
+        _controller_browser.pop(ctrl_sid, None)
+        socketio.emit("session_ended", {}, room=ctrl_sid)
+    _rc_active.discard(browser_sid)
+    socketio.emit("remote_control_ack", {"active": False}, room=browser_sid)
+    print("[server] RC ended by browser: {}".format(browser_sid[:8]))
 
 @socketio.on("logcat_line")
 def on_logcat_line(data):
