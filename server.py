@@ -29,8 +29,8 @@ app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=24)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet",
                     logger=False, engineio_logger=False)
 
-_agents        = {}   # agent_sid  -> {platform, node, python}
-_browser_auth  = {}   # browser_sid -> {username, permissions}
+_agents        = {}   # agent_sid  -> {platform, node, python, ip}
+_browser_auth  = {}   # browser_sid -> {username, permissions, ip}
 _browser_agent = {}   # browser_sid -> agent_sid  (1:1 페어링)
 _agent_browser = {}   # agent_sid  -> browser_sid (역방향)
 _users_path = Path(__file__).parent / "users.json"
@@ -39,12 +39,21 @@ _controller_sid    = None
 _remote_client_sid = None
 
 
+def _client_ip():
+    """실제 클라이언트 IP 반환 (nginx X-Real-IP 우선)."""
+    return (request.environ.get("HTTP_X_REAL_IP") or
+            request.environ.get("HTTP_X_FORWARDED_FOR", "").split(",")[0].strip() or
+            request.remote_addr or "unknown")
+
+
 def _pair(browser_sid, agent_sid):
     """브라우저 ↔ 에이전트 1:1 페어링 등록."""
     _browser_agent[browser_sid] = agent_sid
     _agent_browser[agent_sid]   = browser_sid
-    print("[server] 페어링: browser={} ↔ agent={}".format(
-        browser_sid[:8], agent_sid[:8]))
+    b_ip = _browser_auth.get(browser_sid, {}).get("ip", "?")
+    a_ip = _agents.get(agent_sid, {}).get("ip", "?")
+    print("[server] 페어링: browser={}({}) ↔ agent={}({})".format(
+        browser_sid[:8], b_ip, agent_sid[:8], a_ip))
 
 
 def _unpair_browser(browser_sid):
@@ -60,18 +69,18 @@ def _unpair_agent(agent_sid):
     return browser_sid   # 페어링됐던 브라우저 SID 반환
 
 
-def _find_unpaired_browser():
-    """아직 에이전트와 매핑되지 않은 로그인된 브라우저 SID 반환."""
-    for b_sid in _browser_auth:
-        if b_sid not in _browser_agent:
+def _find_unpaired_browser(ip):
+    """같은 IP에서 접속한 미페어링 로그인 브라우저 SID 반환."""
+    for b_sid, info in _browser_auth.items():
+        if b_sid not in _browser_agent and info.get("ip") == ip:
             return b_sid
     return None
 
 
-def _find_unpaired_agent():
-    """아직 브라우저와 매핑되지 않은 에이전트 SID 반환."""
-    for a_sid in _agents:
-        if a_sid not in _agent_browser:
+def _find_unpaired_agent(ip):
+    """같은 IP에서 접속한 미페어링 에이전트 SID 반환."""
+    for a_sid, info in _agents.items():
+        if a_sid not in _agent_browser and info.get("ip") == ip:
             return a_sid
     return None
 
@@ -217,9 +226,10 @@ def on_browser_hello(_data=None):
     browser_sid = request.sid
     username    = session.get("username")
     permissions = session.get("permissions", [])
+    ip          = _client_ip()
 
     if username:
-        _browser_auth[browser_sid] = {"username": username, "permissions": permissions}
+        _browser_auth[browser_sid] = {"username": username, "permissions": permissions, "ip": ip}
     else:
         _browser_auth.pop(browser_sid, None)
 
@@ -229,9 +239,9 @@ def on_browser_hello(_data=None):
         _unpair_browser(browser_sid)
         agent_sid = None
 
-    # 페어링 안 됐고 로그인된 상태면 대기 중인 에이전트와 연결
+    # 페어링 안 됐고 로그인된 상태면 같은 IP의 대기 에이전트와 연결
     if not agent_sid and username:
-        agent_sid = _find_unpaired_agent()
+        agent_sid = _find_unpaired_agent(ip)
         if agent_sid:
             _pair(browser_sid, agent_sid)
 
@@ -246,12 +256,14 @@ def on_browser_hello(_data=None):
 @socketio.on("agent_hello")
 def on_agent_hello(data):
     agent_sid = request.sid
+    ip        = _client_ip()
     info      = data or {}
+    info["ip"] = ip
     _agents[agent_sid] = info
-    print("[server] Agent connected: {} {}".format(agent_sid[:8], info))
+    print("[server] Agent connected: {}({}) {}".format(agent_sid[:8], ip, info))
 
-    # 대기 중인 로그인 브라우저가 있으면 즉시 페어링
-    b_sid = _find_unpaired_browser()
+    # 같은 IP의 대기 중인 로그인 브라우저가 있으면 즉시 페어링
+    b_sid = _find_unpaired_browser(ip)
     if b_sid:
         _pair(b_sid, agent_sid)
         socketio.emit("agent_status", {"connected": True, "info": info}, room=b_sid)

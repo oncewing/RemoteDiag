@@ -223,6 +223,31 @@ def on_command(data: dict):
             result["success"] = True
             result["message"] = "로그 수집 시작됨"
 
+        elif cmd_type == "kmsg_upload":
+            t = threading.Thread(
+                target=_do_kmsg_upload,
+                args=(data["serial"], browser_sid),
+                daemon=True,
+            )
+            t.start()
+            result["success"] = True
+            result["message"] = "kmsg 수집 시작됨"
+
+        elif cmd_type == "srsd_kmsg_upload":
+            t = threading.Thread(
+                target=_do_kmsg_upload,
+                kwargs={
+                    "serial":      "",
+                    "browser_sid": browser_sid,
+                    "srsd_ip":     data["ip"],
+                    "srsd_port":   int(data.get("port", SRSD_PORT)),
+                },
+                daemon=True,
+            )
+            t.start()
+            result["success"] = True
+            result["message"] = "kmsg 수집 시작됨"
+
         else:
             result["error"] = f"알 수 없는 명령: {cmd_type}"
 
@@ -822,6 +847,52 @@ def _do_log_upload(serial: str, port: str, browser_sid: str,
         errors.append("/var/log/messages: " + r.get("stderr", "실패"))
 
     print(f"[agent] log_upload: {len(files)}개 파일 수집 완료, 서버 전송 중...")
+    sio.emit("log_upload_data", {
+        "browser_sid": browser_sid,
+        "device":      device_id,
+        "phone":       phone,
+        "imei":        imei,
+        "files":       files,
+        "errors":      errors,
+    })
+
+
+def _do_kmsg_upload(serial: str, browser_sid: str,
+                    srsd_ip: str = "", srsd_port: int = SRSD_PORT):
+    """백그라운드: dmesg(kmsg)만 수집 후 서버로 전송."""
+    if srsd_ip:
+        def _shell(cmd, timeout=60): return _srsd_shell(srsd_ip, srsd_port, cmd, timeout)
+        device_id = srsd_ip
+    else:
+        def _shell(cmd, timeout=60): return _adb_shell(serial, cmd, timeout)
+        device_id = serial
+
+    files  = {}
+    errors = []
+
+    # 전화번호 / IMEI 취득
+    r = _shell("cat /var/tmp/phone_number", timeout=5)
+    phone = r.get("stdout", "").strip().replace("+", "").replace("-", "").replace(" ", "") \
+            if r["success"] else "unknown"
+    if not phone:
+        phone = "unknown"
+
+    r = _shell("cat /var/tmp/imei", timeout=5)
+    imei = r.get("stdout", "").strip() if r["success"] else "unknown"
+    if not imei:
+        imei = "unknown"
+
+    print(f"[agent] kmsg_upload: 전화번호={phone}  IMEI={imei}")
+
+    # dmesg 수집
+    print("[agent] kmsg_upload: dmesg 수집 중...")
+    r = _shell("dmesg", timeout=60)
+    if r["success"]:
+        files["kmsg.log"] = r["stdout"]
+    else:
+        errors.append("dmesg: " + r.get("stderr", "실패"))
+
+    print(f"[agent] kmsg_upload: 서버 전송 중...")
     sio.emit("log_upload_data", {
         "browser_sid": browser_sid,
         "device":      device_id,

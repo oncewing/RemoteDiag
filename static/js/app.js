@@ -766,19 +766,60 @@ async function uploadLogs() {
 }
 
 function onLogUploadResult(d) {
-  const btn    = document.getElementById('log-upload-btn');
-  const status = document.getElementById('log-upload-status');
-  btn.disabled    = false;
-  btn.textContent = '⬆ 로그 업로드';
-  if (d.success) {
-    const warn = d.errors && d.errors.length
-      ? `  (실패 ${d.errors.length}개)` : '';
-    toast(`로그 업로드 완료: ${d.count}개 파일 저장${warn}`);
-    status.textContent = `✓ 저장 위치: ${d.path}  (${d.count}개 파일)${warn}`;
+  // 로그 업로드 결과
+  const logBtn    = document.getElementById('log-upload-btn');
+  const logStatus = document.getElementById('log-upload-status');
+  // kmsg 업로드 결과
+  const kmsgBtn    = document.getElementById('kmsg-upload-btn');
+  const kmsgStatus = document.getElementById('kmsg-upload-status');
+
+  // kmsg 업로드 중이면 kmsg UI 복원, 아니면 log UI 복원
+  const isKmsg = kmsgBtn && kmsgBtn.disabled;
+
+  if (isKmsg) {
+    kmsgBtn.disabled    = false;
+    kmsgBtn.textContent = '⬆ kmsg 업로드';
+    if (d.success) {
+      const warn = d.errors && d.errors.length ? `  (실패 ${d.errors.length}개)` : '';
+      toast(`kmsg 업로드 완료: ${d.count}개 파일 저장${warn}`);
+      kmsgStatus.textContent = `✓ 저장 위치: ${d.path}  (${d.count}개 파일)${warn}`;
+    } else {
+      toast('업로드 실패: ' + (d.error || '알 수 없는 오류'), true);
+      kmsgStatus.textContent = '';
+    }
   } else {
-    toast('업로드 실패: ' + (d.error || '알 수 없는 오류'), true);
-    status.textContent = '';
+    if (logBtn) { logBtn.disabled = false; logBtn.textContent = '⬆ 로그 업로드'; }
+    if (d.success) {
+      const warn = d.errors && d.errors.length ? `  (실패 ${d.errors.length}개)` : '';
+      toast(`로그 업로드 완료: ${d.count}개 파일 저장${warn}`);
+      if (logStatus) logStatus.textContent = `✓ 저장 위치: ${d.path}  (${d.count}개 파일)${warn}`;
+    } else {
+      toast('업로드 실패: ' + (d.error || '알 수 없는 오류'), true);
+      if (logStatus) logStatus.textContent = '';
+    }
   }
+}
+
+async function uploadKmsg() {
+  if (!_connReady({ needShell: true })) return;
+  const btn    = document.getElementById('kmsg-upload-btn');
+  const status = document.getElementById('kmsg-upload-status');
+  btn.disabled    = true;
+  btn.textContent = '수집 중...';
+  status.textContent = 'kmsg(dmesg) 수집 중...';
+
+  const cmd = selectedSrsdIp
+    ? { type: 'srsd_kmsg_upload', ip: selectedSrsdIp, port: selectedSrsdPort }
+    : { type: 'kmsg_upload', serial: selectedSerial };
+  const res = await sendCommand(cmd, 'kmsg_upload');
+  if (!res.success) {
+    toast(res.error || '업로드 요청 실패', true);
+    btn.disabled    = false;
+    btn.textContent = '⬆ kmsg 업로드';
+    status.textContent = '';
+    return;
+  }
+  status.textContent = '서버로 전송 중...';
 }
 
 // ── kmsg tab ──────────────────────────────────────────────────────────
@@ -874,6 +915,22 @@ async function openPort() {
   const port     = document.getElementById('port-select').value;
   const baudrate = document.getElementById('baud-select').value;
   if (!port) { toast('포트를 선택하세요.', true); return; }
+
+  // 이미 다른 포트가 열려 있으면 먼저 닫기
+  if (selectedPort && selectedPort !== port) {
+    toast(`${selectedPort} 닫는 중...`);
+    await sendCommand({ type: 'at_command', port: selectedPort, command: 'AT!UNLOCK=2,"W353"', timeout: 5 });
+    await sendCommand({ type: 'at_command', port: selectedPort, command: 'AT*WUSBDENABLE=3', timeout: 5 });
+    const closeRes = await sendCommand({ type: 'at_close', port: selectedPort });
+    if (closeRes.success) {
+      Object.keys(_devicePortMap).forEach(s => { if (_devicePortMap[s] === selectedPort) delete _devicePortMap[s]; });
+      selectedPort = '';
+      selectedSerial = '';
+      document.getElementById('at-port-display').textContent = '미연결';
+      document.getElementById('device-list').innerHTML =
+        '<span class="dim-text">시리얼 포트를 먼저 연결하세요</span>';
+    }
+  }
 
   const res = await sendCommand({ type: 'at_open', port, baudrate: parseInt(baudrate) });
   if (!res.success) { toast(res.message || res.error || '오류', true); return; }
@@ -1061,7 +1118,8 @@ const DIAG_STEPS = [
   { id: 'imei',    label: 'IMEI 확인' },
   { id: 'phone',   label: 'PHONE 번호 확인' },
   { id: 'usim',    label: 'USIM 인식' },
-  { id: 'rmnet',   label: 'RMNET_DATA IP 확인' },
+  { id: 'rmnet4',  label: 'RMNET IPv4 IP 확인' },
+  { id: 'rmnet6',  label: 'RMNET IPv6 IP 확인' },
   { id: 'bridge0', label: 'BRIDGE0 인터페이스 확인' },
   { id: 'ping4',   label: 'IPv4 Ping (8.8.8.8)' },
   { id: 'ping6',   label: 'IPv6 Ping (2001:4860:4860::8888)' },
@@ -1097,7 +1155,8 @@ function _diagSetRow(id, state, text) {
     pending: { icon: '○', color: 'var(--text-dim)' },
     running: { icon: '⟳', color: 'var(--blue)' },
     ok:      { icon: '✓', color: 'var(--green)' },
-    fail:    { icon: '✗', color: 'var(--red)' },
+    fail:    { icon: '✗', color: 'var(--red)'   },
+    skip:    { icon: '—', color: 'var(--text-dim)' },
   };
   const s = MAP[state] || MAP.pending;
   dot.textContent = s.icon;
@@ -1152,10 +1211,10 @@ async function runDiag() {
     return sendCommand({ type: 'adb_shell', serial: selectedSerial, command: cmd }, 'diag');
   };
 
-  const fail = (id, msg, verdict) => {
+  const failedSteps = [];
+  const fail = (id, msg) => {
+    failedSteps.push(msg);
     _diagSetRow(id, 'fail', msg);
-    _diagVerdict(false, verdict || msg);
-    btn.disabled = false;
   };
 
   // ── 1. IMEI ────────────────────────────────────────────────────────
@@ -1163,87 +1222,121 @@ async function runDiag() {
   const imeiRes = await shellCmd('cat /var/tmp/imei');
   const imei = (imeiRes.stdout || '').trim();
   if (!imeiRes.success || !imei || /^0+$/.test(imei) || imei.length < 10) {
-    return fail('imei', 'IMEI 정보 오류', 'IMEI 정보 오류 — 점검 중단');
+    fail('imei', 'IMEI 정보 오류');
+  } else {
+    _diagSetRow('imei', 'ok', imei);
   }
-  _diagSetRow('imei', 'ok', imei);
 
   // ── 2. PHONE 번호 ──────────────────────────────────────────────────
   _diagSetRow('phone', 'running', '확인 중...');
   const phoneRes = await shellCmd('cat /var/tmp/phone_number');
   const phone = (phoneRes.stdout || '').trim().replace(/\D/g, '');
   if (!phoneRes.success || !/^0(10|12)\d{7,8}$/.test(phone)) {
-    return fail('phone', '번호 정보 오류', '번호 정보 오류 — 점검 중단');
+    fail('phone', '번호 정보 오류');
+  } else {
+    _diagSetRow('phone', 'ok', phone);
   }
-  _diagSetRow('phone', 'ok', phone);
 
   // ── 3. USIM 상태 ──────────────────────────────────────────────────
   _diagSetRow('usim', 'running', '확인 중...');
   const usimRes  = await atCmd('AT*WSTAT?', 5);
   const usimResp = (usimRes.response || '').toUpperCase();
+  const wstatM   = (usimRes.response || '').match(/\*WSTAT\s*:\s*([^\r\n]+)/i);
+  const usimVal  = wstatM ? wstatM[1].trim() : (usimRes.response || '').trim();
   if (usimResp.includes('READY')) {
-    _diagSetRow('usim', 'ok', 'READY');
+    _diagSetRow('usim', 'ok', usimVal);
+  } else if (usimResp.includes('TESTCARD')) {
+    _diagSetRow('usim', 'ok', usimVal);
   } else if (usimResp.includes('OPEN')) {
-    return fail('usim', '미개통', '미개통 — 점검 중단');
+    fail('usim', `미개통 (${usimVal})`);
   } else {
-    return fail('usim', 'USIM 오류', 'USIM 오류 — 점검 중단');
+    fail('usim', `USIM 오류 (${usimVal})`);
   }
 
-  // ── 4. RMNET IP ────────────────────────────────────────────────────
-  _diagSetRow('rmnet', 'running', '확인 중...');
-  const ipRes   = await atCmd('AT*WWANIP?', 5);
-  const ipResp  = ipRes.response || '';
-  const v4match = ipResp.match(/V4:\s*(\S+)/i);
-  const v6match = ipResp.match(/V6:\s*(\S+)/i);
-  const hasV4   = v4match && v4match[1] && !/^0\.0\.0\.0$/.test(v4match[1]) && v4match[1] !== '-';
-  const hasV6   = v6match && v6match[1] && v6match[1] !== '::' && v6match[1] !== '-';
-  if (!hasV4 && !hasV6) {
-    return fail('rmnet', '무선망 NETWORK 연결 오류', '무선망 NETWORK 연결 오류 — 점검 중단');
+  // ── 4. RMNET IP (V4 / V6 개별 확인) ──────────────────────────────
+  _diagSetRow('rmnet4', 'running', '확인 중...');
+  _diagSetRow('rmnet6', 'running', '확인 중...');
+  const ipRes  = await atCmd('AT*WWANIP?', 5);
+  const ipResp = ipRes.response || '';
+
+  // 줄 단위로 분리 후 V4: / V6: 라인만 찾아서 값 추출
+  const ipLines = ipResp.split(/\r?\n|\r/);
+  const v4line  = ipLines.find(l => /^V4:/i.test(l.trim()));
+  const v6line  = ipLines.find(l => /^V6:/i.test(l.trim()));
+  const v4ip    = v4line ? v4line.replace(/^V4:\s*/i, '').trim() : '';
+  const v6ip    = v6line ? v6line.replace(/^V6:\s*/i, '').trim() : '';
+
+  // 유효한 IPv4: x.x.x.x 형식 + 0.0.0.0 제외
+  const isValidV4 = ip =>
+    /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(ip) && ip !== '0.0.0.0';
+
+  // 유효한 IPv6: 16진수+콜론 형식 + :: / 전체 0 제외
+  const isValidV6 = ip =>
+    /^[0-9a-f:]+$/i.test(ip) && ip.includes(':') &&
+    ip !== '::' && ip !== '::0' && ip !== '0:0:0:0:0:0:0:0';
+
+  const hasV4 = isValidV4(v4ip);
+  const hasV6 = isValidV6(v6ip);
+
+  if (hasV4) {
+    _diagSetRow('rmnet4', 'ok', v4ip);
+  } else {
+    fail('rmnet4', v4ip ? `IPv4 유효하지 않음 (${v4ip})` : 'IPv4 미할당');
   }
-  const ipInfo = [hasV4 ? 'V4 ' + v4match[1] : '', hasV6 ? 'V6 ' + v6match[1] : '']
-                  .filter(Boolean).join('  ');
-  _diagSetRow('rmnet', 'ok', ipInfo);
+  if (hasV6) {
+    _diagSetRow('rmnet6', 'ok', v6ip);
+  } else {
+    _diagSetRow('rmnet6', 'skip', v6ip ? `IPv6 유효하지 않음 (${v6ip})` : 'IPv6 미할당');
+  }
 
   // ── 5. BRIDGE0 인터페이스 ─────────────────────────────────────────
   _diagSetRow('bridge0', 'running', '확인 중...');
   const ifRes = await shellCmd('ifconfig');
   if (!ifRes.success || !(ifRes.stdout || '').includes('bridge0')) {
-    return fail('bridge0', '네트워크 인터페이스 오류', '네트워크 인터페이스 오류 — 점검 중단');
-  }
-  _diagSetRow('bridge0', 'ok', '확인됨');
-
-  // ── 6. IPv4 Ping ──────────────────────────────────────────────────
-  _diagSetRow('ping4', 'running', '확인 중...');
-  const ping4Res = await shellCmd('ping -c 3 -W 3 8.8.8.8 2>&1');
-  const ping4Out = (ping4Res.stdout || '') + (ping4Res.stderr || '');
-  const ping4Ok  = /bytes from/i.test(ping4Out) ||
-    (/(\d+)\s+received/i.test(ping4Out) &&
-     parseInt((ping4Out.match(/(\d+)\s+received/i) || [])[1] || '0') > 0);
-  if (ping4Ok) {
-    const m4 = ping4Out.match(/\/(\d+(?:\.\d+)?)\/[\d.]+\s*ms/);
-    _diagSetRow('ping4', 'ok', m4 ? `avg ${m4[1]} ms` : '응답 있음');
+    fail('bridge0', '네트워크 인터페이스 오류');
   } else {
-    _diagSetRow('ping4', 'fail', '응답 없음');
+    _diagSetRow('bridge0', 'ok', '확인됨');
   }
 
-  // ── 7. IPv6 Ping ──────────────────────────────────────────────────
-  _diagSetRow('ping6', 'running', '확인 중...');
-  const ping6Res = await shellCmd('ping6 -c 3 -W 3 2001:4860:4860::8888 2>&1');
-  const ping6Out = (ping6Res.stdout || '') + (ping6Res.stderr || '');
-  const ping6Ok  = /bytes from/i.test(ping6Out) ||
-    (/(\d+)\s+received/i.test(ping6Out) &&
-     parseInt((ping6Out.match(/(\d+)\s+received/i) || [])[1] || '0') > 0);
-  if (ping6Ok) {
-    const m6 = ping6Out.match(/\/(\d+(?:\.\d+)?)\/[\d.]+\s*ms/);
-    _diagSetRow('ping6', 'ok', m6 ? `avg ${m6[1]} ms` : '응답 있음');
+  // ── 6. IPv4 Ping (IPv4 미할당 시 SKIP) ──────────────────────────
+  if (!hasV4) {
+    _diagSetRow('ping4', 'skip', 'IPv4 미할당 — 건너뜀');
   } else {
-    _diagSetRow('ping6', 'fail', '응답 없음');
+    _diagSetRow('ping4', 'running', '확인 중...');
+    const ping4Res = await shellCmd('ping -c 3 -W 3 8.8.8.8 2>&1');
+    const ping4Out = (ping4Res.stdout || '') + (ping4Res.stderr || '');
+    const ping4Ok  = /bytes from/i.test(ping4Out) ||
+      (/(\d+)\s+received/i.test(ping4Out) &&
+       parseInt((ping4Out.match(/(\d+)\s+received/i) || [])[1] || '0') > 0);
+    if (ping4Ok) {
+      const m4 = ping4Out.match(/\/(\d+(?:\.\d+)?)\/[\d.]+\s*ms/);
+      _diagSetRow('ping4', 'ok', m4 ? `avg ${m4[1]} ms` : '응답 있음');
+    } else {
+      fail('ping4', 'IPv4 Ping 실패');
+    }
   }
 
-  // ── 전체 통과 ─────────────────────────────────────────────────────
-  if (!ping4Ok || !ping6Ok) {
-    const fails = [!ping4Ok ? 'IPv4 Ping' : '', !ping6Ok ? 'IPv6 Ping' : '']
-                    .filter(Boolean).join(', ');
-    _diagVerdict(false, `✗ 이상 감지: ${fails}`);
+  // ── 7. IPv6 Ping (IPv6 미할당 시 SKIP) ───────────────────────────
+  if (!hasV6) {
+    _diagSetRow('ping6', 'skip', 'IPv6 미할당 — 건너뜀');
+  } else {
+    _diagSetRow('ping6', 'running', '확인 중...');
+    const ping6Res = await shellCmd('ping6 -c 3 -W 3 2001:4860:4860::8888 2>&1');
+    const ping6Out = (ping6Res.stdout || '') + (ping6Res.stderr || '');
+    const ping6Ok  = /bytes from/i.test(ping6Out) ||
+      (/(\d+)\s+received/i.test(ping6Out) &&
+       parseInt((ping6Out.match(/(\d+)\s+received/i) || [])[1] || '0') > 0);
+    if (ping6Ok) {
+      const m6 = ping6Out.match(/\/(\d+(?:\.\d+)?)\/[\d.]+\s*ms/);
+      _diagSetRow('ping6', 'ok', m6 ? `avg ${m6[1]} ms` : '응답 있음');
+    } else {
+      fail('ping6', 'IPv6 Ping 실패');
+    }
+  }
+
+  // ── 전체 결과 ─────────────────────────────────────────────────────
+  if (failedSteps.length > 0) {
+    _diagVerdict(false, `✗ 이상 감지: ${failedSteps.join(', ')}`);
   } else {
     _diagVerdict(true, '✓ 모든 항목 정상');
   }

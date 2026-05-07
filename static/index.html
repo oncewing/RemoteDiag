@@ -261,7 +261,9 @@
         <button class="btn-sm" onclick="clearTerm('term-kmsg')">지우기</button>
         <span id="kmsg-status" class="dim-text"></span>
         <button class="btn-sm" style="margin-left:auto" onclick="downloadKmsg()">⬇ kmsg 저장</button>
+        <button class="btn-sm" id="kmsg-upload-btn" onclick="uploadKmsg()" style="background:var(--blue);color:#fff">⬆ kmsg 업로드</button>
       </div>
+      <div id="kmsg-upload-status" style="padding:2px 8px;font-size:11px;color:var(--text-dim);min-height:18px"></div>
       <div class="terminal-wrap" style="padding-top:4px">
         <div id="term-kmsg" class="terminal"></div>
       </div>
