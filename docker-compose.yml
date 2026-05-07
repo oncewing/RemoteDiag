@@ -1,0 +1,16 @@
+version: '3'
+services:
+  remotediag:
+    build: .
+    container_name: remotediag
+    restart: always
+    ports:
+      - "3004:3004"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./users.json:/app/users.json
+      - ./dist:/app/dist
+      - ./remote_control.py:/app/remote_control.py
+    environment:
+      - SECRET_KEY=remotediag-secret-change-me
+      - PYTHONUNBUFFERED=1

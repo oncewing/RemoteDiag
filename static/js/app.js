@@ -67,7 +67,8 @@ let socket = null;
 window.addEventListener('DOMContentLoaded', () => {
   // socket.io 초기화
   try {
-    socket = io({ transports: ['websocket'], reconnection: true });
+    socket = io({ transports: ['websocket'], reconnection: true,
+                  path: '/remotediag/socket.io' });
 
     socket.on('connect', () => {
       socket.emit('browser_hello');
@@ -111,7 +112,7 @@ window.addEventListener('DOMContentLoaded', () => {
     toast('Socket.IO 로드 실패. 페이지를 새로고침하세요.', true);
   }
 
-  fetch('/api/me')
+  fetch('api/me')
     .then(r => {
       if (!r.ok) throw new Error('unauth');
       return r.json();
@@ -124,7 +125,7 @@ window.addEventListener('DOMContentLoaded', () => {
     })
     .catch(() => showLogin());
 
-  fetch('/api/server-info').then(r => r.json()).then(info => {
+  fetch('api/server-info').then(r => r.json()).then(info => {
     const exeBtn       = document.getElementById('btn-download-exe');
     const bannerExeBtn = document.getElementById('banner-btn-exe');
     if (!info.exe_ready) {
@@ -160,7 +161,7 @@ async function doLogin() {
     return;
   }
 
-  const res = await fetch('/api/login', {
+  const res = await fetch('api/login', {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify({ username, password }),
@@ -203,7 +204,7 @@ async function doLogout() {
   kmsgRunning         = false;
   _stopKmsgPoll();
 
-  await fetch('/api/logout', { method: 'POST' });
+  await fetch('api/logout', { method: 'POST' });
   currentUser  = null;
   currentPerms = [];
   agentConnected = false;

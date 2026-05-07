@@ -20,7 +20,6 @@ from flask_socketio import SocketIO, emit, join_room
 from werkzeug.security import generate_password_hash, check_password_hash
 
 import config
-import generate_cert
 
 app = Flask(__name__, static_folder="static")
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "remotediag-secret-key-change-me")
@@ -163,6 +162,7 @@ def index():
     return send_from_directory("static", "index.html")
 
 @app.route("/download/agent.exe")
+@app.route("/dist/agent.exe")
 def download_agent_exe():
     for candidate in [
         Path(__file__).parent / "dist" / "agent.exe",
@@ -468,9 +468,6 @@ def _get_local_ip():
 
 
 def main():
-    if not generate_cert.generate():
-        sys.exit(1)
-
     _init_users()
 
     local_ip    = _get_local_ip()
@@ -484,7 +481,7 @@ def main():
     print("=" * 55 + "\n")
 
     socketio.run(app, host=config.HOST, port=config.PORT,
-                 use_reloader=False, log_output=False)
+                 use_reloader=False, log_output=True)
 
 
 if __name__ == "__main__":

@@ -8,8 +8,12 @@
 import sys
 import threading
 import socketio
+try:
+    import readline  # 방향키·백스페이스 지원
+except ImportError:
+    pass
 
-SERVER_URL = "http://127.0.0.1:8000"
+SERVER_URL = "http://127.0.0.1:3004"
 
 sio = socketio.Client(logger=False, engineio_logger=False)
 
@@ -172,7 +176,7 @@ def main():
         conn_err = [None]
         def _do_connect():
             try:
-                sio.connect(SERVER_URL)
+                sio.connect(SERVER_URL, transports=["websocket"])
             except Exception as e:
                 conn_err[0] = e
 

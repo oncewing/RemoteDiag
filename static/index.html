@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Woorinet RemoteDiag</title>
-  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="static/css/style.css">
 </head>
 <body>
 
@@ -28,7 +28,7 @@
   <div id="agent-bar" class="agent-bar disconnected">
     <span id="agent-dot" class="status-dot"></span>
     <span id="agent-text">에이전트 미연결</span>
-    <a class="btn-sm primary" id="btn-download-exe" href="/download/agent.exe" download>⬇ agent.exe</a>
+    <a class="btn-sm primary" id="btn-download-exe" href="dist/agent.exe" download>⬇ agent.exe</a>
   </div>
 
   <!-- User info -->
@@ -44,7 +44,7 @@
     <strong>에이전트 설정 방법</strong>
     <ol>
       <li>
-        <a class="btn-sm primary" id="banner-btn-exe" href="/download/agent.exe" download>⬇ agent.exe 다운로드</a>
+        <a class="btn-sm primary" id="banner-btn-exe" href="dist/agent.exe" download>⬇ agent.exe 다운로드</a>
       </li>
       <li>Windows PC에서 실행:<br>
         <code id="setup-cmd">agent.exe</code>
@@ -389,7 +389,7 @@
 
 <div id="toast"></div>
 
-<script src="/static/js/socket.io.min.js"></script>
-<script src="/static/js/app.js"></script>
+<script src="static/js/socket.io.min.js"></script>
+<script src="static/js/app.js"></script>
 </body>
 </html>
