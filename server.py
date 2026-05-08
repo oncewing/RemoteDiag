@@ -307,9 +307,26 @@ def on_result(data):
 @socketio.on("controller_hello")
 def on_controller_hello(_data=None):
     ctrl_sid = request.sid
-    _controllers[ctrl_sid] = {}
+    username    = session.get("username")
+    permissions = session.get("permissions", [])
+
+    # 로컬 직접 연결(127.0.0.1)은 인증 생략, 외부 연결은 remote 권한 필요
+    client_ip = _client_ip()
+    is_local  = client_ip in ("127.0.0.1", "::1", "localhost")
+
+    if not is_local:
+        if not username:
+            emit("controller_error", {"message": "로그인이 필요합니다."})
+            print("[server] Controller 거절 (미인증): {}".format(ctrl_sid[:8]))
+            return
+        if "remote" not in permissions:
+            emit("controller_error", {"message": "remote 권한이 없습니다."})
+            print("[server] Controller 거절 (권한 없음): {} ({})".format(ctrl_sid[:8], username))
+            return
+
+    _controllers[ctrl_sid] = {"username": username or "local"}
     emit("controller_ready", {"ok": True})
-    print("[server] Controller connected: {}".format(ctrl_sid[:8]))
+    print("[server] Controller connected: {} ({})".format(ctrl_sid[:8], username or "local"))
 
 @socketio.on("controller_accept")
 def on_controller_accept(_data=None):
