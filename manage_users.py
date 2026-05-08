@@ -4,6 +4,10 @@
 import json
 import sys
 from pathlib import Path
+try:
+    import readline  # 방향키·백스페이스 지원
+except ImportError:
+    pass
 
 from werkzeug.security import generate_password_hash
 

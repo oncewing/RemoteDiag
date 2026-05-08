@@ -11,6 +11,7 @@ services:
       - ./users.json:/app/users.json
       - ./dist:/app/dist
       - ./remote_control.py:/app/remote_control.py
+      - ./manage_users.py:/app/manage_users.py
     environment:
       - SECRET_KEY=remotediag-secret-change-me
       - PYTHONUNBUFFERED=1
