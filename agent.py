@@ -22,8 +22,9 @@ import serial.tools.list_ports
 import socketio as sio_module
 
 # ── 빌드 시 설정값 ───────────────────────────────────────────────────
-SERVER_URL   = "wss://10.1.255.85:40443"  # 빌드 시 서버 주소 고정
-EXPIRE_DATE  = "2026-05-30"               # 사용 기한 (YYYY-MM-DD)
+SERVER_URL         = "wss://support.woori-net.com"   # 빌드 시 서버 주소 고정
+SERVER_SOCKET_PATH = "/remotediag/socket.io"
+EXPIRE_DATE        = "2026-05-30"               # 사용 기한 (YYYY-MM-DD)
 
 ADB_PATH = "adb"
 AT_TIMEOUT = 5
@@ -84,8 +85,9 @@ def connect():
     print(f"[agent] 서버 연결됨: {SERVER_URL}")
     sio.emit("agent_hello", {
         "platform": platform.system(),
-        "node": platform.node(),
-        "python": platform.python_version(),
+        "node":     platform.node(),
+        "python":   platform.python_version(),
+        "ip":       socket.gethostbyname(socket.gethostname()),
     })
     _push_devices()
     _push_ports()
@@ -96,7 +98,8 @@ def disconnect():
 
 @sio.event
 def connect_error(data):
-    print(f"[agent] 연결 오류: {data}")
+    msg = data.get("message", data) if isinstance(data, dict) else data
+    print(f"[agent] 연결 오류: {msg}")
 
 
 # ── Command dispatcher ───────────────────────────────────────────────
@@ -952,7 +955,8 @@ def main():
             pass
         try:
             print(f"[agent] 서버 연결 중: {SERVER_URL}")
-            sio.connect(SERVER_URL, transports=["websocket"])
+            sio.connect(SERVER_URL, transports=["websocket"],
+                        socketio_path=SERVER_SOCKET_PATH)
             while sio.connected and not _shutdown.is_set():
                 time.sleep(0.3)
         except Exception as e:
