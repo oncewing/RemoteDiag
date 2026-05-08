@@ -161,23 +161,23 @@ def api_me():
 def index():
     return send_from_directory("static", "index.html")
 
-@app.route("/download/agent.exe")
-@app.route("/dist/agent.exe")
+@app.route("/download/woorinet_remote_diag_agent.exe")
+@app.route("/dist/woorinet_remote_diag_agent.exe")
 def download_agent_exe():
     for candidate in [
-        Path(__file__).parent / "dist" / "agent.exe",
-        Path(__file__).parent / "agent.exe",
+        Path(__file__).parent / "dist" / "woorinet_remote_diag_agent.exe",
+        Path(__file__).parent / "woorinet_remote_diag_agent.exe",
     ]:
         if candidate.exists():
             data = candidate.read_bytes()
             return Response(data, mimetype="application/octet-stream",
-                            headers={"Content-Disposition": "attachment; filename=agent.exe"})
+                            headers={"Content-Disposition": "attachment; filename=woorinet_remote_diag_agent.exe"})
     abort(404)
 
 @app.route("/api/server-info")
 def server_info():
-    exe_ready = (Path(__file__).parent / "dist" / "agent.exe").exists() or \
-                (Path(__file__).parent / "agent.exe").exists()
+    exe_ready = (Path(__file__).parent / "dist" / "woorinet_remote_diag_agent.exe").exists() or \
+                (Path(__file__).parent / "woorinet_remote_diag_agent.exe").exists()
     return jsonify({
         "ip":              _get_local_ip(),
         "port":            getattr(config, "PUBLIC_PORT", config.PORT),
@@ -476,7 +476,7 @@ def main():
     print("  RemoteDiag Server")
     print("=" * 55)
     print("  Web UI : https://{}:{}".format(local_ip, public_port))
-    print("  Agent  : agent.exe  (Windows PC에서 실행)")
+    print("  Agent  : woorinet_remote_diag_agent.exe  (Windows PC에서 실행)")
     print("  Flask  : http://{}:{}  (internal)".format(config.HOST, config.PORT))
     print("=" * 55 + "\n")
 

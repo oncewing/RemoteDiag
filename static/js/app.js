@@ -131,8 +131,8 @@ window.addEventListener('DOMContentLoaded', () => {
     if (!info.exe_ready) {
       [exeBtn, bannerExeBtn].forEach(b => {
         if (!b) return;
-        b.textContent  = '⬇ agent.exe (미빌드)';
-        b.title        = 'build_agent.bat 실행 후 dist/agent.exe를 서버에 복사하세요.';
+        b.textContent  = '⬇ woorinet_remote_diag_agent.exe (미빌드)';
+        b.title        = 'build_agent.bat 실행 후 dist/woorinet_remote_diag_agent.exe를 서버에 복사하세요.';
         b.style.opacity = '0.5';
       });
     }
