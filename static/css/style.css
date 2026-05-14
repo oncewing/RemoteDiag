@@ -136,6 +136,46 @@ aside {
   overflow-y: auto;
 }
 
+/* 사이드바 연결 방식 탭 */
+.conn-tab-header {
+  padding: 7px 10px 4px;
+  font-size: 15px;
+  letter-spacing: 1px;
+  color: var(--text);
+  font-weight: 600;
+}
+.conn-tab-bar {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.conn-tab {
+  flex: 1;
+  padding: 8px 4px;
+  font-size: 11px;
+  font-weight: 500;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  letter-spacing: 0.3px;
+}
+.conn-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+.conn-tab:hover:not(.active):not(:disabled) {
+  color: var(--text);
+  background: var(--bg3);
+}
+.conn-tab:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 .aside-section {
   padding: 10px;
   border-bottom: 1px solid var(--border);

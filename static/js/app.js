@@ -1355,15 +1355,33 @@ function _srsdSetStatus(msg, color) {
   el.style.color = color || 'var(--text-dim)';
 }
 
-// 사이드바 상호 비활성화
-// mode: 'usb' → 네트워크 섹션 잠금 / 'network' → USB 섹션 잠금 / 'none' → 모두 해제
+// 사이드바 연결 탭 전환: 'usb' | 'net'
+function switchConnTab(tab) {
+  document.getElementById('conn-panel-usb').style.display = tab === 'usb' ? '' : 'none';
+  document.getElementById('conn-panel-net').style.display = tab === 'net' ? '' : 'none';
+  document.getElementById('conn-tab-usb').classList.toggle('active', tab === 'usb');
+  document.getElementById('conn-tab-net').classList.toggle('active', tab === 'net');
+}
+
+// 사이드바 모드 연동
+// mode: 'usb' → USB 탭 활성·네트워크 탭 비활성
+//       'network' → 네트워크 탭 활성·USB 탭 비활성
+//       'none' → 양쪽 모두 활성화
 function _setSidebarMode(mode) {
-  ['aside-serial', 'aside-adb'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.classList.toggle('section-disabled', mode === 'network');
-  });
-  const net = document.getElementById('aside-network');
-  if (net) net.classList.toggle('section-disabled', mode === 'usb');
+  const usbBtn = document.getElementById('conn-tab-usb');
+  const netBtn = document.getElementById('conn-tab-net');
+  if (mode === 'usb') {
+    switchConnTab('usb');
+    usbBtn.disabled = false;
+    netBtn.disabled = true;
+  } else if (mode === 'network') {
+    switchConnTab('net');
+    usbBtn.disabled = true;
+    netBtn.disabled = false;
+  } else {
+    usbBtn.disabled = false;
+    netBtn.disabled = false;
+  }
 }
 
 async function srsdDiscover() {

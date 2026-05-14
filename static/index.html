@@ -58,53 +58,66 @@
 
   <!-- ── Sidebar ── -->
   <aside>
-    <div class="aside-section" id="aside-serial">
-      <h3>시리얼 포트 (AT)</h3>
-      <div class="port-row">
-        <select id="port-select"><option value="">포트 선택</option></select>
-        <button class="btn-sm" onclick="refreshPorts()" title="새로고침">↺</button>
-      </div>
-      <div class="port-row">
-        <select id="baud-select">
-          <option value="115200">115200</option>
-          <option value="9600">9600</option>
-          <option value="57600">57600</option>
-          <option value="38400">38400</option>
-        </select>
-        <button class="btn-sm success" onclick="openPort()">열기</button>
-        <button class="btn-sm danger" onclick="closePort()">닫기</button>
-      </div>
-      <div id="port-status" class="dim-text" style="font-size:10px;margin-top:4px"></div>
+    <!-- 연결 방식 탭 -->
+    <div class="conn-tab-header">모뎀 연결</div>
+    <div class="conn-tab-bar">
+      <button class="conn-tab active" id="conn-tab-usb" onclick="switchConnTab('usb')">USB</button>
+      <button class="conn-tab" id="conn-tab-net" onclick="switchConnTab('net')">네트워크</button>
     </div>
 
-    <div class="aside-section" id="aside-adb">
-      <h3>ADB 디바이스</h3>
-      <button class="btn-sm primary" onclick="refreshDevices()" style="width:100%">↺ 새로고침</button>
-      <div id="device-list" class="device-list" style="margin-top:6px">
-        <span class="dim-text">시리얼 포트를 먼저 연결하세요</span>
+    <!-- USB 패널 (시리얼 + ADB) -->
+    <div id="conn-panel-usb">
+      <div class="aside-section" id="aside-serial">
+        <h3>시리얼 포트 (AT)</h3>
+        <div class="port-row">
+          <select id="port-select"><option value="">포트 선택</option></select>
+          <button class="btn-sm" onclick="refreshPorts()" title="새로고침">↺</button>
+        </div>
+        <div class="port-row">
+          <select id="baud-select">
+            <option value="115200">115200</option>
+            <option value="9600">9600</option>
+            <option value="57600">57600</option>
+            <option value="38400">38400</option>
+          </select>
+          <button class="btn-sm success" onclick="openPort()">열기</button>
+          <button class="btn-sm danger" onclick="closePort()">닫기</button>
+        </div>
+        <div id="port-status" class="dim-text" style="font-size:10px;margin-top:4px"></div>
+      </div>
+
+      <div class="aside-section" id="aside-adb">
+        <h3>ADB 디바이스</h3>
+        <button class="btn-sm primary" onclick="refreshDevices()" style="width:100%">↺ 새로고침</button>
+        <div id="device-list" class="device-list" style="margin-top:6px">
+          <span class="dim-text">시리얼 포트를 먼저 연결하세요</span>
+        </div>
       </div>
     </div>
 
-    <div class="aside-section" id="aside-network">
-      <h3>네트워크 연결</h3>
-      <div class="port-row">
-        <input id="srsd-ip" type="text" placeholder="단말기 IP"
-               style="flex:1;min-width:0;background:var(--bg3);border:1px solid var(--border);
-                      color:var(--text);padding:4px 7px;border-radius:var(--radius);
-                      font-family:var(--font-mono);font-size:12px">
-        <button class="btn-sm" onclick="srsdDiscover()" title="게이트웨이 자동 탐색">🔍</button>
+    <!-- 네트워크 패널 -->
+    <div id="conn-panel-net" style="display:none">
+      <div class="aside-section" id="aside-network">
+        <h3>네트워크 연결</h3>
+        <div class="port-row">
+          <input id="srsd-ip" type="text" placeholder="단말기 IP"
+                 style="flex:1;min-width:0;background:var(--bg3);border:1px solid var(--border);
+                        color:var(--text);padding:4px 7px;border-radius:var(--radius);
+                        font-family:var(--font-mono);font-size:12px">
+          <button class="btn-sm" onclick="srsdDiscover()" title="게이트웨이 자동 탐색">🔍</button>
+        </div>
+        <div class="port-row" style="margin-top:4px">
+          <span class="dim-text" style="font-size:11px;white-space:nowrap">포트:</span>
+          <input id="srsd-port" type="number" value="5002" min="1" max="65535"
+                 style="width:64px;background:var(--bg3);border:1px solid var(--border);
+                        color:var(--text);padding:4px 6px;border-radius:var(--radius);
+                        font-family:var(--font-mono);font-size:12px">
+          <button class="btn-sm success" onclick="srsdConnect()">연결</button>
+          <button class="btn-sm danger"  onclick="srsdDisconnect()">해제</button>
+        </div>
+        <div id="srsd-status" class="dim-text"
+             style="font-size:10px;margin-top:5px;line-height:1.5"></div>
       </div>
-      <div class="port-row" style="margin-top:4px">
-        <span class="dim-text" style="font-size:11px;white-space:nowrap">포트:</span>
-        <input id="srsd-port" type="number" value="5002" min="1" max="65535"
-               style="width:64px;background:var(--bg3);border:1px solid var(--border);
-                      color:var(--text);padding:4px 6px;border-radius:var(--radius);
-                      font-family:var(--font-mono);font-size:12px">
-        <button class="btn-sm success" onclick="srsdConnect()">연결</button>
-        <button class="btn-sm danger"  onclick="srsdDisconnect()">해제</button>
-      </div>
-      <div id="srsd-status" class="dim-text"
-           style="font-size:10px;margin-top:5px;line-height:1.5"></div>
     </div>
   </aside>
 
