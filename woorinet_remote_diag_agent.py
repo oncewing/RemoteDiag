@@ -4,7 +4,6 @@ RemoteDiag Agent - Windows side
 단말기가 연결된 Windows PC에서 실행. 서버에 WebSocket으로 연결하여 명령 수행.
 """
 
-import datetime
 import os
 import platform
 import re
@@ -22,9 +21,10 @@ import serial.tools.list_ports
 import socketio as sio_module
 
 # ── 빌드 시 설정값 ───────────────────────────────────────────────────
-SERVER_URL         = "wss://support.woori-net.com"   # 빌드 시 서버 주소 고정
-SERVER_SOCKET_PATH = "/remotediag/socket.io"
-EXPIRE_DATE        = "2026-05-30"               # 사용 기한 (YYYY-MM-DD)
+SERVER_URL         = "ws://10.1.255.254:3004"        # 빌드 시 서버 주소 고정
+SERVER_SOCKET_PATH = "/socket.io"
+
+ACCESS_CODE = ""   # 실행 시 사용자 입력
 
 ADB_PATH = "adb"
 AT_TIMEOUT = 5
@@ -84,6 +84,7 @@ def _setup_signals():
 def connect():
     print(f"[agent] 서버 연결됨: {SERVER_URL}")
     sio.emit("agent_hello", {
+        "code":     ACCESS_CODE,
         "platform": platform.system(),
         "node":     platform.node(),
         "python":   platform.python_version(),
@@ -94,12 +95,38 @@ def connect():
 
 @sio.event
 def disconnect():
-    print("[agent] 서버 연결 끊김. 재연결 시도 중...")
+    print("[agent] 서버 연결 끊김.")
 
 @sio.event
 def connect_error(data):
     msg = data.get("message", data) if isinstance(data, dict) else data
     print(f"[agent] 연결 오류: {msg}")
+
+@sio.on("agent_accepted")
+def on_agent_accepted(data):
+    minutes = data.get("expires_in_minutes", 0)
+    expiry  = data.get("expiry_date", "")
+    print(f"[agent] 접속 승인  —  세션 시간: {minutes}분  /  사용 만료일: {expiry}")
+
+@sio.on("agent_rejected")
+def on_agent_rejected(data):
+    reason = data.get("reason", "알 수 없는 오류")
+    print()
+    print("=" * 50)
+    print("  접속 거부")
+    print(f"  {reason}")
+    print("=" * 50)
+    _shutdown.set()
+
+@sio.on("agent_kicked")
+def on_agent_kicked(data):
+    reason = data.get("reason", "세션이 종료되었습니다.")
+    print()
+    print("=" * 50)
+    print("  세션 종료")
+    print(f"  {reason}")
+    print("=" * 50)
+    _shutdown.set()
 
 
 # ── Command dispatcher ───────────────────────────────────────────────
@@ -432,6 +459,7 @@ def _at_send(port: str, command: str, timeout: float = AT_TIMEOUT) -> dict:
         ser = _serial_conns.get(port)
         if not ser or not ser.is_open:
             return {"success": False, "response": f"{port} 포트가 열려있지 않습니다."}
+    print(f"[AT] {port} > {command}")
     try:
         ser.reset_input_buffer()
         ser.write((command.strip() + "\r\n").encode())
@@ -448,8 +476,12 @@ def _at_send(port: str, command: str, timeout: float = AT_TIMEOUT) -> dict:
                         break
             else:
                 time.sleep(0.01)
-        return {"success": True, "response": "\n".join(lines) or "(응답 없음)"}
+        response = "\n".join(lines) or "(응답 없음)"
+        summary = response.replace("\n", " / ")
+        print(f"[AT] {port} < {summary[:80]}{'...' if len(summary) > 80 else ''}")
+        return {"success": True, "response": response}
     except Exception as e:
+        print(f"[AT] {port} ! {e}")
         return {"success": False, "response": str(e)}
 
 
@@ -575,19 +607,23 @@ def _at_match_device(port: str) -> dict:
     r = _at_send(port, "AT+CGSN", timeout=5)
     m = re.search(r'\d{14,15}', r.get("response", ""))
     if not m:
+        print(f"[agent] {port} IMEI 조회 실패")
         return {"success": False, "error": "AT+CGSN IMEI 조회 실패", "serial": None}
     at_imei = m.group()
 
     # 2. 연결된 ADB 단말기 IMEI와 비교
-    for device in _adb_devices():
+    devices = _adb_devices()
+    print(f"[agent] {port} IMEI={at_imei} / ADB 단말기 {len(devices)}개 확인 중...")
+    for device in devices:
         if device.get("status") != "device":
             continue
         r2 = _adb_shell(device["serial"], "cat /var/tmp/imei", timeout=5)
         adb_imei = r2.get("stdout", "").strip()
         if adb_imei and adb_imei == at_imei:
-            print(f"[agent] 포트 {port} ↔ {device['serial']} (IMEI: {at_imei})")
+            print(f"[agent] 매칭 성공: {port} ↔ {device['serial']} (IMEI: {at_imei})")
             return {"success": True, "serial": device["serial"], "imei": at_imei}
 
+    print(f"[agent] {port} 매칭 실패 (ADB 단말기 없음)")
     return {"success": False, "error": "매칭 단말기 없음",
             "serial": None, "imei": at_imei}
 
@@ -906,45 +942,28 @@ def _do_kmsg_upload(serial: str, browser_sid: str,
     })
 
 
-# ── 유효기간 확인 ────────────────────────────────────────────────────
-
-def _check_expiry():
-    """EXPIRE_DATE 를 지났으면 안내 후 종료."""
-    try:
-        expire = datetime.date.fromisoformat(EXPIRE_DATE)
-    except Exception:
-        return  # 날짜 파싱 실패 시 무시
-    today = datetime.date.today()
-    if today > expire:
-        print("=" * 50)
-        print("  RemoteDiag Agent")
-        print("=" * 50)
-        print()
-        print(f"  ※ 사용 기한이 만료되었습니다.")
-        print(f"     만료일: {EXPIRE_DATE}")
-        print(f"     오늘  : {today}")
-        print()
-        print("  관리자에게 문의하세요.")
-        print()
-        try:
-            input("  Enter 키를 누르면 종료합니다...")
-        except Exception:
-            pass
-        sys.exit(0)
-
-
 # ── Main ─────────────────────────────────────────────────────────────
 
 def main():
-    _check_expiry()
+    global ACCESS_CODE
     _setup_signals()
 
     print("=" * 50)
     print("  RemoteDiag Agent")
     print("=" * 50)
-    print(f"  서버  : {SERVER_URL}")
-    print(f"  기한  : {EXPIRE_DATE}")
-    print("=" * 50)
+    print()
+    print("  관리자에게 발급받은 접속 코드를 입력하세요.")
+    print("  예) AB12-CD34-EF56")
+    print()
+    try:
+        ACCESS_CODE = input("  접속 코드: ").strip().upper()
+    except (EOFError, KeyboardInterrupt):
+        return
+
+    if not ACCESS_CODE:
+        print("\n[agent] 접속 코드가 입력되지 않았습니다. 종료합니다.")
+        return
+
     print()
 
     while not _shutdown.is_set():

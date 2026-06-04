@@ -68,7 +68,7 @@ window.addEventListener('DOMContentLoaded', () => {
   // socket.io 초기화
   try {
     socket = io({ transports: ['websocket'], reconnection: true,
-                  path: '/remotediag/socket.io' });
+                  path: '/socket.io' });
 
     socket.on('connect', () => {
       socket.emit('browser_hello');
@@ -912,6 +912,7 @@ function applyPortList(ports, open) {
     open?.length ? `열린 포트: ${open.join(', ')}` : '';
 }
 
+
 async function openPort() {
   const port     = document.getElementById('port-select').value;
   const baudrate = document.getElementById('baud-select').value;
@@ -958,7 +959,7 @@ async function openPort() {
   const match  = (usbRes.response || '').match(/\*WUSBDENABLE\s*[=:]\s*(\d+)/i);
   if (match) {
     const val = parseInt(match[1], 10);
-    _wusbdEnableOrig = val;   // 원래 값 저장
+    _wusbdEnableOrig = val;
     if (val !== 0 && val !== 1) {
       await sendCommand({ type: 'at_command', port, command: 'AT*WUSBDENABLE=0', timeout: 5 });
     }
@@ -974,10 +975,7 @@ async function openPort() {
     deviceEl.innerHTML =
       `<span class="dim-text">연결 중... (${attempt}/${MAX_MATCH})</span>`;
 
-    // 디바이스 목록 갱신
     const devRes = await sendCommand({ type: 'adb_devices' }, 'refresh_devices');
-
-    // IMEI 매칭 시도
     matchRes = await sendCommand({ type: 'at_match_device', port }, 'at_match');
     if (matchRes.success && matchRes.serial) {
       Object.keys(_devicePortMap).forEach(s => { if (_devicePortMap[s] === port) delete _devicePortMap[s]; });
@@ -1004,8 +1002,9 @@ async function closePort() {
   if (!port) { toast('닫을 포트가 없습니다.', true); return; }
 
   // 닫기 전 AT 시퀀스
+  const restoreVal = (_wusbdEnableOrig !== null) ? _wusbdEnableOrig : 3;
   await sendCommand({ type: 'at_command', port, command: 'AT!UNLOCK=2,"W353"', timeout: 5 });
-  await sendCommand({ type: 'at_command', port, command: 'AT*WUSBDENABLE=3', timeout: 5 });
+  await sendCommand({ type: 'at_command', port, command: `AT*WUSBDENABLE=${restoreVal}`, timeout: 5 });
 
   const res = await sendCommand({ type: 'at_close', port });
   if (res.success) {

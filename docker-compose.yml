@@ -9,9 +9,9 @@ services:
     volumes:
       - ./uploads:/app/uploads
       - ./users.json:/app/users.json
+      - ./tokens.json:/app/tokens.json
       - ./dist:/app/dist
       - ./remote_control.py:/app/remote_control.py
       - ./manage_users.py:/app/manage_users.py
-    environment:
-      - SECRET_KEY=remotediag-secret-change-me
-      - PYTHONUNBUFFERED=1
+    env_file:
+      - .env

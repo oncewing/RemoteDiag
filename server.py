@@ -9,6 +9,7 @@ import json
 import os
 import sys
 import socket
+import time
 from datetime import timedelta
 from functools import wraps
 from pathlib import Path
@@ -32,13 +33,64 @@ _agents        = {}   # agent_sid  -> {platform, node, python, ip}
 _browser_auth  = {}   # browser_sid -> {username, permissions, ip}
 _browser_agent = {}   # browser_sid -> agent_sid  (1:1 페어링)
 _agent_browser = {}   # agent_sid  -> browser_sid (역방향)
-_users_path = Path(__file__).parent / "users.json"
+_users_path  = Path(__file__).parent / "users.json"
+_tokens_path = Path(__file__).parent / "tokens.json"
+_agent_tokens = {}    # agent_sid -> code (활성 세션)
+
+# ── 브루트포스 방어 ───────────────────────────────────────────────────
+_FAIL_MAX    = 5     # IP당 최대 실패 횟수
+_BLOCK_SEC   = 300   # 차단 시간 (5분)
+_FAIL_WINDOW = 600   # 실패 카운트 유효 시간 (10분)
+_failed_attempts = {}  # ip -> {count, first_fail, blocked_until}
+
+def _is_blocked(ip: str) -> bool:
+    entry = _failed_attempts.get(ip)
+    if not entry:
+        return False
+    return time.time() < entry.get("blocked_until", 0)
+
+def _record_failure(ip: str):
+    now   = time.time()
+    entry = _failed_attempts.get(ip, {"count": 0, "first_fail": now, "blocked_until": 0})
+    if now - entry.get("first_fail", now) > _FAIL_WINDOW:
+        entry = {"count": 0, "first_fail": now, "blocked_until": 0}
+    entry["count"] += 1
+    if entry["count"] >= _FAIL_MAX:
+        entry["blocked_until"] = now + _BLOCK_SEC
+        print("[server] IP 차단: {} (실패 {}회, {}초)".format(ip, entry["count"], _BLOCK_SEC))
+    _failed_attempts[ip] = entry
+
+def _record_success(ip: str):
+    _failed_attempts.pop(ip, None)
+
+def _cleanup_failed_attempts():
+    """만료된 차단 기록 주기적 정리 (메모리 누수 방지)."""
+    import eventlet as _ev
+    while True:
+        _ev.sleep(3600)
+        now     = time.time()
+        expired = [ip for ip, e in _failed_attempts.items()
+                   if now - e.get("first_fail", 0) > _FAIL_WINDOW * 2]
+        for ip in expired:
+            _failed_attempts.pop(ip, None)
+        if expired:
+            print("[server] 차단 기록 정리: {}건".format(len(expired)))
 
 # ── 원격 제어 (멀티 세션) ─────────────────────────────────────────────
 _controllers       = {}   # controller_sid -> {}
 _controller_browser = {}  # controller_sid -> browser_sid
 _browser_controller = {}  # browser_sid   -> controller_sid
 _rc_active         = set()  # 현재 원격 제어 활성 브라우저 sid
+
+
+def _delayed_disconnect(sid):
+    """거절 메시지 전송 후 소켓 끊기 (0.5초 지연)."""
+    import eventlet as _ev
+    _ev.sleep(0.5)
+    try:
+        socketio.server.disconnect(sid)
+    except Exception:
+        pass
 
 
 def _client_ip():
@@ -72,22 +124,87 @@ def _unpair_agent(agent_sid):
 
 
 def _find_unpaired_browser(ip):
-    """같은 IP에서 접속한 미페어링 로그인 브라우저 SID 반환."""
+    """미페어링 로그인 브라우저 SID 반환. 같은 IP 우선, 없으면 아무 브라우저."""
+    fallback = None
     for b_sid, info in _browser_auth.items():
-        if b_sid not in _browser_agent and info.get("ip") == ip:
-            return b_sid
-    return None
+        if b_sid in _browser_agent:
+            continue
+        if info.get("ip") == ip:
+            return b_sid          # 같은 IP → 즉시 반환
+        if fallback is None:
+            fallback = b_sid      # 다른 IP → 폴백 후보
+    return fallback
 
 
 def _find_unpaired_agent(ip):
-    """같은 IP에서 접속한 미페어링 에이전트 SID 반환."""
+    """미페어링 에이전트 SID 반환. 같은 IP 우선, 없으면 아무 에이전트."""
+    fallback = None
     for a_sid, info in _agents.items():
-        if a_sid not in _agent_browser and info.get("ip") == ip:
+        if a_sid in _agent_browser:
+            continue
+        if info.get("ip") == ip:
             return a_sid
-    return None
+        if fallback is None:
+            fallback = a_sid
+    return fallback
 
 ALL_PERMISSIONS  = ["adb-shell", "adb-info", "at", "logs", "kmsg", "remote", "diag", "guide"]
 BASE_PERMISSIONS = ["adb-info", "at", "diag", "guide"]
+
+
+# -- Token management -------------------------------------------------
+
+def _load_tokens() -> dict:
+    try:
+        return json.loads(_tokens_path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return {}
+    except Exception:
+        return {}
+
+
+def _save_tokens(tokens: dict):
+    _tokens_path.write_text(
+        json.dumps(tokens, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+
+def _burn_token(code: str, ip: str = ""):
+    """토큰 소각 — used=True 로 마킹. unlimited_uses 토큰은 소각하지 않음."""
+    tokens = _load_tokens()
+    if code not in tokens or tokens[code].get("used"):
+        return
+    if tokens[code].get("unlimited_uses"):
+        # 무제한 토큰: 세션 상태만 초기화 (재사용 가능하도록)
+        tokens[code]["first_used_at"] = None
+        tokens[code]["expires_at"]    = None
+        _save_tokens(tokens)
+        print("[server] 무제한 토큰 세션 초기화: {}".format(code))
+        return
+    tokens[code]["used"] = True
+    if ip:
+        tokens[code]["used_by_ip"] = ip
+    _save_tokens(tokens)
+    print("[server] 토큰 소각: {} (IP: {})".format(code, ip or "-"))
+
+
+def _session_timer(agent_sid: str, code: str, remaining_seconds: int):
+    """remaining_seconds 경과 후 에이전트 강제 종료 + 토큰 소각."""
+    import eventlet as _ev
+    _ev.sleep(remaining_seconds)
+    ip = _agents.get(agent_sid, {}).get("ip", "")
+    _burn_token(code, ip)
+    if agent_sid in _agents:
+        minutes = remaining_seconds // 60
+        socketio.emit("agent_kicked",
+                      {"reason": "세션 시간({})분이 초과되었습니다.".format(minutes)},
+                      room=agent_sid)
+        _ev.sleep(0.5)
+        try:
+            socketio.server.disconnect(agent_sid)
+        except Exception:
+            pass
+        print("[server] 세션 시간 초과 종료: {} (코드: {})".format(agent_sid[:8], code))
 
 
 # -- User management --------------------------------------------------
@@ -164,6 +281,8 @@ def index():
 @app.route("/download/woorinet_remote_diag_agent.exe")
 @app.route("/dist/woorinet_remote_diag_agent.exe")
 def download_agent_exe():
+    if not session.get("username"):
+        abort(401)
     for candidate in [
         Path(__file__).parent / "dist" / "woorinet_remote_diag_agent.exe",
         Path(__file__).parent / "woorinet_remote_diag_agent.exe",
@@ -216,6 +335,10 @@ def on_disconnect():
 
     # ── 에이전트 끊김 ──────────────────────────────────────────────
     if sid in _agents:
+        ip   = _agents[sid].get("ip", "")
+        code = _agent_tokens.pop(sid, None)
+        if code:
+            _burn_token(code, ip)   # 1회 토큰 소각 / 무제한 토큰 세션 초기화
         b_sid = _unpair_agent(sid)
         del _agents[sid]
         if b_sid:
@@ -270,10 +393,91 @@ def on_browser_hello(_data=None):
 def on_agent_hello(data):
     agent_sid = request.sid
     ip        = _client_ip()
-    info      = data or {}
+    info      = dict(data or {})
+    code      = info.pop("code", "").strip().upper()
+
+    # ── 접속 코드 검증 ──────────────────────────────────────────────
+    def _reject(reason, record_fail=True):
+        emit("agent_rejected", {"reason": reason})
+        print("[server] Agent 거절 ({}): {} / {}".format(reason[:20], agent_sid[:8], code or "-"))
+        if record_fail:
+            _record_failure(ip)
+        socketio.start_background_task(_delayed_disconnect, agent_sid)
+
+    # IP 차단 확인
+    if _is_blocked(ip):
+        remaining = int(_failed_attempts[ip]["blocked_until"] - time.time())
+        _reject("너무 많은 시도로 차단되었습니다. {}초 후 재시도하세요.".format(remaining),
+                record_fail=False)
+        return
+
+    if not code:
+        _reject("접속 코드가 필요합니다.")
+        return
+
+    tokens = _load_tokens()
+    token  = tokens.get(code)
+
+    if not token:
+        _reject("유효하지 않은 접속 코드입니다.")
+        return
+
+    if token.get("used"):
+        _reject("이미 사용이 완료된 접속 코드입니다.")
+        return
+
+    # 만료일 확인
+    try:
+        if datetime.date.today() > datetime.date.fromisoformat(token["expiry"]):
+            _reject("접속 코드 사용 기간이 만료되었습니다. (만료일: {})".format(token["expiry"]))
+            return
+    except Exception:
+        pass
+
+    max_minutes = token.get("max_minutes", 120)
+
+    # 첫 사용 vs 재접속 판단
+    if token.get("first_used_at") and token.get("expires_at"):
+        # 재접속: 세션 시간 내인지 확인
+        try:
+            expires_at = datetime.datetime.fromisoformat(token["expires_at"])
+            now        = datetime.datetime.utcnow()
+            if now >= expires_at:
+                tokens[code]["used"] = True
+                _save_tokens(tokens)
+                _reject("세션 시간이 초과되었습니다.")
+                return
+            remaining_sec = int((expires_at - now).total_seconds())
+        except Exception:
+            _reject("세션 정보를 확인할 수 없습니다.")
+            return
+        print("[server] Agent 재접속: {} (코드: {} 남은: {}초)".format(
+            agent_sid[:8], code, remaining_sec))
+    else:
+        # 최초 접속: 세션 시작
+        now        = datetime.datetime.utcnow()
+        expires_at = now + timedelta(minutes=max_minutes)
+        tokens[code]["first_used_at"] = now.isoformat()
+        tokens[code]["expires_at"]    = expires_at.isoformat()
+        tokens[code]["used_by_ip"]    = ip
+        _save_tokens(tokens)
+        remaining_sec = max_minutes * 60
+        print("[server] Agent 첫 접속: {} (코드: {} 세션: {}분)".format(
+            agent_sid[:8], code, max_minutes))
+
+    # ── 접속 허용 ───────────────────────────────────────────────────
+    _record_success(ip)   # 성공 시 실패 기록 초기화
     info["ip"] = ip
-    _agents[agent_sid] = info
-    print("[server] Agent connected: {}({}) {}".format(agent_sid[:8], ip, info))
+    _agents[agent_sid]       = info
+    _agent_tokens[agent_sid] = code
+
+    emit("agent_accepted", {
+        "expires_in_minutes": remaining_sec // 60,
+        "expiry_date":        token["expiry"],
+    })
+
+    # 세션 타이머 (시간 초과 시 자동 종료 + 소각)
+    socketio.start_background_task(_session_timer, agent_sid, code, remaining_sec)
 
     # 같은 IP의 대기 중인 로그인 브라우저가 있으면 즉시 페어링
     b_sid = _find_unpaired_browser(ip)
@@ -421,25 +625,35 @@ def on_log_line(data):
     if b:
         socketio.emit("log_line", data, room=b)
 
+_SAFE_NAME_RE = __import__("re").compile(r"[^\w\-.]")
+
 @socketio.on("log_upload_data")
 def on_log_upload_data(data):
     browser_sid = data.get("browser_sid")
     files       = data.get("files", {})
-    phone       = data.get("phone", "unknown")
-    imei        = data.get("imei",  "unknown")
     errors      = list(data.get("errors", []))
+
+    # phone/imei는 디렉토리 이름에 포함되므로 안전한 문자만 허용
+    phone = _SAFE_NAME_RE.sub("_", str(data.get("phone", "unknown")))[:32]
+    imei  = _SAFE_NAME_RE.sub("_", str(data.get("imei",  "unknown")))[:20]
 
     now      = datetime.datetime.now()
     ts_date  = now.strftime("%Y%m%d")
     ts_time  = now.strftime("%H%M%S")
     dir_name = "{}_{}_{}_{}" .format(phone, imei, ts_date, ts_time)
-    save_dir = Path(__file__).parent / "uploads" / dir_name
+    save_dir = (Path(__file__).parent / "uploads" / dir_name).resolve()
     save_dir.mkdir(parents=True, exist_ok=True)
+
+    uploads_root = (Path(__file__).parent / "uploads").resolve()
 
     saved = []
     for filename, content in files.items():
-        fpath = save_dir / filename
         try:
+            fpath = (save_dir / filename).resolve()
+            # uploads/ 하위인지 검증 — 경로 탈출 방어
+            if not str(fpath).startswith(str(save_dir)):
+                errors.append("{}: 허용되지 않는 경로".format(filename))
+                continue
             fpath.parent.mkdir(parents=True, exist_ok=True)
             fpath.write_text(content, encoding="utf-8", errors="replace")
             saved.append(filename)
@@ -497,6 +711,7 @@ def main():
     print("  Flask  : http://{}:{}  (internal)".format(config.HOST, config.PORT))
     print("=" * 55 + "\n")
 
+    socketio.start_background_task(_cleanup_failed_attempts)
     socketio.run(app, host=config.HOST, port=config.PORT,
                  use_reloader=False, log_output=True)
 
