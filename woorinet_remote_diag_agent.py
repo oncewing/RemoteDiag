@@ -90,8 +90,6 @@ def connect():
         "python":   platform.python_version(),
         "ip":       socket.gethostbyname(socket.gethostname()),
     })
-    _push_devices()
-    _push_ports()
 
 @sio.event
 def disconnect():
@@ -107,6 +105,12 @@ def on_agent_accepted(data):
     minutes = data.get("expires_in_minutes", 0)
     expiry  = data.get("expiry_date", "")
     print(f"[agent] 접속 승인  —  세션 시간: {minutes}분  /  사용 만료일: {expiry}")
+    # 승인 확인 후 기기·포트 정보 전송 (connect()에서 호출 시 거부 직후 disconnect로 예외 발생 방지)
+    try:
+        _push_devices()
+        _push_ports()
+    except Exception:
+        pass
 
 @sio.on("agent_rejected")
 def on_agent_rejected(data):
