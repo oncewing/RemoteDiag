@@ -2,7 +2,9 @@
 """RemoteDiag 계정 관리 스크립트."""
 
 import json
+import re
 import sys
+from getpass import getpass
 from pathlib import Path
 try:
     import readline  # 방향키·백스페이스 지원
@@ -26,6 +28,50 @@ PERM_LABELS = {
     "diag":      "자동 점검",
     "guide":     "사용 가이드",
 }
+
+
+PW_MIN_LEN = 8
+
+def _validate_password(pw: str) -> list[str]:
+    """비밀번호 복잡도 검증. 문제가 있으면 오류 메시지 리스트를 반환."""
+    errors = []
+    if len(pw) < PW_MIN_LEN:
+        errors.append("최소 {}자 이상이어야 합니다.".format(PW_MIN_LEN))
+    if not re.search(r"[A-Z]", pw):
+        errors.append("영문 대문자를 1자 이상 포함해야 합니다.")
+    if not re.search(r"[a-z]", pw):
+        errors.append("영문 소문자를 1자 이상 포함해야 합니다.")
+    if not re.search(r"\d", pw):
+        errors.append("숫자를 1자 이상 포함해야 합니다.")
+    if not re.search(r"[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>/?`~]", pw):
+        errors.append("특수문자를 1자 이상 포함해야 합니다.")
+    return errors
+
+
+def _input_password(prompt: str = "비밀번호") -> str | None:
+    """복잡도 검증 포함 비밀번호 입력 (화면 미표시, 확인 입력)."""
+    while True:
+        pw = getpass("{}: ".format(prompt)).strip()
+        if not pw:
+            print("오류: 비밀번호를 입력하세요.")
+            return None
+        errors = _validate_password(pw)
+        if errors:
+            print("비밀번호 조건 불충족:")
+            for e in errors:
+                print("  - " + e)
+            retry = input("다시 입력하시겠습니까? (y/N): ").strip().lower()
+            if retry != "y":
+                return None
+            continue
+        confirm = getpass("비밀번호 확인: ").strip()
+        if pw != confirm:
+            print("오류: 비밀번호가 일치하지 않습니다.")
+            retry = input("다시 입력하시겠습니까? (y/N): ").strip().lower()
+            if retry != "y":
+                return None
+            continue
+        return pw
 
 
 def _load():
@@ -66,9 +112,8 @@ def cmd_add():
         print("오류: '{}' 계정이 이미 존재합니다.".format(username))
         return
 
-    password = input("비밀번호: ").strip()
+    password = _input_password("비밀번호")
     if not password:
-        print("오류: 비밀번호를 입력하세요.")
         return
 
     print("\n권한 선택:")
@@ -127,9 +172,8 @@ def cmd_passwd():
     if username not in users:
         print("오류: '{}' 계정이 없습니다.".format(username))
         return
-    password = input("새 비밀번호: ").strip()
+    password = _input_password("새 비밀번호")
     if not password:
-        print("오류: 비밀번호를 입력하세요.")
         return
     users[username]["password_hash"] = generate_password_hash(password)
     _save(users)
