@@ -1,6 +1,13 @@
 @echo off
-title RemoteDiag Agent Builder
+title RemoteDiag Agent Builder [RELEASE]
 cd /d "%~dp0"
+
+echo ============================================
+echo   RELEASE BUILD (Nuitka / C 컴파일)
+echo   * 역컴파일 불가 - 외부 배포용
+echo   * 최초 실행 시 MinGW 다운로드 될 수 있음
+echo ============================================
+echo.
 
 echo [1/4] Stopping running woorinet_remote_diag_agent.exe...
 taskkill /f /im woorinet_remote_diag_agent.exe >nul 2>&1
