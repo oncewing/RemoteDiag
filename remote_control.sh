@@ -8,7 +8,7 @@
 CONTAINER="remotediag"
 SCRIPT="/app/remote_control.py"
 
-if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^${CONTAINER}$"; then
+if sudo docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^${CONTAINER}$"; then
     docker exec -it ${CONTAINER} python3 ${SCRIPT} --local "$@"
 else
     DIR="$(cd "$(dirname "$0")" && pwd)"
