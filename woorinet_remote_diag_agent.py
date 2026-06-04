@@ -49,6 +49,7 @@ _kmsg_thread: threading.Thread | None = None
 
 _shutdown = threading.Event()
 _session_end_time: float = 0.0
+_countdown_stop: threading.Event | None = None
 
 sio = sio_module.Client(ssl_verify=False, reconnection=False)
 
@@ -108,7 +109,14 @@ def _start_countdown(remaining_sec: int):
     1분 ~ 10초 : 10초 단위 표시
     10초 이하  : 초 단위 표시
     """
-    global _session_end_time
+    global _session_end_time, _countdown_stop
+
+    # 이전 카운트다운 스레드 중단 (재접속 시 중복 방지)
+    if _countdown_stop:
+        _countdown_stop.set()
+
+    stop = threading.Event()
+    _countdown_stop = stop
     _session_end_time = time.time() + remaining_sec
 
     def _fmt(rem: int) -> str:
@@ -129,7 +137,7 @@ def _start_countdown(remaining_sec: int):
 
     def _run():
         last_display = ""
-        while not _shutdown.is_set() and sio.connected:
+        while not _shutdown.is_set() and not stop.is_set() and sio.connected:
             rem = int(_session_end_time - time.time())
             if rem <= 0:
                 break
@@ -137,7 +145,12 @@ def _start_countdown(remaining_sec: int):
             if msg != last_display:
                 print(f"[agent] 세션 만료까지: {msg}")
                 last_display = msg
-            time.sleep(_interval(rem))
+            # 짧은 간격으로 쪼개서 대기 — stop 이벤트 빠르게 감지
+            wait = _interval(rem)
+            for _ in range(wait):
+                if stop.is_set() or _shutdown.is_set():
+                    return
+                time.sleep(1)
 
     threading.Thread(target=_run, daemon=True).start()
 
