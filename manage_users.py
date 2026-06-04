@@ -11,7 +11,18 @@ try:
 except ImportError:
     pass
 
-from werkzeug.security import generate_password_hash
+try:
+    from werkzeug.security import generate_password_hash
+except ImportError:
+    # werkzeug 미설치 환경(서버 호스트 직접 실행)에서 호환 폴백
+    import hashlib, os as _os, base64 as _b64
+
+    def generate_password_hash(password: str, method: str = "pbkdf2:sha256", salt_length: int = 16) -> str:
+        salt = _b64.b64encode(_os.urandom(salt_length)).decode()[:salt_length]
+        iterations = 260000
+        dk = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), iterations)
+        h = _b64.b64encode(dk).decode().rstrip("=")
+        return "pbkdf2:sha256:{}${}${}".format(iterations, salt, h)
 
 USERS_PATH = Path(__file__).parent / "users.json"
 
