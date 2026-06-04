@@ -170,15 +170,17 @@ def _save_tokens(tokens: dict):
 
 
 def _burn_token(code: str, ip: str = ""):
-    """토큰 소각 또는 세션 초기화.
-    - unlimited_uses: 세션 필드만 초기화 (횟수 무제한)
-    - max_uses > 0 : use_count 증가, 한도 도달 시 used=True
+    """세션 종료 처리.
+    - in_use 해제, 세션 필드 초기화
+    - unlimited_uses: 횟수 제한 없이 재사용 가능
+    - max_uses > 0  : use_count 증가, 한도 도달 시 used=True
     """
     tokens = _load_tokens()
     if code not in tokens or tokens[code].get("used"):
         return
 
-    # 세션 필드 초기화 (다음 접속을 위해)
+    # 세션 잠금 해제 및 세션 필드 초기화
+    tokens[code]["in_use"]        = False
     tokens[code]["first_used_at"] = None
     tokens[code]["expires_at"]    = None
 
@@ -442,6 +444,21 @@ def on_agent_hello(data):
         _reject("이미 사용이 완료된 접속 코드입니다.")
         return
 
+    # 사용 횟수 확인 (비무제한 토큰)
+    if not token.get("unlimited_uses"):
+        max_uses  = token.get("max_uses", 1)
+        use_count = token.get("use_count", 0)
+        if use_count >= max_uses:
+            tokens[code]["used"] = True
+            _save_tokens(tokens)
+            _reject("이미 사용이 완료된 접속 코드입니다.")
+            return
+
+    # 동시 접속 차단 — 다른 agent가 이 토큰으로 현재 접속 중
+    if token.get("in_use"):
+        _reject("접속 코드가 현재 다른 기기에서 사용 중입니다.", record_fail=False)
+        return
+
     # 만료일 확인
     try:
         if datetime.date.today() > datetime.date.fromisoformat(token["expiry"]):
@@ -452,34 +469,20 @@ def on_agent_hello(data):
 
     max_minutes = token.get("max_minutes", 120)
 
-    # 첫 사용 vs 재접속 판단
-    if token.get("first_used_at") and token.get("expires_at"):
-        # 재접속: 세션 시간 내인지 확인
-        try:
-            expires_at = datetime.datetime.fromisoformat(token["expires_at"])
-            now        = datetime.datetime.utcnow()
-            if now >= expires_at:
-                tokens[code]["used"] = True
-                _save_tokens(tokens)
-                _reject("세션 시간이 초과되었습니다.")
-                return
-            remaining_sec = int((expires_at - now).total_seconds())
-        except Exception:
-            _reject("세션 정보를 확인할 수 없습니다.")
-            return
-        print("[server] Agent 재접속: {} (코드: {} 남은: {}초)".format(
-            agent_sid[:8], code, remaining_sec))
-    else:
-        # 최초 접속: 세션 시작
-        now        = datetime.datetime.utcnow()
-        expires_at = now + timedelta(minutes=max_minutes)
-        tokens[code]["first_used_at"] = now.isoformat()
-        tokens[code]["expires_at"]    = expires_at.isoformat()
-        tokens[code]["used_by_ip"]    = ip
-        _save_tokens(tokens)
-        remaining_sec = max_minutes * 60
-        print("[server] Agent 첫 접속: {} (코드: {} 세션: {}분)".format(
-            agent_sid[:8], code, max_minutes))
+    # 새 세션 시작
+    now        = datetime.datetime.utcnow()
+    expires_at = now + timedelta(minutes=max_minutes)
+    tokens[code]["in_use"]        = True
+    tokens[code]["first_used_at"] = now.isoformat()
+    tokens[code]["expires_at"]    = expires_at.isoformat()
+    tokens[code]["used_by_ip"]    = ip
+    _save_tokens(tokens)
+    remaining_sec = max_minutes * 60
+    use_count = tokens[code].get("use_count", 0)
+    max_uses  = tokens[code].get("max_uses", 0)
+    uses_info = "무제한" if token.get("unlimited_uses") else "{}/{}회".format(use_count + 1, max_uses)
+    print("[server] Agent 접속: {} (코드: {} 세션: {}분 사용: {})".format(
+        agent_sid[:8], code, max_minutes, uses_info))
 
     # ── 접속 허용 ───────────────────────────────────────────────────
     _record_success(ip)   # 성공 시 실패 기록 초기화

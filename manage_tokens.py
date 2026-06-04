@@ -60,14 +60,7 @@ def _pause():
 def _status(info: dict) -> str:
     if info.get("used"):
         return "사용완료"
-    if info.get("first_used_at"):
-        expires_at = info.get("expires_at")
-        if expires_at:
-            try:
-                if datetime.datetime.utcnow() > datetime.datetime.fromisoformat(expires_at):
-                    return "시간초과"
-            except Exception:
-                pass
+    if info.get("in_use"):
         return "사용중  "
     try:
         if datetime.date.today() > datetime.date.fromisoformat(info["expiry"]):
@@ -181,6 +174,7 @@ def menu_create():
         "max_uses":       max_uses,
         "unlimited_uses": unlimited_uses,
         "use_count":      0,
+        "in_use":         False,
         "note":           note,
         "used":           False,
         "first_used_at":  None,
