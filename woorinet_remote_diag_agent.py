@@ -48,6 +48,7 @@ _kmsg_stop: threading.Event | None = None
 _kmsg_thread: threading.Thread | None = None
 
 _shutdown = threading.Event()
+_session_end_time: float = 0.0
 
 sio = sio_module.Client(ssl_verify=False, reconnection=False)
 
@@ -100,11 +101,42 @@ def connect_error(data):
     msg = data.get("message", data) if isinstance(data, dict) else data
     print(f"[agent] 연결 오류: {msg}")
 
+def _start_countdown(remaining_sec: int):
+    """세션 남은 시간을 주기적으로 표시. 1분 미만이면 초 단위로 전환."""
+    global _session_end_time
+    _session_end_time = time.time() + remaining_sec
+
+    def _run():
+        last_min = -1
+        while not _shutdown.is_set() and sio.connected:
+            rem = int(_session_end_time - time.time())
+            if rem <= 0:
+                break
+            if rem < 60:
+                print(f"[agent] 세션 만료까지: {rem}초")
+                time.sleep(min(rem, 10))
+            else:
+                mins = rem // 60
+                if mins != last_min:
+                    print(f"[agent] 세션 만료까지: {mins}분")
+                    last_min = mins
+                # 다음 분 경계(rem % 60 초 후)까지 대기
+                boundary = rem % 60 or 60
+                time.sleep(boundary)
+
+    threading.Thread(target=_run, daemon=True).start()
+
+
 @sio.on("agent_accepted")
 def on_agent_accepted(data):
     minutes = data.get("expires_in_minutes", 0)
     expiry  = data.get("expiry_date", "")
-    print(f"[agent] 접속 승인  —  세션 시간: {minutes}분  /  사용 만료일: {expiry}")
+    UNLIMITED = 99999
+    if minutes >= UNLIMITED:
+        print(f"[agent] 접속 승인  —  세션: 무제한  /  사용 만료일: {expiry}")
+    else:
+        print(f"[agent] 접속 승인  —  세션: {minutes}분  /  사용 만료일: {expiry}")
+        _start_countdown(minutes * 60)
     # 승인 확인 후 기기·포트 정보 전송 (connect()에서 호출 시 거부 직후 disconnect로 예외 발생 방지)
     try:
         _push_devices()
@@ -463,7 +495,6 @@ def _at_send(port: str, command: str, timeout: float = AT_TIMEOUT) -> dict:
         ser = _serial_conns.get(port)
         if not ser or not ser.is_open:
             return {"success": False, "response": f"{port} 포트가 열려있지 않습니다."}
-    print(f"[AT] {port} > {command}")
     try:
         ser.reset_input_buffer()
         ser.write((command.strip() + "\r\n").encode())
@@ -481,11 +512,9 @@ def _at_send(port: str, command: str, timeout: float = AT_TIMEOUT) -> dict:
             else:
                 time.sleep(0.01)
         response = "\n".join(lines) or "(응답 없음)"
-        summary = response.replace("\n", " / ")
-        print(f"[AT] {port} < {summary[:80]}{'...' if len(summary) > 80 else ''}")
         return {"success": True, "response": response}
     except Exception as e:
-        print(f"[AT] {port} ! {e}")
+        print(f"[AT] {port} 오류: {e}")
         return {"success": False, "response": str(e)}
 
 
