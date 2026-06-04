@@ -102,27 +102,42 @@ def connect_error(data):
     print(f"[agent] 연결 오류: {msg}")
 
 def _start_countdown(remaining_sec: int):
-    """세션 남은 시간을 주기적으로 표시. 1분 미만이면 초 단위로 전환."""
+    """세션 남은 시간 주기적 표시.
+    10분 초과  : 10분 단위 표시
+    10분 ~ 1분 : 1분 단위 표시
+    1분 ~ 10초 : 10초 단위 표시
+    10초 이하  : 초 단위 표시
+    """
     global _session_end_time
     _session_end_time = time.time() + remaining_sec
 
+    def _fmt(rem: int) -> str:
+        if rem >= 60:
+            return f"{rem // 60}분"
+        return f"{rem}초"
+
+    def _interval(rem: int) -> int:
+        """다음 출력까지 대기할 초."""
+        if rem > 600:          # 10분 초과 → 다음 10분 경계까지
+            return rem % 600 or 600
+        elif rem > 60:         # 10분 ~ 1분 → 다음 분 경계까지
+            return rem % 60 or 60
+        elif rem > 10:         # 1분 ~ 10초 → 다음 10초 경계까지
+            return rem % 10 or 10
+        else:                  # 10초 이하 → 1초씩
+            return 1
+
     def _run():
-        last_min = -1
+        last_display = ""
         while not _shutdown.is_set() and sio.connected:
             rem = int(_session_end_time - time.time())
             if rem <= 0:
                 break
-            if rem < 60:
-                print(f"[agent] 세션 만료까지: {rem}초")
-                time.sleep(min(rem, 10))
-            else:
-                mins = rem // 60
-                if mins != last_min:
-                    print(f"[agent] 세션 만료까지: {mins}분")
-                    last_min = mins
-                # 다음 분 경계(rem % 60 초 후)까지 대기
-                boundary = rem % 60 or 60
-                time.sleep(boundary)
+            msg = _fmt(rem)
+            if msg != last_display:
+                print(f"[agent] 세션 만료까지: {msg}")
+                last_display = msg
+            time.sleep(_interval(rem))
 
     threading.Thread(target=_run, daemon=True).start()
 
