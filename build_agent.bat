@@ -22,16 +22,7 @@ if %errorlevel% neq 0 (
 
 echo [3/4] Building with Nuitka...
 if exist dist\woorinet_remote_diag_agent.exe del /f /q dist\woorinet_remote_diag_agent.exe
-python -m nuitka ^
-    --onefile ^
-    --output-filename=woorinet_remote_diag_agent.exe ^
-    --output-dir=dist ^
-    --windows-console-mode=force ^
-    --assume-yes-for-downloads ^
-    --include-package=serial ^
-    --include-package=socketio ^
-    --include-package=engineio ^
-    woorinet_remote_diag_agent.py
+python -m nuitka --onefile --output-filename=woorinet_remote_diag_agent.exe --output-dir=dist --windows-console-mode=force --assume-yes-for-downloads --include-package=serial --include-package=socketio --include-package=engineio woorinet_remote_diag_agent.py
 if %errorlevel% neq 0 (
     echo FAILED: nuitka
     pause
