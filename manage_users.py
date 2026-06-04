@@ -12,7 +12,7 @@ except ImportError:
     pass
 
 try:
-    from werkzeug.security import generate_password_hash
+    from werkzeug.security import generate_password_hash, check_password_hash
 except ImportError:
     # werkzeug 미설치 환경(서버 호스트 직접 실행)에서 호환 폴백
     import hashlib, os as _os, base64 as _b64
@@ -23,6 +23,17 @@ except ImportError:
         dk = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), iterations)
         h = _b64.b64encode(dk).decode().rstrip("=")
         return "pbkdf2:sha256:{}${}${}".format(iterations, salt, h)
+
+    def check_password_hash(pw_hash: str, password: str) -> bool:
+        try:
+            _, method, rest = pw_hash.split(":", 2)
+            iterations_s, salt, stored = rest.split("$", 2)
+            iterations = int(iterations_s)
+            dk = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), iterations)
+            h = _b64.b64encode(dk).decode().rstrip("=")
+            return h == stored
+        except Exception:
+            return False
 
 USERS_PATH = Path(__file__).parent / "users.json"
 
@@ -41,20 +52,27 @@ PERM_LABELS = {
 }
 
 
-PW_MIN_LEN = 8
+PW_MIN_LEN = 13
+PW_MAX_LEN = 20
+_SPECIAL = r"!\"#$%&'()*+,\-./:;<=>?@\[\\\]^_`{|}~"
 
 def _validate_password(pw: str) -> list[str]:
     """비밀번호 복잡도 검증. 문제가 있으면 오류 메시지 리스트를 반환."""
     errors = []
-    if len(pw) < PW_MIN_LEN:
-        errors.append("최소 {}자 이상이어야 합니다.".format(PW_MIN_LEN))
+    if len(pw) < PW_MIN_LEN or len(pw) > PW_MAX_LEN:
+        errors.append("{}자 이상 {}자 이하여야 합니다. (현재 {}자)".format(
+            PW_MIN_LEN, PW_MAX_LEN, len(pw)))
+    if " " in pw:
+        errors.append("공백(Space)은 사용할 수 없습니다.")
+    if re.search(r"[^A-Za-z0-9" + _SPECIAL + r"]", pw):
+        errors.append("영문, 숫자, 특수문자만 사용 가능합니다.")
     if not re.search(r"[A-Z]", pw):
         errors.append("영문 대문자를 1자 이상 포함해야 합니다.")
     if not re.search(r"[a-z]", pw):
         errors.append("영문 소문자를 1자 이상 포함해야 합니다.")
     if not re.search(r"\d", pw):
         errors.append("숫자를 1자 이상 포함해야 합니다.")
-    if not re.search(r"[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>/?`~]", pw):
+    if not re.search(r"[" + _SPECIAL + r"]", pw):
         errors.append("특수문자를 1자 이상 포함해야 합니다.")
     return errors
 
@@ -166,6 +184,17 @@ def cmd_delete():
     if username not in users:
         print("오류: '{}' 계정이 없습니다.".format(username))
         return
+
+    # 비밀번호 확인
+    try:
+        pw = getpass("'{}' 계정의 비밀번호를 입력하세요: ".format(username))
+    except (EOFError, KeyboardInterrupt):
+        print("\n취소됐습니다.")
+        return
+    if not check_password_hash(users[username]["password_hash"], pw):
+        print("오류: 비밀번호가 일치하지 않습니다.")
+        return
+
     confirm = input("'{}' 계정을 삭제합니까? (y/N): ".format(username)).strip().lower()
     if confirm != "y":
         print("취소됐습니다.")
