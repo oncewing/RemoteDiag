@@ -113,7 +113,7 @@ def _start_countdown(remaining_sec: int):
 
     def _fmt(rem: int) -> str:
         if rem >= 60:
-            return f"{rem // 60}분"
+            return f"{(rem + 59) // 60}분"   # 올림: 11분59초 → 12분, 11분00초 → 11분
         return f"{rem}초"
 
     def _interval(rem: int) -> int:
