@@ -12,7 +12,8 @@ tokens.json
 
 # ── 빌드 산출물 ────────────────────────────────────────────────────────
 build/
-dist/
+dist/*
+!dist/woorinet_remote_diag_agent.exe
 # PyArmor 난독화 중간 결과물
 obf/
 # PyInstaller spec 파일
@@ -35,6 +36,7 @@ make_manual.js
 make_account_manual.js
 make_rc_manual.js
 *.docx
+!WN_RemoteDiag_User-Manual_R1.0.docx
 package.json
 
 # ── 기타 ──────────────────────────────────────────────────────────────
