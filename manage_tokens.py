@@ -103,7 +103,12 @@ def _show_list(tokens: dict, title="코드 목록"):
         note    = info.get("note", "")
         expiry  = "무기한     " if info["expiry"] == "9999-12-31" else info["expiry"]
         minutes = "무기한" if info["max_minutes"] >= 999999 else f"{info['max_minutes']:>4}분"
-        uses    = "무제한" if info.get("unlimited_uses") else "1회   "
+        if info.get("unlimited_uses"):
+            uses = "무제한"
+        else:
+            max_u   = info.get("max_uses", 1)
+            used_u  = info.get("use_count", 0)
+            uses    = f"{used_u}/{max_u}회"
         print(f"  {code:<16}  {expiry:<12}  {minutes:>6}  {uses:<6}  "
               f"{_status_color(st)}  {note}")
     print()
@@ -146,8 +151,19 @@ def menu_create():
             _err("양의 정수를 입력하세요.")
 
     # 사용 횟수
-    val = input("  사용 횟수 제한 [무제한: Enter / 1회: 1]: ").strip()
-    unlimited_uses = (val == "" or val == "0")
+    while True:
+        val = input("  사용 횟수 제한 [무제한: Enter / 횟수 입력]: ").strip()
+        if not val:
+            max_uses = 0
+            break
+        try:
+            max_uses = int(val)
+            if max_uses <= 0:
+                raise ValueError
+            break
+        except ValueError:
+            _err("양의 정수를 입력하세요.")
+    unlimited_uses = (max_uses == 0)
 
     # 메모
     note = input("  메모 (사용자명 등): ").strip()
@@ -159,15 +175,17 @@ def menu_create():
         code = _gen_code()
 
     tokens[code] = {
-        "created":       datetime.date.today().isoformat(),
-        "expiry":        expiry.isoformat(),
-        "max_minutes":   minutes,
+        "created":        datetime.date.today().isoformat(),
+        "expiry":         expiry.isoformat(),
+        "max_minutes":    minutes,
+        "max_uses":       max_uses,
         "unlimited_uses": unlimited_uses,
-        "note":          note,
-        "used":          False,
-        "first_used_at": None,
-        "expires_at":    None,
-        "used_by_ip":    None,
+        "use_count":      0,
+        "note":           note,
+        "used":           False,
+        "first_used_at":  None,
+        "expires_at":     None,
+        "used_by_ip":     None,
     }
     _save(tokens)
 
@@ -177,7 +195,7 @@ def menu_create():
     print(SEP)
     expiry_str  = "무기한" if expiry.isoformat() == "9999-12-31" else expiry.isoformat()
     minutes_str = "무기한" if minutes >= 999999 else f"{minutes}분"
-    uses_str    = "무제한" if unlimited_uses else "1회"
+    uses_str    = "무제한" if unlimited_uses else f"{max_uses}회"
     print(f"   코드      :  {code}")
     print(f"   만료일    :  {expiry_str}")
     print(f"   세션 시간  :  {minutes_str}")

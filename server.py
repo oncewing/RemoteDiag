@@ -170,22 +170,38 @@ def _save_tokens(tokens: dict):
 
 
 def _burn_token(code: str, ip: str = ""):
-    """토큰 소각 — used=True 로 마킹. unlimited_uses 토큰은 소각하지 않음."""
+    """토큰 소각 또는 세션 초기화.
+    - unlimited_uses: 세션 필드만 초기화 (횟수 무제한)
+    - max_uses > 0 : use_count 증가, 한도 도달 시 used=True
+    """
     tokens = _load_tokens()
     if code not in tokens or tokens[code].get("used"):
         return
+
+    # 세션 필드 초기화 (다음 접속을 위해)
+    tokens[code]["first_used_at"] = None
+    tokens[code]["expires_at"]    = None
+
     if tokens[code].get("unlimited_uses"):
-        # 무제한 토큰: 세션 상태만 초기화 (재사용 가능하도록)
-        tokens[code]["first_used_at"] = None
-        tokens[code]["expires_at"]    = None
         _save_tokens(tokens)
         print("[server] 무제한 토큰 세션 초기화: {}".format(code))
         return
-    tokens[code]["used"] = True
+
+    max_uses  = tokens[code].get("max_uses", 1)
+    use_count = tokens[code].get("use_count", 0) + 1
+    tokens[code]["use_count"] = use_count
     if ip:
         tokens[code]["used_by_ip"] = ip
-    _save_tokens(tokens)
-    print("[server] 토큰 소각: {} (IP: {})".format(code, ip or "-"))
+
+    if use_count >= max_uses:
+        tokens[code]["used"] = True
+        _save_tokens(tokens)
+        print("[server] 토큰 소각: {} ({}/{}) (IP: {})".format(
+            code, use_count, max_uses, ip or "-"))
+    else:
+        _save_tokens(tokens)
+        print("[server] 토큰 세션 초기화: {} ({}/{}) (IP: {})".format(
+            code, use_count, max_uses, ip or "-"))
 
 
 def _session_timer(agent_sid: str, code: str, remaining_seconds: int):
