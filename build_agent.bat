@@ -7,31 +7,34 @@ taskkill /f /im woorinet_remote_diag_agent.exe >nul 2>&1
 timeout /t 1 /nobreak >nul
 
 echo [2/4] Installing packages...
-pip install -q pyinstaller "python-socketio[client]" pyserial
+pip install -q nuitka ordered-set zstandard "python-socketio[client]" pyserial
 if %errorlevel% neq 0 (
     echo FAILED: pip install
     pause
     exit /b 1
 )
 
-echo [3/4] Building exe with PyInstaller...
-if exist build rmdir /s /q build
-pyinstaller --onefile --name woorinet_remote_diag_agent ^
-    --distpath dist --workpath build --specpath build ^
-    --hidden-import serial ^
-    --hidden-import serial.tools.list_ports ^
-    --hidden-import socketio ^
-    --hidden-import engineio ^
-    --hidden-import engineio.async_drivers.threading ^
+echo [3/4] Building exe with Nuitka...
+if exist dist\woorinet_remote_diag_agent.exe del /f /q dist\woorinet_remote_diag_agent.exe
+python -m nuitka ^
+    --onefile ^
+    --output-filename=woorinet_remote_diag_agent.exe ^
+    --output-dir=dist ^
+    --windows-console-mode=force ^
+    --assume-yes-for-downloads ^
+    --include-package=serial ^
+    --include-package=socketio ^
+    --include-package=engineio ^
     woorinet_remote_diag_agent.py
 if %errorlevel% neq 0 (
-    echo FAILED: pyinstaller
+    echo FAILED: nuitka
     pause
     exit /b 1
 )
 
-echo [4/4] Cleaning up...
-if exist build rmdir /s /q build
+echo [4/4] Cleaning up build artifacts...
+if exist dist\woorinet_remote_diag_agent.build     rmdir /s /q dist\woorinet_remote_diag_agent.build
+if exist dist\woorinet_remote_diag_agent.onefile-build rmdir /s /q dist\woorinet_remote_diag_agent.onefile-build
 
 echo.
 echo Build complete!
