@@ -12,6 +12,7 @@ tokens.json
 
 # ── 빌드 산출물 ────────────────────────────────────────────────────────
 build/
+dev/
 dist/*
 !dist/woorinet_remote_diag_agent.exe
 # PyArmor 난독화 중간 결과물
