@@ -3,12 +3,12 @@ title RemoteDiag Agent Builder [DEV]
 cd /d "%~dp0"
 
 echo ============================================
-echo   DEV BUILD (PyInstaller / 빠른 빌드)
-echo   * 역컴파일 가능 - 내부 개발용 전용
+echo   DEV BUILD - PyInstaller (fast build)
+echo   For development and testing only
 echo ============================================
 echo.
 
-echo [1/3] Stopping running woorinet_remote_diag_agent.exe...
+echo [1/3] Stopping woorinet_remote_diag_agent.exe...
 taskkill /f /im woorinet_remote_diag_agent.exe >nul 2>&1
 timeout /t 1 /nobreak >nul
 
@@ -20,7 +20,7 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-echo [3/3] Building exe with PyInstaller...
+echo [3/3] Building with PyInstaller...
 if exist build rmdir /s /q build
 pyinstaller --onefile --name woorinet_remote_diag_agent ^
     --distpath dev --workpath build --specpath build ^
@@ -39,7 +39,7 @@ if %errorlevel% neq 0 (
 if exist build rmdir /s /q build
 
 echo.
-echo [DEV] Build complete!
+echo Build complete!
 if exist dev\woorinet_remote_diag_agent.exe (
     echo   %~dp0dev\woorinet_remote_diag_agent.exe
 ) else (
