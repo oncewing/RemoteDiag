@@ -3,7 +3,7 @@ title RemoteDiag Agent Builder
 cd /d "%~dp0"
 
 echo [1/6] Stopping running woorinet_remote_diag_agent.exe...
-taskkill /f /im woorinet_remote_diag_agent.exe >/dev/null 2>&1
+taskkill /f /im woorinet_remote_diag_agent.exe >nul 2>&1
 timeout /t 1 /nobreak >nul
 
 echo [2/6] Installing packages...
