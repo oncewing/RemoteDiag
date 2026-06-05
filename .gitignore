@@ -15,6 +15,8 @@ build/
 dev/
 dist/*
 !dist/woorinet_remote_diag_agent.exe
+# 빌드 전처리 임시 파일
+_build_agent.py
 # PyArmor 난독화 중간 결과물
 obf/
 # PyInstaller spec 파일

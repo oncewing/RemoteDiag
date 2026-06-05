@@ -8,11 +8,11 @@ echo   Anti-reverse-engineering / For distribution
 echo ============================================
 echo.
 
-echo [1/4] Stopping woorinet_remote_diag_agent.exe...
+echo [1/5] Stopping woorinet_remote_diag_agent.exe...
 taskkill /f /im woorinet_remote_diag_agent.exe >nul 2>&1
 timeout /t 1 /nobreak >nul
 
-echo [2/4] Installing packages...
+echo [2/5] Installing packages...
 pip install -q nuitka ordered-set zstandard "python-socketio[client]" pyserial
 if %errorlevel% neq 0 (
     echo FAILED: pip install
@@ -20,18 +20,29 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-echo [3/4] Building with Nuitka...
-if exist dist\woorinet_remote_diag_agent.exe del /f /q dist\woorinet_remote_diag_agent.exe
-python -m nuitka --onefile --output-filename=woorinet_remote_diag_agent.exe --output-dir=dist --windows-console-mode=force --assume-yes-for-downloads --include-package=serial --include-package=socketio --include-package=engineio woorinet_remote_diag_agent.py
+echo [3/5] Preparing build source (EXPIRE_DATE injection)...
+python _build_inject.py
 if %errorlevel% neq 0 (
+    if exist _build_agent.py del /f /q _build_agent.py
+    echo FAILED: EXPIRE_DATE injection
+    pause
+    exit /b 1
+)
+
+echo [4/5] Building with Nuitka...
+if exist dist\woorinet_remote_diag_agent.exe del /f /q dist\woorinet_remote_diag_agent.exe
+python -m nuitka --onefile --output-filename=woorinet_remote_diag_agent.exe --output-dir=dist --windows-console-mode=force --assume-yes-for-downloads --include-package=serial --include-package=socketio --include-package=engineio _build_agent.py
+if %errorlevel% neq 0 (
+    if exist _build_agent.py del /f /q _build_agent.py
     echo FAILED: nuitka
     pause
     exit /b 1
 )
 
-echo [4/4] Cleaning up...
-if exist dist\woorinet_remote_diag_agent.build         rmdir /s /q dist\woorinet_remote_diag_agent.build
-if exist dist\woorinet_remote_diag_agent.onefile-build rmdir /s /q dist\woorinet_remote_diag_agent.onefile-build
+echo [5/5] Cleaning up...
+if exist _build_agent.py                     del /f /q _build_agent.py
+if exist dist\_build_agent.build             rmdir /s /q dist\_build_agent.build
+if exist dist\_build_agent.onefile-build     rmdir /s /q dist\_build_agent.onefile-build
 
 echo.
 echo Build complete!

@@ -504,6 +504,62 @@ def on_agent_hello(data):
         _pair(b_sid, agent_sid)
         socketio.emit("agent_status", {"connected": True, "info": info}, room=b_sid)
 
+
+# ── Shell 명령 거부 목록 ─────────────────────────────────────────────
+# adb_shell / srsd_shell cmd_type에 한해 적용.
+# 패턴은 명령 전체(소문자 변환 후)에 대해 검사.
+import re as _re
+
+_SHELL_DENYLIST: list[tuple[_re.Pattern, str]] = [
+    # 파일 시스템 파괴
+    (_re.compile(r"\brm\s+-[a-z]*r[a-z]*f[a-z]*\b|\brm\s+-[a-z]*f[a-z]*r"),
+     "rm -rf 계열 명령은 허용되지 않습니다."),
+    (_re.compile(r"\bmkfs\b"),
+     "mkfs 명령은 허용되지 않습니다."),
+    (_re.compile(r"\bdd\b.*\bif\s*="),
+     "dd if= 명령은 허용되지 않습니다."),
+    (_re.compile(r">\s*/dev/(?!null\b|zero\b)"),
+     "/dev/ 블록 장치 쓰기는 허용되지 않습니다."),
+    # 재부팅/전원 차단
+    (_re.compile(r"\b(reboot|poweroff|shutdown|halt|init\s+0|init\s+6)\b"),
+     "시스템 재부팅/종료 명령은 허용되지 않습니다."),
+    # 네트워크 다운로드/터널
+    (_re.compile(r"\b(wget|curl)\b.*(-O\b|--output\b|>\s*\S|\|\s*sh|\|\s*bash)"),
+     "wget/curl 다운로드·파이프 실행은 허용되지 않습니다."),
+    (_re.compile(r"\b(nc|ncat|netcat)\b"),
+     "nc/netcat 명령은 허용되지 않습니다."),
+    # 파이프 to 셸 실행
+    (_re.compile(r"\|\s*(sh|bash|ash|dash|zsh|python3?|perl|ruby)\b"),
+     "파이프를 통한 셸 실행은 허용되지 않습니다."),
+    # eval / exec 계열
+    (_re.compile(r"\beval\b"),
+     "eval 명령은 허용되지 않습니다."),
+    # base64 decode → 실행 조합
+    (_re.compile(r"\bbase64\b.*-d.*\||\|\s*base64\b.*-d"),
+     "base64 디코드 파이프 실행은 허용되지 않습니다."),
+    # setuid/권한 남용
+    (_re.compile(r"\bchmod\b.*([\+\s]s|4[0-7]{3})"),
+     "setuid/setgid 권한 변경은 허용되지 않습니다."),
+    # fork bomb
+    (_re.compile(r":\s*\(\s*\)\s*\{"),
+     "Fork bomb 패턴은 허용되지 않습니다."),
+    # 민감 파일 수정
+    (_re.compile(r">\s*/etc/(passwd|shadow|sudoers|crontab|hosts)\b"),
+     "시스템 설정 파일 수정은 허용되지 않습니다."),
+]
+
+_SHELL_CMD_TYPES = {"adb_shell", "srsd_shell"}
+
+
+def _check_denylist(cmd: str) -> str | None:
+    """차단 규칙에 해당하면 오류 메시지 반환, 통과하면 None."""
+    lower = cmd.lower()
+    for pattern, msg in _SHELL_DENYLIST:
+        if pattern.search(lower):
+            return msg
+    return None
+
+
 @socketio.on("command")
 def on_command(data):
     browser_sid = request.sid
@@ -516,6 +572,20 @@ def on_command(data):
         emit("result", {"id": data.get("id"), "success": False,
                         "error": "에이전트가 연결되지 않았습니다."})
         return
+
+    # ── Denylist 검사 (adb_shell / srsd_shell) ──────────────────────
+    cmd_type = str(data.get("cmd_type", ""))
+    if cmd_type in _SHELL_CMD_TYPES:
+        cmd_str = str(data.get("cmd", "") or data.get("command", "")).strip()
+        blocked = _check_denylist(cmd_str)
+        if blocked:
+            username = _browser_auth[browser_sid].get("username", "?")
+            print("[server] 명령 차단 [{}] ({}) : {}".format(
+                cmd_type, username, cmd_str[:80]))
+            emit("result", {"id": data.get("id"), "success": False,
+                            "error": "[차단] {}".format(blocked)})
+            return
+
     data["browser_sid"] = browser_sid
     socketio.emit("command", data, room=agent_sid)
 

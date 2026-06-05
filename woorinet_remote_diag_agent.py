@@ -4,6 +4,7 @@ RemoteDiag Agent - Windows side
 단말기가 연결된 Windows PC에서 실행. 서버에 WebSocket으로 연결하여 명령 수행.
 """
 
+import datetime
 import os
 import platform
 import re
@@ -21,8 +22,9 @@ import serial.tools.list_ports
 import socketio as sio_module
 
 # ── 빌드 시 설정값 ───────────────────────────────────────────────────
-SERVER_URL         = "ws://10.1.255.254:3004"        # 빌드 시 서버 주소 고정
-SERVER_SOCKET_PATH = "/socket.io"
+SERVER_URL         = "wss://support.woori-net.com"   # 빌드 시 서버 주소 고정 (nginx SSL)
+SERVER_SOCKET_PATH = "/remotediag/socket.io"
+EXPIRE_DATE        = ""          # 비워두면 빌드 시 자동으로 빌드일+1개월 적용
 
 ACCESS_CODE = ""   # 실행 시 사용자 입력
 
@@ -51,7 +53,83 @@ _shutdown = threading.Event()
 _session_end_time: float = 0.0
 _countdown_stop: threading.Event | None = None
 
-sio = sio_module.Client(ssl_verify=False, reconnection=False)
+sio = sio_module.Client(ssl_verify=True, reconnection=False)
+
+
+# ── 만료일 검사 (네트워크 시간 기준) ────────────────────────────────
+
+_NTP_DELTA = 2208988800   # 1900-01-01 ~ 1970-01-01 초 차이
+
+def _get_ntp_time(host: str, timeout: int = 5) -> datetime.date | None:
+    """NTP 서버에서 현재 날짜 취득 (외부 라이브러리 불필요)."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.settimeout(timeout)
+            s.sendto(b"\x1b" + 47 * b"\0", (host, 123))
+            msg, _ = s.recvfrom(1024)
+        t = struct.unpack("!12I", msg)[10] - _NTP_DELTA
+        return datetime.datetime.fromtimestamp(t, datetime.timezone.utc).date()
+    except Exception:
+        return None
+
+
+def _get_http_time() -> datetime.date | None:
+    """HTTPS 응답의 Date 헤더로 현재 날짜 취득 (NTP 실패 시 폴백)."""
+    import calendar
+    from email.utils import parsedate
+    import urllib.request
+    for url in ("https://www.google.com", "https://www.cloudflare.com"):
+        try:
+            req = urllib.request.Request(url, method="HEAD")
+            with urllib.request.urlopen(req, timeout=7) as r:
+                date_str = r.headers.get("Date", "")
+                t = calendar.timegm(parsedate(date_str))
+                return datetime.datetime.fromtimestamp(t, datetime.timezone.utc).date()
+        except Exception:
+            continue
+    return None
+
+
+def _check_expiry():
+    """네트워크 시간 기준으로 만료일 검사.
+    - EXPIRE_DATE 가 비어 있으면 빌드 배트에서 주입되지 않은 개발 실행으로 간주, 검사 생략.
+    - 만료됐거나 시간 서버에 연결할 수 없으면 프로그램 종료.
+    """
+    if not EXPIRE_DATE:
+        print("[agent] 만료일 미설정 — 개발 모드로 실행 (만료 검사 생략)")
+        return
+
+    _NTP_HOSTS = [
+        "pool.ntp.org",
+        "time.google.com",
+        "time.cloudflare.com",
+        "time.windows.com",
+    ]
+    print("[agent] 시간 서버 확인 중...")
+    today = None
+    for host in _NTP_HOSTS:
+        today = _get_ntp_time(host)
+        if today:
+            break
+
+    if today is None:
+        today = _get_http_time()
+
+    if today is None:
+        print("[오류] 시간 서버에 연결할 수 없습니다. 실행이 불가합니다.")
+        sys.exit(1)
+
+    expire = datetime.date.fromisoformat(EXPIRE_DATE)
+    if today > expire:
+        print(f"[오류] 이 버전은 {EXPIRE_DATE}에 만료되었습니다.")
+        print("       새 버전을 다운로드하세요.")
+        sys.exit(1)
+
+    remaining = (expire - today).days
+    if remaining <= 30:
+        print(f"[agent] 현재 날짜  : {today}  /  사용 만료일: {EXPIRE_DATE}  ※ {remaining}일 후 만료됩니다.")
+    else:
+        print(f"[agent] 현재 날짜  : {today}  /  사용 만료일: {EXPIRE_DATE}")
 
 
 # ── Signal handling ──────────────────────────────────────────────────
@@ -1008,6 +1086,7 @@ def _do_kmsg_upload(serial: str, browser_sid: str,
 def main():
     global ACCESS_CODE
     _setup_signals()
+    _check_expiry()
 
     print("=" * 50)
     print("  RemoteDiag Agent")

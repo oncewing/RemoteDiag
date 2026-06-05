@@ -68,7 +68,7 @@ window.addEventListener('DOMContentLoaded', () => {
   // socket.io 초기화
   try {
     socket = io({ transports: ['websocket'], reconnection: true,
-                  path: '/socket.io' });
+                  path: '/remotediag/socket.io' });
 
     socket.on('connect', () => {
       socket.emit('browser_hello');
