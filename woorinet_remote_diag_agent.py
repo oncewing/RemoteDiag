@@ -1016,9 +1016,9 @@ def _do_log_upload(serial: str, port: str, browser_sid: str,
     else:
         errors.append("/data/logs: " + r.get("stderr", "목록 조회 실패"))
 
-    # 3. /var/log/messages
+    # 3. /var/log/messages (최근 20000줄 제한)
     print("[agent] log_upload: /var/log/messages 수집 중...")
-    r = _shell("cat /var/log/messages", timeout=60)
+    r = _shell("tail -n 20000 /var/log/messages", timeout=60)
     if r["success"]:
         files["var_log_messages.log"] = r["stdout"]
     else:

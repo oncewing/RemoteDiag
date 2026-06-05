@@ -27,7 +27,8 @@ app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "remotediag-secret-key-c
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=24)
 
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet",
-                    logger=False, engineio_logger=False)
+                    logger=False, engineio_logger=False,
+                    max_http_buffer_size=50 * 1024 * 1024)   # 50 MB
 
 _agents        = {}   # agent_sid  -> {platform, node, python, ip}
 _browser_auth  = {}   # browser_sid -> {username, permissions, ip}
