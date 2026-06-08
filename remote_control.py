@@ -87,6 +87,23 @@ def on_session_ended(_data=None):
     print("\n[알림] 클라이언트가 세션을 종료했습니다.")
 
 
+@sio.on("device_info")
+def on_device_info(data):
+    imei  = data.get("imei",  "N/A")
+    phone = data.get("phone", "N/A")
+    note  = data.get("note",  "")
+    print("\n" + "─" * 50)
+    print("  단말 기본 정보")
+    print("─" * 50)
+    if note:
+        print("  {}".format(note))
+    else:
+        print("  IMEI    : {}".format(imei))
+        print("  전화번호 : {}".format(phone))
+    print("─" * 50)
+    sys.stdout.flush()
+
+
 @sio.on("remote_result")
 def on_remote_result(data):
     global _last_result

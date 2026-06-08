@@ -728,6 +728,19 @@ def on_controller_accept(_data=None):
     socketio.emit("remote_control_ack", {"active": True}, room=b_sid)
     print("[server] RC activated: ctrl={} browser={}".format(ctrl_sid[:8], b_sid[:8]))
 
+    # 단말 기본 정보 요청 → agent
+    agent_sid = _browser_agent.get(b_sid)
+    if agent_sid and agent_sid in _agents:
+        socketio.emit("get_device_info", {"ctrl_sid": ctrl_sid}, room=agent_sid)
+
+
+@socketio.on("device_info")
+def on_device_info(data):
+    """agent → server → controller 단말 기본 정보 중계."""
+    ctrl_sid = data.get("ctrl_sid")
+    if ctrl_sid and ctrl_sid in _controllers:
+        socketio.emit("device_info", data, room=ctrl_sid)
+
 @socketio.on("controller_end")
 def on_controller_end(_data=None):
     ctrl_sid = request.sid

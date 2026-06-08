@@ -288,6 +288,48 @@ def on_agent_accepted(data):
     except Exception:
         pass
 
+@sio.on("get_device_info")
+def on_get_device_info(data):
+    """원격 제어 수락 시 서버 요청으로 단말 기본 정보(IMEI·전화번호) 전송."""
+    ctrl_sid = data.get("ctrl_sid", "")
+
+    def _fetch():
+        # 연결된 첫 번째 ADB 기기 선택
+        try:
+            r = subprocess.run([ADB_PATH, "devices"],
+                               capture_output=True, text=True, timeout=5)
+            serials = [
+                line.split()[0]
+                for line in r.stdout.splitlines()
+                if line.strip() and not line.startswith("List") and "device" in line.split()
+            ]
+        except Exception:
+            serials = []
+
+        if not serials:
+            sio.emit("device_info", {"ctrl_sid": ctrl_sid,
+                                     "imei": "N/A", "phone": "N/A",
+                                     "note": "연결된 단말 없음"})
+            return
+
+        serial = serials[0]
+        r_imei  = _adb_shell(serial, "cat /var/tmp/imei", timeout=5)
+        r_phone = _adb_shell(serial, "cat /var/tmp/phone_number", timeout=5)
+
+        imei  = r_imei.get("stdout",  "").strip() if r_imei["success"]  else "N/A"
+        phone = r_phone.get("stdout", "").strip() if r_phone["success"] else "N/A"
+        phone = phone.replace("+", "").replace("-", "").replace(" ", "") if phone not in ("", "N/A") else "N/A"
+
+        sio.emit("device_info", {
+            "ctrl_sid": ctrl_sid,
+            "serial":   serial,
+            "imei":     imei  or "N/A",
+            "phone":    phone or "N/A",
+        })
+
+    threading.Thread(target=_fetch, daemon=True).start()
+
+
 @sio.on("agent_rejected")
 def on_agent_rejected(data):
     reason = data.get("reason", "알 수 없는 오류")
