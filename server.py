@@ -347,6 +347,65 @@ def download_agent_exe():
                             headers={"Content-Disposition": "attachment; filename=woorinet_remote_diag_agent.exe"})
     abort(404)
 
+@app.route("/api/log-upload", methods=["POST"])
+def api_log_upload():
+    """에이전트 → HTTP POST 로그 업로드 (WebSocket 우회)."""
+    import zlib as _zlib
+
+    # zlib 압축 해제
+    try:
+        raw  = _zlib.decompress(request.data)
+        data = json.loads(raw.decode("utf-8"))
+    except Exception as e:
+        return jsonify({"success": False, "error": "payload 오류: {}".format(e)}), 400
+
+    # 접속 코드 검증 — 현재 활성(in_use) 세션만 허용
+    code  = str(data.get("code", "")).strip().upper()
+    token = _load_tokens().get(code)
+    if not token or token.get("used") or not token.get("in_use"):
+        return jsonify({"success": False, "error": "인증 실패"}), 401
+
+    browser_sid = data.get("browser_sid", "")
+    files  = data.get("files", {})
+    errors = list(data.get("errors", []))
+    phone  = _SAFE_NAME_RE.sub("_", str(data.get("phone", "unknown")))[:32]
+    imei   = _SAFE_NAME_RE.sub("_", str(data.get("imei",  "unknown")))[:20]
+
+    now      = datetime.datetime.now()
+    dir_name = "{}_{}_{}_{}".format(phone, imei, now.strftime("%Y%m%d"), now.strftime("%H%M%S"))
+    save_dir = (Path(__file__).parent / "uploads" / dir_name).resolve()
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    saved = []
+    for filename, content in files.items():
+        try:
+            fpath = (save_dir / filename).resolve()
+            if not str(fpath).startswith(str(save_dir)):
+                errors.append("{}: 허용되지 않는 경로".format(filename))
+                continue
+            fpath.parent.mkdir(parents=True, exist_ok=True)
+            fpath.write_text(content, encoding="utf-8", errors="replace")
+            saved.append(filename)
+        except Exception as e:
+            errors.append("{}: {}".format(filename, str(e)))
+
+    rel_path = str(save_dir.relative_to(Path(__file__).parent))
+    print("[server] Log upload (HTTP): {}개 파일 저장 → {}".format(len(saved), rel_path))
+
+    # 브라우저에 결과 통보 (WebSocket)
+    if browser_sid:
+        socketio.emit("log_upload_result", {
+            "success": True,
+            "path":    rel_path,
+            "files":   saved,
+            "count":   len(saved),
+            "errors":  errors,
+        }, room=browser_sid)
+
+    return jsonify({"success": True, "path": rel_path,
+                    "files": saved, "count": len(saved)})
+
+
 @app.route("/api/server-info")
 def server_info():
     exe_ready = (Path(__file__).parent / "dist" / "woorinet_remote_diag_agent.exe").exists() or \
@@ -754,21 +813,9 @@ _SAFE_NAME_RE = __import__("re").compile(r"[^\w\-.]")
 
 @socketio.on("log_upload_data")
 def on_log_upload_data(data):
-    import zlib as _zlib, base64 as _b64
     browser_sid = data.get("browser_sid")
     files       = data.get("files", {})
     errors      = list(data.get("errors", []))
-
-    # 압축 전송 해제
-    if data.get("compressed"):
-        decompressed = {}
-        for name, content in files.items():
-            try:
-                raw = _zlib.decompress(_b64.b64decode(content))
-                decompressed[name] = raw.decode("utf-8", errors="replace")
-            except Exception as e:
-                errors.append("{}: 압축 해제 실패 ({})".format(name, e))
-        files = decompressed
 
     # phone/imei는 디렉토리 이름에 포함되므로 안전한 문자만 허용
     phone = _SAFE_NAME_RE.sub("_", str(data.get("phone", "unknown")))[:32]
