@@ -812,6 +812,16 @@ def on_controller_accept(_data=None):
     b_sid = _controller_browser.get(ctrl_sid)
     if not b_sid:
         return
+
+    # 이미 다른 RC가 해당 브라우저 세션을 활성화한 경우 거절
+    if b_sid in _rc_active:
+        emit("controller_error", {"message": "이미 다른 RC 세션이 활성화되었습니다."})
+        _controller_browser.pop(ctrl_sid, None)
+        _browser_controller.pop(b_sid, None)
+        socketio.start_background_task(_delayed_disconnect, ctrl_sid)
+        print("[server] RC 중복 수락 차단: ctrl={}".format(ctrl_sid[:8]))
+        return
+
     _rc_active.add(b_sid)
     socketio.emit("remote_control_ack", {"active": True}, room=b_sid)
     print("[server] RC activated: ctrl={} browser={}".format(ctrl_sid[:8], b_sid[:8]))
@@ -862,6 +872,11 @@ def on_remote_control_request(_data=None):
     auth = _browser_auth.get(browser_sid)
     if not auth:
         emit("remote_control_ack", {"active": False, "error": "로그인 필요"})
+        return
+
+    # 이미 요청 대기 중이거나 활성 세션인 경우 중복 요청 차단
+    if browser_sid in _browser_controller or browser_sid in _rc_active:
+        emit("remote_control_ack", {"active": False, "error": "이미 원격 제어 요청이 진행 중입니다."})
         return
 
     # 미페어링 컨트롤러 탐색
