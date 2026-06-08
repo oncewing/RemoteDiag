@@ -4,8 +4,10 @@ RemoteDiag Agent - Windows side
 단말기가 연결된 Windows PC에서 실행. 서버에 WebSocket으로 연결하여 명령 수행.
 """
 
+import base64
 import datetime
 import os
+import zlib
 import platform
 import re
 import shlex
@@ -56,6 +58,16 @@ _countdown_stop: threading.Event | None = None
 
 _log_upload_lock  = threading.Lock()   # 동시 로그 업로드 중복 방지
 _kmsg_upload_lock = threading.Lock()   # 동시 kmsg 업로드 중복 방지
+
+
+def _compress_files(files: dict) -> dict:
+    """파일 내용을 zlib 압축 + base64 인코딩하여 전송 크기 감소."""
+    out = {}
+    for name, content in files.items():
+        raw = content.encode("utf-8", errors="replace")
+        compressed = zlib.compress(raw, level=6)
+        out[name] = base64.b64encode(compressed).decode("ascii")
+    return out
 
 sio = sio_module.Client(ssl_verify=True, reconnection=False)
 
@@ -1032,13 +1044,14 @@ def _do_log_upload(serial: str, port: str, browser_sid: str,
         else:
             errors.append("/var/log/messages: " + r.get("stderr", "실패"))
 
-        print(f"[agent] log_upload: {len(files)}개 파일 수집 완료, 서버 전송 중...")
+        print(f"[agent] log_upload: {len(files)}개 파일 수집 완료, 압축 후 서버 전송 중...")
         sio.emit("log_upload_data", {
             "browser_sid": browser_sid,
             "device":      device_id,
             "phone":       phone,
             "imei":        imei,
-            "files":       files,
+            "files":       _compress_files(files),
+            "compressed":  True,
             "errors":      errors,
         })
         print(f"[agent] log_upload: 전송 완료. (파일 {len(files)}개, 오류 {len(errors)}건)")
@@ -1085,13 +1098,14 @@ def _do_kmsg_upload(serial: str, browser_sid: str,
         else:
             errors.append("dmesg: " + r.get("stderr", "실패"))
 
-        print(f"[agent] kmsg_upload: 서버 전송 중...")
+        print(f"[agent] kmsg_upload: 압축 후 서버 전송 중...")
         sio.emit("log_upload_data", {
             "browser_sid": browser_sid,
             "device":      device_id,
             "phone":       phone,
             "imei":        imei,
-            "files":       files,
+            "files":       _compress_files(files),
+            "compressed":  True,
             "errors":      errors,
         })
         print(f"[agent] kmsg_upload: 전송 완료. (파일 {len(files)}개, 오류 {len(errors)}건)")

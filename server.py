@@ -754,9 +754,21 @@ _SAFE_NAME_RE = __import__("re").compile(r"[^\w\-.]")
 
 @socketio.on("log_upload_data")
 def on_log_upload_data(data):
+    import zlib as _zlib, base64 as _b64
     browser_sid = data.get("browser_sid")
     files       = data.get("files", {})
     errors      = list(data.get("errors", []))
+
+    # 압축 전송 해제
+    if data.get("compressed"):
+        decompressed = {}
+        for name, content in files.items():
+            try:
+                raw = _zlib.decompress(_b64.b64decode(content))
+                decompressed[name] = raw.decode("utf-8", errors="replace")
+            except Exception as e:
+                errors.append("{}: 압축 해제 실패 ({})".format(name, e))
+        files = decompressed
 
     # phone/imei는 디렉토리 이름에 포함되므로 안전한 문자만 허용
     phone = _SAFE_NAME_RE.sub("_", str(data.get("phone", "unknown")))[:32]
