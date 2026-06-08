@@ -28,7 +28,9 @@ app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=24)
 
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet",
                     logger=False, engineio_logger=False,
-                    max_http_buffer_size=50 * 1024 * 1024)   # 50 MB
+                    max_http_buffer_size=50 * 1024 * 1024,   # 50 MB
+                    ping_timeout=120,                          # 2분 (대용량 전송 중 끊김 방지)
+                    ping_interval=25)
 
 _agents        = {}   # agent_sid  -> {platform, node, python, ip}
 _browser_auth  = {}   # browser_sid -> {username, permissions, ip}

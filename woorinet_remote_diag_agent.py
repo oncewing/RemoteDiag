@@ -992,9 +992,9 @@ def _do_log_upload(serial: str, port: str, browser_sid: str,
 
     print(f"[agent] log_upload: 전화번호={phone}  IMEI={imei}  경로={'SRSD' if srsd_ip else 'ADB'}")
 
-    # 1. dmesg
+    # 1. dmesg (최근 3000줄 제한)
     print("[agent] log_upload: dmesg 수집 중...")
-    r = _shell("dmesg", timeout=60)
+    r = _shell("dmesg | tail -n 3000", timeout=60)
     if r["success"]:
         files["dmesg.log"] = r["stdout"]
     else:
@@ -1064,9 +1064,9 @@ def _do_kmsg_upload(serial: str, browser_sid: str,
 
     print(f"[agent] kmsg_upload: 전화번호={phone}  IMEI={imei}")
 
-    # dmesg 수집
+    # dmesg 수집 (최근 3000줄 제한)
     print("[agent] kmsg_upload: dmesg 수집 중...")
-    r = _shell("dmesg", timeout=60)
+    r = _shell("dmesg | tail -n 3000", timeout=60)
     if r["success"]:
         files["kmsg.log"] = r["stdout"]
     else:
