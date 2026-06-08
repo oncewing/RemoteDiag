@@ -267,6 +267,79 @@ def menu_delete():
     _ok(f"코드 삭제 완료: {code}")
     _pause()
 
+# ── 만료/소진 판정 ──────────────────────────────────────────────────────
+
+def _is_unusable(info: dict) -> bool:
+    """사용 불가 코드 판정: 사용완료 · 기간만료 · 사용횟수 소진."""
+    if info.get("used"):
+        return True
+    try:
+        if datetime.date.today() > datetime.date.fromisoformat(info["expiry"]):
+            return True
+    except Exception:
+        pass
+    if not info.get("unlimited_uses"):
+        max_uses  = info.get("max_uses", 1)
+        use_count = info.get("use_count", 0)
+        if use_count >= max_uses:
+            return True
+    return False
+
+# ── 메뉴: 만료·소진 코드 일괄 삭제 ─────────────────────────────────────
+
+def menu_purge():
+    tokens = _load()
+    targets = {code: info for code, info in tokens.items() if _is_unusable(info)}
+
+    _clear()
+    _header("만료·소진 코드 일괄 삭제")
+    if not targets:
+        print("\n  삭제 대상 코드가 없습니다.")
+        _pause()
+        return
+
+    _show_list(targets, f"삭제 대상 ({len(targets)}건)")
+    confirm = input(f"  위 {len(targets)}개 코드를 모두 삭제하시겠습니까? (y/N): ").strip().lower()
+    if confirm != "y":
+        print("  취소되었습니다.")
+        _pause()
+        return
+
+    for code in targets:
+        del tokens[code]
+    _save(tokens)
+    _ok(f"{len(targets)}개 코드 삭제 완료.")
+    _pause()
+
+# ── 메뉴: 전체 삭제 ─────────────────────────────────────────────────────
+
+def menu_delete_all():
+    tokens = _load()
+    _clear()
+    _header("전체 삭제")
+    if not tokens:
+        print("\n  등록된 접속 코드가 없습니다.")
+        _pause()
+        return
+
+    _show_list(tokens, f"전체 목록 ({len(tokens)}건)")
+    confirm = input(f"  전체 {len(tokens)}개 코드를 모두 삭제하시겠습니까? (y/N): ").strip().lower()
+    if confirm != "y":
+        print("  취소되었습니다.")
+        _pause()
+        return
+
+    confirm2 = input("  정말 삭제합니다. 다시 한번 확인 (yes 입력): ").strip().lower()
+    if confirm2 != "yes":
+        print("  취소되었습니다.")
+        _pause()
+        return
+
+    count = len(tokens)
+    _save({})
+    _ok(f"전체 {count}개 코드 삭제 완료.")
+    _pause()
+
 # ── 메인 메뉴 ───────────────────────────────────────────────────────────
 
 def main():
@@ -276,8 +349,10 @@ def main():
         print()
         print("   1.  코드 생성")
         print("   2.  코드 목록 조회")
-        print("   3.  코드 폐기   (재사용 불가 처리)")
-        print("   4.  코드 삭제   (목록에서 완전 삭제)")
+        print("   3.  코드 폐기       (재사용 불가 처리)")
+        print("   4.  코드 삭제       (목록에서 완전 삭제)")
+        print("   5.  만료·소진 일괄 삭제  (사용 불가 코드 정리)")
+        print("   6.  전체 삭제")
         print()
         print("   0.  종료")
         print(SEP)
@@ -287,6 +362,8 @@ def main():
         elif choice == "2": menu_list()
         elif choice == "3": menu_revoke()
         elif choice == "4": menu_delete()
+        elif choice == "5": menu_purge()
+        elif choice == "6": menu_delete_all()
         elif choice == "0":
             _clear()
             print("\n  종료합니다.\n")
