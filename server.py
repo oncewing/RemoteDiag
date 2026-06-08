@@ -79,6 +79,39 @@ def _cleanup_failed_attempts():
         if expired:
             print("[server] 차단 기록 정리: {}건".format(len(expired)))
 
+
+def _reset_in_use_on_start():
+    """서버 시작 시 in_use 토큰 전체 초기화.
+    비정상 종료·재시작 후 in_use=True 로 남은 토큰을 복구.
+    """
+    tokens = _load_tokens()
+    changed = [c for c, i in tokens.items() if i.get("in_use")]
+    for code in changed:
+        tokens[code]["in_use"]        = False
+        tokens[code]["first_used_at"] = None
+        tokens[code]["expires_at"]    = None
+    if changed:
+        _save_tokens(tokens)
+        print("[server] in_use 토큰 초기화: {}건 (서버 재시작)".format(len(changed)))
+
+
+def _cleanup_orphaned_tokens():
+    """실제 연결된 에이전트가 없는 in_use 토큰 주기적 정리 (1분마다)."""
+    import eventlet as _ev
+    while True:
+        _ev.sleep(60)
+        active_codes = set(_agent_tokens.values())
+        tokens = _load_tokens()
+        changed = [c for c, i in tokens.items()
+                   if i.get("in_use") and c not in active_codes]
+        for code in changed:
+            tokens[code]["in_use"]        = False
+            tokens[code]["first_used_at"] = None
+            tokens[code]["expires_at"]    = None
+        if changed:
+            _save_tokens(tokens)
+            print("[server] 고아 in_use 토큰 정리: {}건".format(len(changed)))
+
 # ── 원격 제어 (멀티 세션) ─────────────────────────────────────────────
 _controllers       = {}   # controller_sid -> {}
 _controller_browser = {}  # controller_sid -> browser_sid
@@ -803,7 +836,9 @@ def main():
     print("  Flask  : http://{}:{}  (internal)".format(config.HOST, config.PORT))
     print("=" * 55 + "\n")
 
+    _reset_in_use_on_start()
     socketio.start_background_task(_cleanup_failed_attempts)
+    socketio.start_background_task(_cleanup_orphaned_tokens)
     socketio.run(app, host=config.HOST, port=config.PORT,
                  use_reloader=False, log_output=True)
 

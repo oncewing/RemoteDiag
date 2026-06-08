@@ -267,6 +267,48 @@ def menu_delete():
     _ok(f"코드 삭제 완료: {code}")
     _pause()
 
+# ── 메뉴: 사용 중 잠금 해제 ─────────────────────────────────────────────
+
+def menu_unlock():
+    tokens = _load()
+    locked = {c: i for c, i in tokens.items() if i.get("in_use")}
+
+    _clear()
+    _header("사용 중 잠금 해제")
+    if not locked:
+        print("\n  사용 중(in_use) 상태인 코드가 없습니다.")
+        _pause()
+        return
+
+    _show_list(locked, f"사용 중 코드 ({len(locked)}건)")
+    print()
+    code = input("  해제할 코드 (전체: Enter): ").strip().upper()
+
+    if not code:
+        confirm = input(f"  {len(locked)}개 코드를 모두 해제하시겠습니까? (y/N): ").strip().lower()
+        if confirm != "y":
+            print("  취소되었습니다.")
+            _pause()
+            return
+        for c in locked:
+            tokens[c]["in_use"]        = False
+            tokens[c]["first_used_at"] = None
+            tokens[c]["expires_at"]    = None
+        _save(tokens)
+        _ok(f"{len(locked)}개 코드 잠금 해제 완료.")
+    else:
+        if code not in locked:
+            _err(f"사용 중 코드를 찾을 수 없습니다: {code}")
+            _pause()
+            return
+        tokens[code]["in_use"]        = False
+        tokens[code]["first_used_at"] = None
+        tokens[code]["expires_at"]    = None
+        _save(tokens)
+        _ok(f"잠금 해제 완료: {code}")
+    _pause()
+
+
 # ── 만료/소진 판정 ──────────────────────────────────────────────────────
 
 def _is_unusable(info: dict) -> bool:
@@ -349,10 +391,11 @@ def main():
         print()
         print("   1.  코드 생성")
         print("   2.  코드 목록 조회")
-        print("   3.  코드 폐기       (재사용 불가 처리)")
-        print("   4.  코드 삭제       (목록에서 완전 삭제)")
+        print("   3.  코드 폐기           (재사용 불가 처리)")
+        print("   4.  코드 삭제           (목록에서 완전 삭제)")
         print("   5.  만료·소진 일괄 삭제  (사용 불가 코드 정리)")
         print("   6.  전체 삭제")
+        print("   7.  사용 중 잠금 해제   (비정상 종료 후 복구)")
         print()
         print("   0.  종료")
         print(SEP)
@@ -364,6 +407,7 @@ def main():
         elif choice == "4": menu_delete()
         elif choice == "5": menu_purge()
         elif choice == "6": menu_delete_all()
+        elif choice == "7": menu_unlock()
         elif choice == "0":
             _clear()
             print("\n  종료합니다.\n")
