@@ -324,7 +324,13 @@ def main():
             print("[오류] 연결 시간 초과. 서버가 실행 중인지 확인하세요.")
             sys.exit(1)
 
-        sio.emit("controller_hello", {})
+        rc_code = input("RC 접속 코드: ").strip().upper()
+        if not rc_code:
+            print("[오류] RC 접속 코드를 입력하세요.")
+            sys.exit(1)
+
+        _ready_event.clear()
+        sio.emit("controller_hello", {"code": rc_code})
 
         if not _ready_event.wait(timeout=5):
             print("[오류] 서버 응답 없음.")

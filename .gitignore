@@ -9,6 +9,7 @@ certs/
 users.json
 # 접속 코드 운영 데이터
 tokens.json
+rc_tokens.json
 
 # ── 빌드 산출물 ────────────────────────────────────────────────────────
 build/

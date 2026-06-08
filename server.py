@@ -36,9 +36,11 @@ _agents        = {}   # agent_sid  -> {platform, node, python, ip}
 _browser_auth  = {}   # browser_sid -> {username, permissions, ip}
 _browser_agent = {}   # browser_sid -> agent_sid  (1:1 페어링)
 _agent_browser = {}   # agent_sid  -> browser_sid (역방향)
-_users_path  = Path(__file__).parent / "users.json"
-_tokens_path = Path(__file__).parent / "tokens.json"
-_agent_tokens = {}    # agent_sid -> code (활성 세션)
+_users_path      = Path(__file__).parent / "users.json"
+_tokens_path     = Path(__file__).parent / "tokens.json"
+_rc_tokens_path  = Path(__file__).parent / "rc_tokens.json"
+_agent_tokens    = {}    # agent_sid -> code (활성 세션)
+_ctrl_rc_tokens  = {}    # ctrl_sid  -> rc_code (활성 RC 세션)
 
 # ── 브루트포스 방어 ───────────────────────────────────────────────────
 _FAIL_MAX    = 5     # IP당 최대 실패 횟수
@@ -93,6 +95,14 @@ def _reset_in_use_on_start():
     if changed:
         _save_tokens(tokens)
         print("[server] in_use 토큰 초기화: {}건 (서버 재시작)".format(len(changed)))
+
+    rc_tokens = _load_rc_tokens()
+    rc_changed = [c for c, i in rc_tokens.items() if i.get("in_use")]
+    for code in rc_changed:
+        rc_tokens[code]["in_use"] = False
+    if rc_changed:
+        _save_rc_tokens(rc_tokens)
+        print("[server] RC in_use 토큰 초기화: {}건 (서버 재시작)".format(len(rc_changed)))
 
 
 def _cleanup_orphaned_tokens():
@@ -259,6 +269,37 @@ def _session_timer(agent_sid: str, code: str, remaining_seconds: int):
         except Exception:
             pass
         print("[server] 세션 시간 초과 종료: {} (코드: {})".format(agent_sid[:8], code))
+
+
+# -- RC Token management ----------------------------------------------
+
+def _load_rc_tokens() -> dict:
+    try:
+        return json.loads(_rc_tokens_path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return {}
+    except Exception:
+        return {}
+
+def _save_rc_tokens(tokens: dict):
+    _rc_tokens_path.write_text(
+        json.dumps(tokens, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+def _burn_rc_token(code: str):
+    """RC 세션 종료 처리: in_use 해제, use_count 증가."""
+    tokens = _load_rc_tokens()
+    if code not in tokens or tokens[code].get("used"):
+        return
+    tokens[code]["in_use"] = False
+    if not tokens[code].get("unlimited_uses"):
+        max_uses  = tokens[code].get("max_uses", 1)
+        use_count = tokens[code].get("use_count", 0) + 1
+        tokens[code]["use_count"] = use_count
+        if use_count >= max_uses:
+            tokens[code]["used"] = True
+    _save_rc_tokens(tokens)
+    print("[server] RC 토큰 세션 종료: {}".format(code))
 
 
 # -- User management --------------------------------------------------
@@ -436,6 +477,9 @@ def on_disconnect():
     # ── 컨트롤러 끊김 ──────────────────────────────────────────────
     if sid in _controllers:
         del _controllers[sid]
+        rc_code = _ctrl_rc_tokens.pop(sid, None)
+        if rc_code:
+            _burn_rc_token(rc_code)
         b_sid = _controller_browser.pop(sid, None)
         if b_sid:
             _browser_controller.pop(b_sid, None)
@@ -693,16 +737,15 @@ def on_result(data):
 # ── Controller (remote_control.py) events ───────────────────────────
 
 @socketio.on("controller_hello")
-def on_controller_hello(_data=None):
-    ctrl_sid = request.sid
+def on_controller_hello(data=None):
+    ctrl_sid    = request.sid
     username    = session.get("username")
     permissions = session.get("permissions", [])
-
-    # 로컬 직접 연결(127.0.0.1)은 인증 생략, 외부 연결은 remote 권한 필요
-    client_ip = _client_ip()
-    is_local  = client_ip in ("127.0.0.1", "::1", "localhost")
+    client_ip   = _client_ip()
+    is_local    = client_ip in ("127.0.0.1", "::1", "localhost")
 
     if not is_local:
+        # ID/PW 로그인 + remote 권한 확인
         if not username:
             emit("controller_error", {"message": "로그인이 필요합니다."})
             print("[server] Controller 거절 (미인증): {}".format(ctrl_sid[:8]))
@@ -711,6 +754,46 @@ def on_controller_hello(_data=None):
             emit("controller_error", {"message": "remote 권한이 없습니다."})
             print("[server] Controller 거절 (권한 없음): {} ({})".format(ctrl_sid[:8], username))
             return
+
+        # RC 접속 코드 검증
+        rc_code = str((data or {}).get("code", "")).strip().upper()
+        if not rc_code:
+            emit("controller_error", {"message": "RC 접속 코드가 필요합니다."})
+            print("[server] Controller 거절 (RC 코드 없음): {}".format(ctrl_sid[:8]))
+            return
+
+        if _is_blocked(client_ip):
+            remaining = int(_failed_attempts[client_ip]["blocked_until"] - time.time())
+            emit("controller_error", {"message": "너무 많은 시도로 차단되었습니다. {}초 후 재시도하세요.".format(remaining)})
+            return
+
+        rc_tokens = _load_rc_tokens()
+        rc_token  = rc_tokens.get(rc_code)
+
+        if not rc_token:
+            emit("controller_error", {"message": "유효하지 않은 RC 접속 코드입니다."})
+            _record_failure(client_ip)
+            print("[server] Controller 거절 (RC 코드 불일치): {}".format(ctrl_sid[:8]))
+            return
+        if rc_token.get("used"):
+            emit("controller_error", {"message": "이미 사용이 완료된 RC 접속 코드입니다."})
+            return
+        if rc_token.get("in_use"):
+            emit("controller_error", {"message": "RC 접속 코드가 현재 다른 곳에서 사용 중입니다."})
+            return
+        try:
+            if datetime.date.today() > datetime.date.fromisoformat(rc_token["expiry"]):
+                emit("controller_error", {"message": "만료된 RC 접속 코드입니다."})
+                return
+        except Exception:
+            pass
+
+        # RC 토큰 활성화
+        rc_tokens[rc_code]["in_use"] = True
+        _save_rc_tokens(rc_tokens)
+        _ctrl_rc_tokens[ctrl_sid] = rc_code
+        _record_success(client_ip)
+        print("[server] Controller RC 코드 확인: {} ({})".format(ctrl_sid[:8], rc_code))
 
     _controllers[ctrl_sid] = {"username": username or "local"}
     emit("controller_ready", {"ok": True})

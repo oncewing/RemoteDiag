@@ -11,7 +11,9 @@ services:
       - ./users.json:/app/users.json
       - ./tokens.json:/app/tokens.json
       - ./dist:/app/dist
+      - ./rc_tokens.json:/app/rc_tokens.json
       - ./remote_control.py:/app/remote_control.py
       - ./manage_users.py:/app/manage_users.py
+      - ./manage_rc_tokens.py:/app/manage_rc_tokens.py
     env_file:
       - .env
