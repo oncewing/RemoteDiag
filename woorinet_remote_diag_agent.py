@@ -1034,6 +1034,7 @@ def _do_log_upload(serial: str, port: str, browser_sid: str,
         "files":       files,
         "errors":      errors,
     })
+    print(f"[agent] log_upload: 전송 완료. (파일 {len(files)}개, 오류 {len(errors)}건)")
 
 
 def _do_kmsg_upload(serial: str, browser_sid: str,
@@ -1080,6 +1081,7 @@ def _do_kmsg_upload(serial: str, browser_sid: str,
         "files":       files,
         "errors":      errors,
     })
+    print(f"[agent] kmsg_upload: 전송 완료. (파일 {len(files)}개, 오류 {len(errors)}건)")
 
 
 # ── Main ─────────────────────────────────────────────────────────────
