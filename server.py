@@ -371,7 +371,7 @@ def api_log_upload():
     phone  = _SAFE_NAME_RE.sub("_", str(data.get("phone", "unknown")))[:32]
     imei   = _SAFE_NAME_RE.sub("_", str(data.get("imei",  "unknown")))[:20]
 
-    now      = datetime.datetime.now()
+    now      = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
     dir_name = "{}_{}_{}_{}".format(phone, imei, now.strftime("%Y%m%d"), now.strftime("%H%M%S"))
     save_dir = (Path(__file__).parent / "uploads" / dir_name).resolve()
     save_dir.mkdir(parents=True, exist_ok=True)
@@ -821,7 +821,7 @@ def on_log_upload_data(data):
     phone = _SAFE_NAME_RE.sub("_", str(data.get("phone", "unknown")))[:32]
     imei  = _SAFE_NAME_RE.sub("_", str(data.get("imei",  "unknown")))[:20]
 
-    now      = datetime.datetime.now()
+    now      = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
     ts_date  = now.strftime("%Y%m%d")
     ts_time  = now.strftime("%H%M%S")
     dir_name = "{}_{}_{}_{}" .format(phone, imei, ts_date, ts_time)
