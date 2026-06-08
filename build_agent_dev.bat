@@ -23,15 +23,19 @@ if %errorlevel% neq 0 (
 echo [3/4] Preparing build source (EXPIRE_DATE injection)...
 python _build_inject.py
 if %errorlevel% neq 0 (
-    if exist _build_agent.py del /f /q _build_agent.py
+    if exist _build_agent.py     del /f /q _build_agent.py
+    if exist _build_version.txt  del /f /q _build_version.txt
     echo FAILED: EXPIRE_DATE injection
     pause
     exit /b 1
 )
+set /p BUILD_VERSION=<_build_version.txt
+del /f /q _build_version.txt
+echo [inject] Output filename: woorinet_remote_diag_agent_v%BUILD_VERSION%.exe
 
 echo [4/4] Building with PyInstaller...
 if exist build rmdir /s /q build
-pyinstaller --onefile --name woorinet_remote_diag_agent ^
+pyinstaller --onefile --name woorinet_remote_diag_agent_v%BUILD_VERSION% ^
     --distpath dev --workpath build --specpath build ^
     --hidden-import serial ^
     --hidden-import serial.tools.list_ports ^
@@ -52,8 +56,8 @@ if exist _build_agent.py del /f /q _build_agent.py
 
 echo.
 echo Build complete!
-if exist dev\woorinet_remote_diag_agent.exe (
-    echo   %~dp0dev\woorinet_remote_diag_agent.exe
+if exist dev\woorinet_remote_diag_agent_v%BUILD_VERSION%.exe (
+    echo   %~dp0dev\woorinet_remote_diag_agent_v%BUILD_VERSION%.exe
 ) else (
     echo Build failed.
 )
