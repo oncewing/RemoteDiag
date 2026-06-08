@@ -177,7 +177,8 @@ def run():
     while sio.connected:
         print("원격 제어 요청 대기 중... (Ctrl+C 로 종료)\n")
         _request_event.clear()
-        _request_event.wait()
+        while sio.connected and not _request_event.wait(timeout=0.5):
+            pass
 
         if not sio.connected:
             break
