@@ -756,34 +756,39 @@ def on_controller_hello(data=None):
             return
 
         # RC 접속 코드 검증
+        def _rc_reject(msg, record_fail=False):
+            emit("controller_error", {"message": msg})
+            if record_fail:
+                _record_failure(client_ip)
+            socketio.start_background_task(_delayed_disconnect, ctrl_sid)
+
         rc_code = str((data or {}).get("code", "")).strip().upper()
         if not rc_code:
-            emit("controller_error", {"message": "RC 접속 코드가 필요합니다."})
+            _rc_reject("RC 접속 코드가 필요합니다.")
             print("[server] Controller 거절 (RC 코드 없음): {}".format(ctrl_sid[:8]))
             return
 
         if _is_blocked(client_ip):
             remaining = int(_failed_attempts[client_ip]["blocked_until"] - time.time())
-            emit("controller_error", {"message": "너무 많은 시도로 차단되었습니다. {}초 후 재시도하세요.".format(remaining)})
+            _rc_reject("너무 많은 시도로 차단되었습니다. {}초 후 재시도하세요.".format(remaining))
             return
 
         rc_tokens = _load_rc_tokens()
         rc_token  = rc_tokens.get(rc_code)
 
         if not rc_token:
-            emit("controller_error", {"message": "유효하지 않은 RC 접속 코드입니다."})
-            _record_failure(client_ip)
+            _rc_reject("유효하지 않은 RC 접속 코드입니다.", record_fail=True)
             print("[server] Controller 거절 (RC 코드 불일치): {}".format(ctrl_sid[:8]))
             return
         if rc_token.get("used"):
-            emit("controller_error", {"message": "이미 사용이 완료된 RC 접속 코드입니다."})
+            _rc_reject("이미 사용이 완료된 RC 접속 코드입니다.")
             return
         if rc_token.get("in_use"):
-            emit("controller_error", {"message": "RC 접속 코드가 현재 다른 곳에서 사용 중입니다."})
+            _rc_reject("RC 접속 코드가 현재 다른 곳에서 사용 중입니다.")
             return
         try:
             if datetime.date.today() > datetime.date.fromisoformat(rc_token["expiry"]):
-                emit("controller_error", {"message": "만료된 RC 접속 코드입니다."})
+                _rc_reject("만료된 RC 접속 코드입니다.")
                 return
         except Exception:
             pass

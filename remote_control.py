@@ -40,6 +40,7 @@ _request_event     = threading.Event()
 _result_event      = threading.Event()
 _device_info_event = threading.Event()
 _session_active    = False
+_ready_ok          = False
 _req_username      = ""
 _cmd_seq           = 0
 _last_result       = {}
@@ -63,13 +64,17 @@ def on_disconnect():
 
 @sio.on("controller_ready")
 def on_controller_ready(_data=None):
+    global _ready_ok
+    _ready_ok = True
     _ready_event.set()
 
 
 @sio.on("controller_error")
 def on_controller_error(data):
+    global _ready_ok
     msg = data.get("message", str(data)) if isinstance(data, dict) else str(data)
     print("[오류] {}".format(msg))
+    _ready_ok = False
     _ready_event.set()
 
 
@@ -336,7 +341,7 @@ def main():
             print("[오류] 서버 응답 없음.")
             sys.exit(1)
 
-        if not sio.connected:
+        if not _ready_ok or not sio.connected:
             sys.exit(1)
 
         print("서버 등록 완료.\n")
