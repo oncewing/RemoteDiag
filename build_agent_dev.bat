@@ -31,11 +31,11 @@ if %errorlevel% neq 0 (
 )
 set /p BUILD_VERSION=<_build_version.txt
 del /f /q _build_version.txt
-echo [inject] Output filename: woorinet_remote_diag_agent_v%BUILD_VERSION%.exe
+echo [inject] Build version: v%BUILD_VERSION%
 
 echo [4/4] Building with PyInstaller...
 if exist build rmdir /s /q build
-pyinstaller --onefile --name woorinet_remote_diag_agent_v%BUILD_VERSION% ^
+pyinstaller --onefile --name woorinet_remote_diag_agent ^
     --distpath dev --workpath build --specpath build ^
     --hidden-import serial ^
     --hidden-import serial.tools.list_ports ^
@@ -55,9 +55,9 @@ if exist build rmdir /s /q build
 if exist _build_agent.py del /f /q _build_agent.py
 
 echo.
-echo Build complete!
-if exist dev\woorinet_remote_diag_agent_v%BUILD_VERSION%.exe (
-    echo   %~dp0dev\woorinet_remote_diag_agent_v%BUILD_VERSION%.exe
+echo Build complete! (v%BUILD_VERSION%)
+if exist dev\woorinet_remote_diag_agent.exe (
+    echo   %~dp0dev\woorinet_remote_diag_agent.exe
 ) else (
     echo Build failed.
 )

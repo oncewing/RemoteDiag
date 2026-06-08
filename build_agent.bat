@@ -31,11 +31,11 @@ if %errorlevel% neq 0 (
 )
 set /p BUILD_VERSION=<_build_version.txt
 del /f /q _build_version.txt
-echo [inject] Output filename: woorinet_remote_diag_agent_v%BUILD_VERSION%.exe
+echo [inject] Build version: v%BUILD_VERSION%
 
 echo [4/5] Building with Nuitka...
-if exist dist\woorinet_remote_diag_agent_v%BUILD_VERSION%.exe del /f /q dist\woorinet_remote_diag_agent_v%BUILD_VERSION%.exe
-python -m nuitka --onefile --output-filename=woorinet_remote_diag_agent_v%BUILD_VERSION%.exe --output-dir=dist --windows-console-mode=force --assume-yes-for-downloads --include-package=serial --include-package=socketio --include-package=engineio _build_agent.py
+if exist dist\woorinet_remote_diag_agent.exe del /f /q dist\woorinet_remote_diag_agent.exe
+python -m nuitka --onefile --output-filename=woorinet_remote_diag_agent.exe --output-dir=dist --windows-console-mode=force --assume-yes-for-downloads --include-package=serial --include-package=socketio --include-package=engineio _build_agent.py
 if %errorlevel% neq 0 (
     if exist _build_agent.py del /f /q _build_agent.py
     echo FAILED: nuitka
@@ -49,9 +49,9 @@ if exist dist\_build_agent.build             rmdir /s /q dist\_build_agent.build
 if exist dist\_build_agent.onefile-build     rmdir /s /q dist\_build_agent.onefile-build
 
 echo.
-echo Build complete!
-if exist dist\woorinet_remote_diag_agent_v%BUILD_VERSION%.exe (
-    echo   %~dp0dist\woorinet_remote_diag_agent_v%BUILD_VERSION%.exe
+echo Build complete! (v%BUILD_VERSION%)
+if exist dist\woorinet_remote_diag_agent.exe (
+    echo   %~dp0dist\woorinet_remote_diag_agent.exe
 ) else (
     echo Build failed.
 )
