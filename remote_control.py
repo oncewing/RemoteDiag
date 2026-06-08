@@ -35,13 +35,14 @@ LOCAL_PATH       = ""
 # ── 전역 상태 ─────────────────────────────────────────────────────────
 sio = socketio.Client(logger=False, engineio_logger=False)
 
-_ready_event    = threading.Event()
-_request_event  = threading.Event()
-_result_event   = threading.Event()
-_session_active = False
-_req_username   = ""
-_cmd_seq        = 0
-_last_result    = {}
+_ready_event       = threading.Event()
+_request_event     = threading.Event()
+_result_event      = threading.Event()
+_device_info_event = threading.Event()
+_session_active    = False
+_req_username      = ""
+_cmd_seq           = 0
+_last_result       = {}
 
 
 def _next_id():
@@ -92,7 +93,7 @@ def on_device_info(data):
     imei  = data.get("imei",  "N/A")
     phone = data.get("phone", "N/A")
     note  = data.get("note",  "")
-    print("\n" + "─" * 50)
+    print("─" * 50)
     print("  단말 기본 정보")
     print("─" * 50)
     if note:
@@ -102,6 +103,7 @@ def on_device_info(data):
         print("  전화번호 : {}".format(phone))
     print("─" * 50)
     sys.stdout.flush()
+    _device_info_event.set()
 
 
 @sio.on("remote_result")
@@ -193,8 +195,12 @@ def run():
             print("거절했습니다.\n")
             continue
 
+        _device_info_event.clear()
         sio.emit("controller_accept", {})
         _session_active = True
+
+        # 단말 기본 정보 수신 대기 (최대 5초)
+        _device_info_event.wait(timeout=5)
 
         print("\n명령 입력 방법:")
         print("  AT 명령  : AT+CSQ  또는  +CSQ  (AT 접두사 자동 추가)")
