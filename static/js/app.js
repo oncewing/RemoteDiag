@@ -879,28 +879,36 @@ async function _fetchKmsg() {
   }
 }
 
+async function _doKmsgGet() {
+  const term = document.getElementById('term-kmsg');
+  const status = document.getElementById('kmsg-status');
+  if (status) status.textContent = '읽는 중...';
+
+  let data;
+  if (selectedSrsdIp) {
+    const res = await _shellCmd('dmesg | tail -n 500', 30, 'kmsg_get');
+    if (!res.success) { if (status) status.textContent = '실패'; return; }
+    data = res.stdout;
+  } else {
+    const res = await sendCommand({ type: 'kmsg_get', serial: selectedSerial }, 'kmsg_get');
+    if (!res.success) { if (status) status.textContent = '실패'; return; }
+    data = res.data;
+  }
+
+  if (term) { term.textContent = (data || '').replace(/\r/g, '').trimEnd(); autoScroll(term); }
+  const ts = new Date().toLocaleTimeString();
+  if (status) status.textContent = `최근 갱신: ${ts}`;
+}
+
 function startKmsg() {
   if (!_connReady({ needShell: true })) return;
   kmsgRunning = true;
-  document.getElementById('kmsg-status').textContent = '▶ 실행 중';
-  const term = document.getElementById('term-kmsg');
-  if (term) term.textContent = '';
-
-  if (selectedSrsdIp) {
-    // SRSD(네트워크) 모드: 기존 폴링 유지
-    _startKmsgPoll();
-  } else {
-    // USB 모드: 스트리밍 (줄 단위 log_line 이벤트)
-    sendCommand({ type: 'kmsg_start', serial: selectedSerial });
-  }
+  _doKmsgGet();
 }
 
 function stopKmsg() {
   kmsgRunning = false;
   _stopKmsgPoll();
-  if (!selectedSrsdIp) {
-    sendCommand({ type: 'kmsg_stop', serial: selectedSerial });
-  }
   document.getElementById('kmsg-status').textContent = '■ 정지';
 }
 
@@ -908,20 +916,7 @@ async function refreshKmsg() {
   if (!_connReady({ needShell: true })) return;
   const btn = document.getElementById('kmsg-refresh-btn');
   if (btn) btn.disabled = true;
-
-  if (selectedSrsdIp) {
-    // SRSD 모드: 즉시 1회 폴링
-    await _fetchKmsg();
-  } else {
-    // USB 모드: 정지 후 재시작 (dmesg 재덤프)
-    await sendCommand({ type: 'kmsg_stop', serial: selectedSerial });
-    const term = document.getElementById('term-kmsg');
-    if (term) term.textContent = '';
-    await sendCommand({ type: 'kmsg_start', serial: selectedSerial });
-    kmsgRunning = true;
-    document.getElementById('kmsg-status').textContent = '▶ 실행 중';
-  }
-
+  await _doKmsgGet();
   if (btn) btn.disabled = false;
 }
 

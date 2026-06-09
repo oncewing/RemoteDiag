@@ -160,8 +160,7 @@ func handleCommand(sio *SocketIO, raw json.RawMessage) {
 
 	// ── kmsg ─────────────────────────────────────────────────────────
 	case "kmsg_get":
-		// tail -n 3000 으로 출력 제한 (전체 dmesg는 수MB → WebSocket write 지연 → PING/PONG 실패)
-		stdout, stderr, err := runADBTimeout(30, "-s", cmd.Serial, "shell", "dmesg | tail -n 3000")
+		stdout, stderr, err := runADBTimeout(30, "-s", cmd.Serial, "shell", "dmesg | tail -n 500")
 		if err != nil {
 			result.Error = err.Error()
 		} else if stderr != "" && stdout == "" {
