@@ -598,8 +598,18 @@ def on_agent_hello(data):
 
     # 동시 접속 차단 — 다른 agent가 이 토큰으로 현재 접속 중
     if token.get("in_use"):
-        _reject("접속 코드가 현재 다른 기기에서 사용 중입니다.", record_fail=False)
-        return
+        # 실제로 이 코드를 쓰는 에이전트가 살아있는지 확인
+        active_codes = set(_agent_tokens.values())
+        if code in active_codes:
+            _reject("접속 코드가 현재 다른 기기에서 사용 중입니다.", record_fail=False)
+            return
+        # 연결된 에이전트 없이 in_use만 남은 경우(타이밍 레이스) → 강제 초기화 후 허용
+        tokens[code]["in_use"]        = False
+        tokens[code]["first_used_at"] = None
+        tokens[code]["expires_at"]    = None
+        _save_tokens(tokens)
+        token = tokens[code]
+        print("[server] in_use 레이스 복구: {}".format(code))
 
     # 만료일 확인
     try:
