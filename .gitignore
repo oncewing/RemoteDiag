@@ -47,6 +47,7 @@ make_account_manual.js
 make_rc_manual.js
 *.docx
 !WN_RemoteDiag_User-Manual_R1.0.docx
+!WN_RemoteDiag_User-Manual_R2.0.docx
 package.json
 
 # ── 기타 ──────────────────────────────────────────────────────────────
