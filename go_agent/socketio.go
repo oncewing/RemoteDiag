@@ -103,7 +103,9 @@ func (s *SocketIO) readLoop() {
 		close(s.done)
 	}()
 
-	s.conn.SetReadDeadline(time.Now().Add(s.pingInterval + s.pingTimeout))
+	// read deadline 제거: 서버 ping 지연으로 인한 오탐 방지
+	// 진짜 연결 끊김은 TCP keepalive(30s)로 OS 레벨에서 감지
+	s.conn.SetReadDeadline(time.Time{})
 
 	for {
 		_, msg, err := s.conn.ReadMessage()
@@ -116,9 +118,6 @@ func (s *SocketIO) readLoop() {
 			}
 			return
 		}
-
-		// 수신마다 deadline 갱신 (ping/pong 포함)
-		s.conn.SetReadDeadline(time.Now().Add(s.pingInterval + s.pingTimeout))
 
 		if len(msg) == 0 {
 			continue
