@@ -549,6 +549,11 @@ def on_browser_hello(_data=None):
     })
     emit("remote_control_ack", {"active": browser_sid in _rc_active})
 
+@socketio.on("agent_ping")
+def on_agent_ping(_data=None):
+    """Agent 애플리케이션 레벨 heartbeat — 즉시 pong 응답."""
+    emit("agent_pong")
+
 @socketio.on("agent_hello")
 def on_agent_hello(data):
     agent_sid = request.sid

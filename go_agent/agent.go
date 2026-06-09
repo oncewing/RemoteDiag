@@ -53,6 +53,7 @@ func setupHandlers(sio *SocketIO) {
 
 		go pushDevices(sio)
 		go pushPorts(sio)
+		go heartbeat(sio)
 	})
 
 	sio.On("agent_rejected", func(data json.RawMessage) {
@@ -91,6 +92,10 @@ func setupHandlers(sio *SocketIO) {
 		sio.Disconnect()
 	})
 
+	sio.On("agent_pong", func(_ json.RawMessage) {
+		// 서버로부터 pong 수신 → read deadline이 자동 갱신됨 (연결 살아있음 확인)
+	})
+
 	sio.On("command", func(data json.RawMessage) {
 		go handleCommand(sio, data)
 	})
@@ -102,6 +107,24 @@ func setupHandlers(sio *SocketIO) {
 		json.Unmarshal(data, &d)
 		go sendDeviceInfo(sio, d.CtrlSID)
 	})
+}
+
+func heartbeat(sio *SocketIO) {
+	ticker := time.NewTicker(20 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-shutdown:
+			return
+		case <-ticker.C:
+			if !sio.Connected() {
+				return
+			}
+			if err := sio.Emit("agent_ping", nil); err != nil {
+				return
+			}
+		}
+	}
 }
 
 func startCountdown(sio *SocketIO) {
