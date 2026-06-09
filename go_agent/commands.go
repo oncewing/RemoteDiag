@@ -21,6 +21,8 @@ type cmdDataRaw struct {
 	Timeout    int             `json:"timeout"`
 	IP         string          `json:"ip"`
 	SrsdPort   int             `json:"port_int"`
+	Path       string          `json:"path"`
+	Args       string          `json:"args"`
 }
 
 type CmdData struct {
@@ -33,7 +35,9 @@ type CmdData struct {
 	Command    string
 	Timeout    int
 	IP         string
-	SrsdPort   int // SRSD UDP 포트 번호
+	SrsdPort   int    // SRSD UDP 포트 번호
+	Path       string // 로그 파일 경로 (log_start)
+	Args       string // 추가 인자 (logcat_start)
 }
 
 func parseCmdData(raw json.RawMessage) (CmdData, error) {
@@ -46,6 +50,7 @@ func parseCmdData(raw json.RawMessage) (CmdData, error) {
 		BrowserSID: r.BrowserSID, Serial: r.Serial,
 		Command: r.Command, Timeout: r.Timeout,
 		IP: r.IP, SrsdPort: r.SrsdPort,
+		Path: r.Path, Args: r.Args,
 	}
 	// port 가 string → COM 포트 이름, int → SRSD UDP 포트 번호
 	if len(r.Port) > 0 {
@@ -153,11 +158,15 @@ func handleCommand(sio *SocketIO, raw json.RawMessage) {
 		result.Success = true
 		result.Message = "kmsg 수집 시작됨"
 
-	// ── 미구현 ───────────────────────────────────────────────────────
-	case "adb_logcat_start", "adb_logcat_stop",
-		"log_start", "log_stop":
-		result.Success = false
-		result.Error = fmt.Sprintf("미구현 명령 (Go 버전): %s", cmdType)
+	// ── 로그 스트리밍 ────────────────────────────────────────────────
+	case "adb_logcat_start":
+		result = logcatStart(sio, cmd)
+	case "adb_logcat_stop":
+		result = logcatStop(cmd)
+	case "log_start":
+		result = logStart(sio, cmd)
+	case "log_stop":
+		result = logStop(cmd)
 
 	default:
 		result.Success = false
