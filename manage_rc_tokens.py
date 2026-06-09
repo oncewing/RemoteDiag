@@ -237,6 +237,25 @@ def menu_delete():
     _ok(f"코드 삭제 완료: {code}")
     _pause()
 
+# ── 메뉴: 전체 삭제 ─────────────────────────────────────────────────────
+
+def menu_delete_all():
+    tokens = _load()
+    _show_list(tokens, "전체 삭제")
+    if not tokens:
+        _pause()
+        return
+    print()
+    print(f"  ※ 총 {len(tokens)}개 코드를 모두 삭제합니다. 이 작업은 되돌릴 수 없습니다.")
+    confirm = input("  정말 전체 삭제하시겠습니까? (yes/N): ").strip().lower()
+    if confirm != "yes":
+        print("  취소되었습니다.")
+        _pause()
+        return
+    _save({})
+    _ok(f"{len(tokens)}개 코드 전체 삭제 완료.")
+    _pause()
+
 # ── 메뉴: 잠금 해제 ─────────────────────────────────────────────────────
 
 def menu_unlock():
@@ -283,6 +302,7 @@ def main():
         print("   3.  코드 폐기   (재사용 불가 처리)")
         print("   4.  코드 삭제   (목록에서 완전 삭제)")
         print("   5.  잠금 해제   (비정상 종료 후 복구)")
+        print("   6.  전체 삭제   (모든 코드 완전 삭제)")
         print()
         print("   0.  종료")
         print(SEP)
@@ -293,6 +313,7 @@ def main():
         elif choice == "3": menu_revoke()
         elif choice == "4": menu_delete()
         elif choice == "5": menu_unlock()
+        elif choice == "6": menu_delete_all()
         elif choice == "0":
             _clear()
             print("\n  종료합니다.\n")
