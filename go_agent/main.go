@@ -6,14 +6,20 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 )
 
 var (
-	accessCode string
-	shutdown   = make(chan struct{})
+	accessCode  string
+	shutdown    = make(chan struct{})
+	shutdownMu  sync.Once
 )
+
+func closeShutdown() {
+	shutdownMu.Do(func() { close(shutdown) })
+}
 
 func main() {
 	// 종료 시그널 처리
@@ -22,8 +28,7 @@ func main() {
 	go func() {
 		<-sigCh
 		fmt.Println("\n[agent] 종료 신호 수신. 종료 중...")
-		close(shutdown)
-		// WebSocket 연결을 강제 종료 → sio.Wait() 즉시 반환
+		closeShutdown()
 		if currentSIO != nil {
 			currentSIO.Disconnect()
 		}
@@ -79,11 +84,23 @@ func main() {
 
 		sio.Wait()
 
+		// fatalReject 또는 shutdown → 재시도 없이 종료
+		select {
+		case <-shutdown:
+			fmt.Println("[agent] 종료.")
+			return
+		default:
+		}
+		if fatalReject {
+			fmt.Println("[agent] 종료.")
+			return
+		}
+
+		fmt.Println("[agent] 3초 후 재시도...")
 		select {
 		case <-shutdown:
 			return
 		case <-time.After(3 * time.Second):
-			fmt.Println("[agent] 3초 후 재시도...")
 		}
 	}
 }

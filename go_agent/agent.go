@@ -3,13 +3,17 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 )
+
+func contains(s, sub string) bool { return strings.Contains(s, sub) }
 
 var (
 	sessionEndTime time.Time
 	hasSession     bool
 	currentSIO     *SocketIO
+	fatalReject    bool // 영구 거부 → 재시도 없이 종료
 )
 
 func setupHandlers(sio *SocketIO) {
@@ -61,6 +65,17 @@ func setupHandlers(sio *SocketIO) {
 		fmt.Println("  접속 거부")
 		fmt.Printf("  %s\n", d.Reason)
 		fmt.Println("==================================================")
+
+		// 영구 거부 사유 → 재시도 없이 종료
+		reason := d.Reason
+		if contains(reason, "다른 기기") ||
+			contains(reason, "사용이 완료") ||
+			contains(reason, "유효하지 않은") ||
+			contains(reason, "만료") {
+			fatalReject = true
+			fmt.Println("[agent] 재연결을 중단합니다.")
+			closeShutdown()
+		}
 		sio.Disconnect()
 	})
 
