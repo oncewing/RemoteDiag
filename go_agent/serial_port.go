@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -9,6 +10,8 @@ import (
 	"go.bug.st/serial"
 	"go.bug.st/serial/enumerator"
 )
+
+var reIMEI = regexp.MustCompile(`\d{14,15}`)
 
 const (
 	atBaudRate = 115200
@@ -24,12 +27,17 @@ var (
 
 func portList(cmd CmdData) CmdResult {
 	r := CmdResult{ID: cmd.ID, BrowserSID: cmd.BrowserSID}
-	ports, err := enumerator.GetDetailedPortsList()
-	if err != nil {
-		r.Error = err.Error()
-		return r
-	}
-	var list []map[string]string
+	r.Success = true
+	r.Data = buildPortList()
+	r.Open = getOpenPortNames()
+	return r
+}
+
+func buildPortList() []map[string]string {
+	ports, _ := enumerator.GetDetailedPortsList()
+
+	// enumerator 결과를 맵으로 인덱싱
+	byName := map[string]map[string]string{}
 	for _, p := range ports {
 		entry := map[string]string{
 			"port":        p.Name,
@@ -40,29 +48,34 @@ func portList(cmd CmdData) CmdResult {
 			entry["vid"] = p.VID
 			entry["pid"] = p.PID
 		}
-		list = append(list, entry)
+		byName[p.Name] = entry
 	}
-	r.Success = true
-	r.Data = list
-	r.Open = getOpenPortNames()
-	return r
+
+	// 장치관리자 모뎀 항목 병합
+	for port, name := range modemPorts() {
+		if e, ok := byName[port]; ok {
+			if e["description"] == "" {
+				e["description"] = name
+			}
+		} else {
+			byName[port] = map[string]string{
+				"port":        port,
+				"description": name,
+				"hwid":        "",
+			}
+		}
+	}
+
+	list := make([]map[string]string, 0, len(byName))
+	for _, e := range byName {
+		list = append(list, e)
+	}
+	return list
 }
 
 func pushPorts(sio *SocketIO) {
-	ports, err := enumerator.GetDetailedPortsList()
-	if err != nil {
-		return
-	}
-	var list []map[string]string
-	for _, p := range ports {
-		list = append(list, map[string]string{
-			"port":        p.Name,
-			"description": p.Product,
-			"hwid":        p.SerialNumber,
-		})
-	}
 	sio.Emit("port_update", map[string]interface{}{
-		"ports": list,
+		"ports": buildPortList(),
 		"open":  getOpenPortNames(),
 	})
 }
@@ -100,6 +113,8 @@ func portOpen(cmd CmdData) CmdResult {
 		r.Error = fmt.Sprintf("포트 열기 실패 (%s): %v", name, err)
 		return r
 	}
+	// 포트 오픈 직후 모뎀이 쌓아둔 *WIND: 등 비동기 URC 버퍼를 비움
+	p.ResetInputBuffer()
 	openPorts[name] = p
 	r.Success = true
 	return r
@@ -120,55 +135,78 @@ func portClose(cmd CmdData) CmdResult {
 	return r
 }
 
-// ── AT 명령 ──────────────────────────────────────────────────────────
+// ── AT 포트 ↔ ADB 단말 IMEI 매칭 ────────────────────────────────────
 
-func atCommand(cmd CmdData) CmdResult {
+func atMatchDevice(cmd CmdData) CmdResult {
 	r := CmdResult{ID: cmd.ID, BrowserSID: cmd.BrowserSID}
-	name := cmd.Port
-	if name == "" {
+	port := cmd.Port
+	if port == "" {
 		r.Error = "port가 필요합니다."
 		return r
 	}
 
+	// 1. AT+CGSN 으로 IMEI 조회
+	atRes := atSend(port, "AT+CGSN", 5)
+	imeiMatch := reIMEI.FindString(atRes)
+	if imeiMatch == "" {
+		r.Error = "AT+CGSN IMEI 조회 실패"
+		return r
+	}
+
+	// 2. ADB 단말 IMEI와 비교
+	for _, dev := range listADBDevices() {
+		serial := dev["serial"]
+		out, _, err := runADBTimeout(5, "-s", serial, "shell", "cat /var/tmp/imei")
+		if err != nil {
+			continue
+		}
+		if strings.TrimSpace(out) == imeiMatch {
+			r.Success = true
+			r.Serial = serial
+			r.Data = map[string]string{"serial": serial, "imei": imeiMatch}
+			return r
+		}
+	}
+
+	r.Error = "매칭 단말기 없음"
+	return r
+}
+
+// ── AT 명령 ──────────────────────────────────────────────────────────
+
+// atSend는 이미 열려 있는 포트에 AT 명령을 전송하고 응답 문자열을 반환합니다.
+// Python _at_send 와 동일하게 줄 단위로 읽어 strip 후 \n 으로 조인합니다.
+func atSend(portName, command string, timeoutSec int) string {
 	portMu.Lock()
-	p, ok := openPorts[name]
+	p, ok := openPorts[portName]
 	portMu.Unlock()
-
 	if !ok {
-		r.Error = fmt.Sprintf("포트가 열려 있지 않습니다: %s", name)
-		return r
+		return ""
 	}
+	// AT 표준 종료자는 \r (CR). \r\n 은 일부 모뎀에서 오작동.
+	cmd := strings.TrimSpace(command) + "\r"
+	if _, err := p.Write([]byte(cmd)); err != nil {
+		return ""
+	}
+	if timeoutSec <= 0 {
+		timeoutSec = atTimeout
+	}
+	p.SetReadTimeout(time.Duration(timeoutSec) * time.Second)
 
-	// 명령 전송
-	atCmd := cmd.Command
-	if !strings.HasSuffix(atCmd, "\r") {
-		atCmd += "\r"
-	}
-	if _, err := p.Write([]byte(atCmd)); err != nil {
-		r.Error = err.Error()
-		return r
-	}
-
-	// 응답 수집
-	timeout := cmd.Timeout
-	if timeout <= 0 {
-		timeout = atTimeout
-	}
-	p.SetReadTimeout(time.Duration(timeout) * time.Second)
-
-	var sb strings.Builder
+	var raw strings.Builder
 	buf := make([]byte, 256)
-	deadline := time.Now().Add(time.Duration(timeout) * time.Second)
-
+	deadline := time.Now().Add(time.Duration(timeoutSec) * time.Second)
 	for time.Now().Before(deadline) {
 		n, err := p.Read(buf)
 		if n > 0 {
-			sb.Write(buf[:n])
-			resp := sb.String()
-			// OK 또는 ERROR 응답 확인
-			if strings.Contains(resp, "\r\nOK\r\n") ||
-				strings.Contains(resp, "\r\nERROR\r\n") ||
-				strings.Contains(resp, "+CME ERROR") {
+			raw.Write(buf[:n])
+			resp := raw.String()
+			if strings.Contains(resp, "\nOK") ||
+				strings.Contains(resp, "\nERROR") ||
+				strings.Contains(resp, "+CME ERROR") ||
+				strings.Contains(resp, "+CMS ERROR") ||
+				strings.Contains(resp, "NO CARRIER") ||
+				strings.Contains(resp, "BUSY") {
 				break
 			}
 		}
@@ -177,7 +215,34 @@ func atCommand(cmd CmdData) CmdResult {
 		}
 	}
 
+	// Python: readline → strip → join("\n") — 빈 줄 제거
+	var lines []string
+	for _, l := range strings.Split(raw.String(), "\n") {
+		l = strings.TrimSpace(l)
+		if l != "" {
+			lines = append(lines, l)
+		}
+	}
+	if len(lines) == 0 {
+		return "(응답 없음)"
+	}
+	return strings.Join(lines, "\n")
+}
+
+func atCommand(cmd CmdData) CmdResult {
+	r := CmdResult{ID: cmd.ID, BrowserSID: cmd.BrowserSID}
+	if cmd.Port == "" {
+		r.Error = "port가 필요합니다."
+		return r
+	}
+	portMu.Lock()
+	_, ok := openPorts[cmd.Port]
+	portMu.Unlock()
+	if !ok {
+		r.Error = fmt.Sprintf("포트가 열려 있지 않습니다: %s", cmd.Port)
+		return r
+	}
 	r.Success = true
-	r.Stdout = sb.String()
+	r.Response = atSend(cmd.Port, cmd.Command, cmd.Timeout)
 	return r
 }

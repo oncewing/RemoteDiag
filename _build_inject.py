@@ -43,3 +43,7 @@ else:
 repl   = f'EXPIRE_DATE        = "{expire.isoformat()}"'
 result = re.sub(r'EXPIRE_DATE\s*=\s*"[^"]*"', repl, src)
 DEST.write_text(result, "utf-8")
+
+# Go 빌드용 — bat 파일에서 set /p 로 읽음
+pathlib.Path("_build_version_expire.txt").write_text(expire.isoformat(), "utf-8")
+print(f"[inject] _build_version_expire.txt → {expire.isoformat()}")

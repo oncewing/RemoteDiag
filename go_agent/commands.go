@@ -3,21 +3,70 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 )
 
 // ── 명령 데이터 구조 ─────────────────────────────────────────────────
 
+// cmdDataRaw 는 "port" 필드가 string(COM포트) 또는 int(SRSD UDP 포트) 둘 다 올 수 있어
+// json.RawMessage 로 먼저 받은 뒤 CmdData 로 변환한다.
+type cmdDataRaw struct {
+	ID         string          `json:"id"`
+	CmdType    string          `json:"cmd_type"`
+	Type       string          `json:"type"`
+	BrowserSID string          `json:"browser_sid"`
+	Serial     string          `json:"serial"`
+	Port       json.RawMessage `json:"port"` // string or int
+	Command    string          `json:"command"`
+	Timeout    int             `json:"timeout"`
+	IP         string          `json:"ip"`
+	SrsdPort   int             `json:"port_int"`
+}
+
 type CmdData struct {
-	ID         string  `json:"id"`
-	CmdType    string  `json:"cmd_type"` // 서버 → agent 경로
-	Type       string  `json:"type"`     // RC → browser → agent 경로
-	BrowserSID string  `json:"browser_sid"`
-	Serial     string  `json:"serial"`
-	Port       string  `json:"port"`
-	Command    string  `json:"command"`
-	Timeout    int     `json:"timeout"`
-	IP         string  `json:"ip"`
-	SrsdPort   int     `json:"port_int"` // SRSD UDP 포트
+	ID         string
+	CmdType    string
+	Type       string
+	BrowserSID string
+	Serial     string
+	Port       string // COM 포트 이름 (e.g. "COM3")
+	Command    string
+	Timeout    int
+	IP         string
+	SrsdPort   int // SRSD UDP 포트 번호
+}
+
+func parseCmdData(raw json.RawMessage) (CmdData, error) {
+	var r cmdDataRaw
+	if err := json.Unmarshal(raw, &r); err != nil {
+		return CmdData{}, err
+	}
+	cmd := CmdData{
+		ID: r.ID, CmdType: r.CmdType, Type: r.Type,
+		BrowserSID: r.BrowserSID, Serial: r.Serial,
+		Command: r.Command, Timeout: r.Timeout,
+		IP: r.IP, SrsdPort: r.SrsdPort,
+	}
+	// port 가 string → COM 포트 이름, int → SRSD UDP 포트 번호
+	if len(r.Port) > 0 {
+		var s string
+		if err := json.Unmarshal(r.Port, &s); err == nil {
+			cmd.Port = s
+		} else {
+			var n int
+			if err := json.Unmarshal(r.Port, &n); err == nil {
+				if n > 0 {
+					cmd.SrsdPort = n
+				}
+			} else {
+				// 혹시 따옴표 없이 온 숫자 문자열 처리
+				if n, err := strconv.Atoi(string(r.Port)); err == nil && n > 0 {
+					cmd.SrsdPort = n
+				}
+			}
+		}
+	}
+	return cmd, nil
 }
 
 type CmdResult struct {
@@ -27,6 +76,8 @@ type CmdResult struct {
 	Stdout     string      `json:"stdout,omitempty"`
 	Stderr     string      `json:"stderr,omitempty"`
 	Error      string      `json:"error,omitempty"`
+	Response   string      `json:"response,omitempty"`
+	Serial     string      `json:"serial,omitempty"`
 	Data       interface{} `json:"data,omitempty"`
 	Open       interface{} `json:"open,omitempty"`
 	Message    string      `json:"message,omitempty"`
@@ -35,8 +86,8 @@ type CmdResult struct {
 // ── 명령 디스패처 ────────────────────────────────────────────────────
 
 func handleCommand(sio *SocketIO, raw json.RawMessage) {
-	var cmd CmdData
-	if err := json.Unmarshal(raw, &cmd); err != nil {
+	cmd, err := parseCmdData(raw)
+	if err != nil {
 		return
 	}
 
@@ -66,12 +117,14 @@ func handleCommand(sio *SocketIO, raw json.RawMessage) {
 	// ── 시리얼 포트 ──────────────────────────────────────────────────
 	case "at_ports", "adb_port_list":
 		result = portList(cmd)
-	case "port_open":
+	case "port_open", "at_open":
 		result = portOpen(cmd)
-	case "port_close":
+	case "port_close", "at_close":
 		result = portClose(cmd)
 	case "at_command":
 		result = atCommand(cmd)
+	case "at_match_device":
+		result = atMatchDevice(cmd)
 
 	// ── 로그 업로드 ──────────────────────────────────────────────────
 	case "log_upload":
@@ -83,11 +136,26 @@ func handleCommand(sio *SocketIO, raw json.RawMessage) {
 		result.Success = true
 		result.Message = "kmsg 수집 시작됨"
 
+	// ── SRSD 네트워크 ────────────────────────────────────────────────
+	case "srsd_discover":
+		result = cmdSrsdDiscover(cmd)
+	case "srsd_at":
+		result = cmdSrsdAT(cmd)
+	case "srsd_shell":
+		result = cmdSrsdShell(cmd)
+
+	case "srsd_log_upload":
+		go doSrsdLogUpload(sio, cmd)
+		result.Success = true
+		result.Message = "로그 수집 시작됨"
+	case "srsd_kmsg_upload":
+		go doSrsdKmsgUpload(sio, cmd)
+		result.Success = true
+		result.Message = "kmsg 수집 시작됨"
+
 	// ── 미구현 ───────────────────────────────────────────────────────
 	case "adb_logcat_start", "adb_logcat_stop",
-		"log_start", "log_stop",
-		"srsd_discover", "srsd_shell", "srsd_at",
-		"srsd_log_upload", "srsd_kmsg_upload":
+		"log_start", "log_stop":
 		result.Success = false
 		result.Error = fmt.Sprintf("미구현 명령 (Go 버전): %s", cmdType)
 

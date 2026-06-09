@@ -44,7 +44,8 @@ func httpLogUpload(files map[string]string, errors []string,
 	case "ws":
 		u.Scheme = "http"
 	}
-	basePath := strings.Replace(SERVER_SOCKET_PATH, "/socket.io", "", 1)
+	// "/remotediag/socket.io" → "/remotediag"  (마지막 "/" 이후 제거)
+	basePath := SERVER_SOCKET_PATH[:strings.LastIndex(SERVER_SOCKET_PATH, "/")]
 	uploadURL := u.String() + basePath + "/api/log-upload"
 
 	req, err := http.NewRequest("POST", uploadURL, &buf)
@@ -170,6 +171,104 @@ func doLogUpload(sio *SocketIO, cmd CmdData) {
 		fmt.Printf("[agent] log_upload: 전송 실패: %v\n", err)
 	} else {
 		fmt.Printf("[agent] log_upload: 전송 완료. (파일 %d개, 오류 %d건)\n", len(files), len(errors))
+	}
+}
+
+// ── SRSD log/kmsg 업로드 ─────────────────────────────────────────────
+
+func doSrsdLogUpload(sio *SocketIO, cmd CmdData) {
+	ip         := cmd.IP
+	port       := cmd.SrsdPort
+	browserSID := cmd.BrowserSID
+	if port == 0 {
+		port = srsdPort
+	}
+
+	sh := func(c string, timeout float64) string {
+		r := srsdShell(ip, port, c, timeout)
+		return r.stdout
+	}
+
+	phone := cleanPhone(sh("cat /var/tmp/phone_number", 5))
+	imei  := strings.TrimSpace(sh("cat /var/tmp/imei", 5))
+	if phone == "" { phone = "unknown" }
+	if imei == ""  { imei  = "unknown" }
+
+	fmt.Printf("[agent] srsd_log_upload: 전화번호=%s  IMEI=%s\n", phone, imei)
+
+	files  := map[string]string{}
+	errors := []string{}
+
+	fmt.Println("[agent] srsd_log_upload: dmesg 수집 중...")
+	if out := sh("dmesg | tail -n 3000", 60); out != "" {
+		files["dmesg.log"] = out
+	} else {
+		errors = append(errors, "dmesg: 실패")
+	}
+
+	fmt.Println("[agent] srsd_log_upload: /data/logs 수집 중...")
+	fileList := sh("find /data/logs -maxdepth 3 -type f 2>/dev/null", 15)
+	for _, fpath := range strings.Split(fileList, "\n") {
+		fpath = strings.TrimSpace(fpath)
+		if fpath == "" {
+			continue
+		}
+		rel := strings.ReplaceAll(strings.TrimPrefix(fpath, "/"), "/", "_")
+		if content := sh(fmt.Sprintf("cat '%s'", fpath), 60); content != "" {
+			files["data_logs/"+rel] = content
+		}
+	}
+
+	fmt.Println("[agent] srsd_log_upload: /var/log/messages 수집 중...")
+	if out := sh("tail -n 20000 /var/log/messages", 60); out != "" {
+		files["var_log_messages.log"] = out
+	} else {
+		errors = append(errors, "/var/log/messages: 실패")
+	}
+
+	fmt.Printf("[agent] srsd_log_upload: %d개 파일 수집 완료, 서버 전송 중...\n", len(files))
+	if err := httpLogUpload(files, errors, phone, imei, ip, browserSID); err != nil {
+		fmt.Printf("[agent] srsd_log_upload: 전송 실패: %v\n", err)
+	} else {
+		fmt.Printf("[agent] srsd_log_upload: 전송 완료. (파일 %d개)\n", len(files))
+	}
+}
+
+func doSrsdKmsgUpload(sio *SocketIO, cmd CmdData) {
+	ip         := cmd.IP
+	port       := cmd.SrsdPort
+	browserSID := cmd.BrowserSID
+	if port == 0 {
+		port = srsdPort
+	}
+
+	sh := func(c string, timeout float64) string {
+		r := srsdShell(ip, port, c, timeout)
+		return r.stdout
+	}
+
+	phone := cleanPhone(sh("cat /var/tmp/phone_number", 5))
+	imei  := strings.TrimSpace(sh("cat /var/tmp/imei", 5))
+	if phone == "" { phone = "unknown" }
+	if imei == ""  { imei  = "unknown" }
+
+	fmt.Printf("[agent] srsd_kmsg_upload: 전화번호=%s  IMEI=%s\n", phone, imei)
+
+	files  := map[string]string{}
+	errors := []string{}
+
+	fmt.Println("[agent] srsd_kmsg_upload: dmesg 수집 중...")
+	if out := sh("dmesg | tail -n 3000", 60); out != "" {
+		files["kmsg.log"] = out
+	} else {
+		errors = append(errors, "dmesg: 실패")
+	}
+
+	fmt.Println("[agent] srsd_kmsg_upload: 서버 전송 중...")
+	if err := httpLogUpload(files, errors, phone, imei, ip, browserSID); err != nil {
+		fmt.Printf("[agent] srsd_kmsg_upload: 전송 실패: %v\n", err)
+	} else {
+		fmt.Printf("[agent] srsd_kmsg_upload: 전송 완료. (파일 %d개)\n", len(files))
 	}
 }
 

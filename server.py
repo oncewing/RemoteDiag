@@ -380,6 +380,7 @@ def download_agent_exe():
     if not session.get("username"):
         abort(401)
     for candidate in [
+        Path(__file__).parent / "dist_go" / "woorinet_remote_diag_agent.exe",
         Path(__file__).parent / "dist" / "woorinet_remote_diag_agent.exe",
         Path(__file__).parent / "woorinet_remote_diag_agent.exe",
     ]:
@@ -450,7 +451,8 @@ def api_log_upload():
 
 @app.route("/api/server-info")
 def server_info():
-    exe_ready = (Path(__file__).parent / "dist" / "woorinet_remote_diag_agent.exe").exists() or \
+    exe_ready = (Path(__file__).parent / "dist_go" / "woorinet_remote_diag_agent.exe").exists() or \
+                (Path(__file__).parent / "dist" / "woorinet_remote_diag_agent.exe").exists() or \
                 (Path(__file__).parent / "woorinet_remote_diag_agent.exe").exists()
     return jsonify({
         "ip":              _get_local_ip(),

@@ -60,7 +60,7 @@ func listADBDevices() []map[string]string {
 		if len(parts) >= 2 && parts[1] == "device" {
 			devices = append(devices, map[string]string{
 				"serial": parts[0],
-				"state":  parts[1],
+				"status": parts[1],
 			})
 		}
 	}

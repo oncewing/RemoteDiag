@@ -1,4 +1,4 @@
-module remotediag-agent
+module agent
 
 go 1.21
 
