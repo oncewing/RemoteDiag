@@ -32,8 +32,9 @@ func portList(cmd CmdData) CmdResult {
 	var list []map[string]string
 	for _, p := range ports {
 		entry := map[string]string{
-			"port": p.Name,
-			"desc": p.Product,
+			"port":        p.Name,
+			"description": p.Product,
+			"hwid":        p.SerialNumber,
 		}
 		if p.IsUSB {
 			entry["vid"] = p.VID
@@ -54,8 +55,9 @@ func pushPorts(sio *SocketIO) {
 	var list []map[string]string
 	for _, p := range ports {
 		list = append(list, map[string]string{
-			"port": p.Name,
-			"desc": p.Product,
+			"port":        p.Name,
+			"description": p.Product,
+			"hwid":        p.SerialNumber,
 		})
 	}
 	sio.Emit("port_update", map[string]interface{}{
