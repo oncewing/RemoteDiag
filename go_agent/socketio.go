@@ -28,6 +28,7 @@ type SocketIO struct {
 	done         chan struct{}
 	pingInterval time.Duration
 	pingTimeout  time.Duration
+	pongCh       chan struct{} // PING 수신 시 PONG 전송 신호
 }
 
 func NewSocketIO() *SocketIO {
@@ -36,6 +37,7 @@ func NewSocketIO() *SocketIO {
 		done:         make(chan struct{}),
 		pingInterval: 25 * time.Second,
 		pingTimeout:  120 * time.Second,
+		pongCh:       make(chan struct{}, 8),
 	}
 }
 
@@ -85,13 +87,16 @@ func (s *SocketIO) Connect(rawURL, socketPath string) error {
 	s.conn = conn
 	s.connected = true
 	s.done = make(chan struct{})
+	s.pongCh = make(chan struct{}, 8)
 	go s.readLoop()
+	go s.pongLoop() // PONG 전용 goroutine: 대용량 write와 충돌 방지
 	return nil
 }
 
 func (s *SocketIO) readLoop() {
 	defer func() {
 		s.connected = false
+		close(s.pongCh) // pongLoop 종료
 		if s.onDisconnect != nil {
 			s.onDisconnect()
 		}
@@ -140,12 +145,22 @@ func (s *SocketIO) readLoop() {
 			// Socket.IO CONNECT (namespace "/")
 			s.sendRaw([]byte("40"))
 
-		case '2': // Engine.IO PING → PONG
-			s.sendRaw([]byte("3"))
+		case '2': // Engine.IO PING → PONG (채널로 전달, 별도 goroutine에서 전송)
+			select {
+			case s.pongCh <- struct{}{}:
+			default:
+			}
 
 		case '4': // Engine.IO MESSAGE → Socket.IO 패킷
 			s.handleSIO(payload)
 		}
+	}
+}
+
+// pongLoop: PING 수신 시 즉시 PONG 전송 (대용량 write mutex와 별도 처리)
+func (s *SocketIO) pongLoop() {
+	for range s.pongCh {
+		s.sendRaw([]byte("3"))
 	}
 }
 
@@ -200,7 +215,11 @@ func (s *SocketIO) sendRaw(data []byte) error {
 	if s.conn == nil {
 		return fmt.Errorf("연결되지 않음")
 	}
-	return s.conn.WriteMessage(websocket.TextMessage, data)
+	// 쓰기 데드라인: 대용량 전송 중 mutex 점유로 PONG 지연되는 것 방지
+	s.conn.SetWriteDeadline(time.Now().Add(30 * time.Second))
+	err := s.conn.WriteMessage(websocket.TextMessage, data)
+	s.conn.SetWriteDeadline(time.Time{}) // 초기화
+	return err
 }
 
 func (s *SocketIO) Disconnect() {
