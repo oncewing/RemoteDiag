@@ -28,6 +28,7 @@ type CmdResult struct {
 	Stderr     string      `json:"stderr,omitempty"`
 	Error      string      `json:"error,omitempty"`
 	Data       interface{} `json:"data,omitempty"`
+	Open       interface{} `json:"open,omitempty"`
 	Message    string      `json:"message,omitempty"`
 }
 
@@ -63,7 +64,7 @@ func handleCommand(sio *SocketIO, raw json.RawMessage) {
 		result = adbPortForwardRemove(cmd)
 
 	// ── 시리얼 포트 ──────────────────────────────────────────────────
-	case "adb_port_list":
+	case "at_ports", "adb_port_list":
 		result = portList(cmd)
 	case "port_open":
 		result = portOpen(cmd)

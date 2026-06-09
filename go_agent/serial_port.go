@@ -44,6 +44,7 @@ func portList(cmd CmdData) CmdResult {
 	}
 	r.Success = true
 	r.Data = list
+	r.Open = getOpenPortNames()
 	return r
 }
 
