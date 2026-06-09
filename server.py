@@ -41,6 +41,7 @@ _tokens_path     = Path(__file__).parent / "tokens.json"
 _rc_tokens_path  = Path(__file__).parent / "rc_tokens.json"
 _agent_tokens    = {}    # agent_sid -> code (활성 세션)
 _ctrl_rc_tokens  = {}    # ctrl_sid  -> rc_code (활성 RC 세션)
+_pending_browser = {}    # code -> browser_sid (브라우저가 먼저 code 입력 시 대기)
 
 # ── 브루트포스 방어 ───────────────────────────────────────────────────
 _FAIL_MAX    = 5     # IP당 최대 실패 횟수
@@ -510,6 +511,10 @@ def on_disconnect():
         _controller_browser.pop(ctrl_sid, None)
         socketio.emit("session_ended", {}, room=ctrl_sid)
     _rc_active.discard(sid)
+    # 페어링 대기 정리
+    pending_code = next((c for c, b in list(_pending_browser.items()) if b == sid), None)
+    if pending_code:
+        _pending_browser.pop(pending_code, None)
     # 에이전트 페어링 해제
     _unpair_browser(sid)
 
@@ -532,11 +537,7 @@ def on_browser_hello(_data=None):
         _unpair_browser(browser_sid)
         agent_sid = None
 
-    # 페어링 안 됐고 로그인된 상태면 같은 IP의 대기 에이전트와 연결
-    if not agent_sid and username:
-        agent_sid = _find_unpaired_agent(ip)
-        if agent_sid:
-            _pair(browser_sid, agent_sid)
+    # 자동 페어링 제거 — browser_pair 이벤트로 명시적 페어링
 
     emit("agent_status", {
         "connected":   agent_sid is not None,
@@ -637,11 +638,13 @@ def on_agent_hello(data):
     # 세션 타이머 (시간 초과 시 자동 종료 + 소각)
     socketio.start_background_task(_session_timer, agent_sid, code, remaining_sec)
 
-    # 같은 IP의 대기 중인 로그인 브라우저가 있으면 즉시 페어링
-    b_sid = _find_unpaired_browser(ip)
-    if b_sid:
+    # 브라우저가 먼저 code 입력하고 대기 중이면 즉시 페어링
+    b_sid = _pending_browser.pop(code, None)
+    if b_sid and b_sid in _browser_auth:
         _pair(b_sid, agent_sid)
-        socketio.emit("agent_status", {"connected": True, "info": info}, room=b_sid)
+        socketio.emit("agent_status",  {"connected": True, "info": info}, room=b_sid)
+        socketio.emit("pair_result",   {"success": True, "connected": True, "info": info}, room=b_sid)
+        print("[server] 대기 브라우저 즉시 페어링: {} ↔ {}".format(b_sid[:8], agent_sid[:8]))
 
 
 # ── Shell 명령 거부 목록 ─────────────────────────────────────────────
@@ -697,6 +700,63 @@ def _check_denylist(cmd: str) -> str | None:
         if pattern.search(lower):
             return msg
     return None
+
+
+@socketio.on("browser_pair")
+def on_browser_pair(data):
+    """브라우저가 접속 코드를 입력하여 에이전트와 명시적 페어링."""
+    browser_sid = request.sid
+    if not _browser_auth.get(browser_sid):
+        emit("pair_result", {"success": False, "error": "로그인이 필요합니다."})
+        return
+
+    code = str((data or {}).get("code", "")).strip().upper()
+    if not code:
+        emit("pair_result", {"success": False, "error": "접속 코드를 입력하세요."})
+        return
+
+    # 이미 페어링된 경우
+    if browser_sid in _browser_agent:
+        emit("pair_result", {"success": False, "error": "이미 연결된 에이전트가 있습니다."})
+        return
+
+    # 토큰 유효성 검증
+    tokens = _load_tokens()
+    token  = tokens.get(code)
+    if not token:
+        emit("pair_result", {"success": False, "error": "유효하지 않은 접속 코드입니다."})
+        return
+    if token.get("used"):
+        emit("pair_result", {"success": False, "error": "이미 사용이 완료된 접속 코드입니다."})
+        return
+    try:
+        if datetime.date.today() > datetime.date.fromisoformat(token["expiry"]):
+            emit("pair_result", {"success": False, "error": "만료된 접속 코드입니다."})
+            return
+    except Exception:
+        pass
+
+    # 이미 다른 브라우저가 이 코드로 대기 중인 경우
+    if code in _pending_browser and _pending_browser[code] != browser_sid:
+        emit("pair_result", {"success": False, "error": "해당 코드는 이미 다른 세션에서 대기 중입니다."})
+        return
+
+    # Agent가 이미 연결되어 있는지 확인
+    agent_sid = next((sid for sid, c in _agent_tokens.items() if c == code), None)
+
+    if agent_sid and agent_sid in _agents:
+        # 즉시 페어링
+        _pair(browser_sid, agent_sid)
+        info = _agents[agent_sid]
+        emit("pair_result", {"success": True, "connected": True, "info": info})
+        socketio.emit("agent_status", {"connected": True, "info": info}, room=browser_sid)
+        print("[server] Browser 즉시 페어링: {} ↔ {} (code: {})".format(
+            browser_sid[:8], agent_sid[:8], code))
+    else:
+        # Agent 대기 등록
+        _pending_browser[code] = browser_sid
+        emit("pair_result", {"success": True, "waiting": True})
+        print("[server] Browser 대기 등록: code={} browser={}".format(code, browser_sid[:8]))
 
 
 @socketio.on("command")

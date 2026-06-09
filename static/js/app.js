@@ -107,6 +107,18 @@ window.addEventListener('DOMContentLoaded', () => {
     socket.on('remote_control_result', (d) => rcShowResult(d));
     socket.on('remote_cmd',            (d) => rcExecuteCmd(d));
     socket.on('log_upload_result',     (d) => onLogUploadResult(d));
+
+    socket.on('pair_result', (d) => {
+      const status = document.getElementById('pair-status');
+      if (!d.success) {
+        if (status) status.textContent = '❌ ' + d.error;
+        toast(d.error, true);
+      } else if (d.waiting) {
+        if (status) status.textContent = '⏳ 에이전트 연결 대기 중...';
+      } else if (d.connected) {
+        if (status) status.textContent = '✅ 연결됨';
+      }
+    });
   } catch (e) {
     console.error('Socket.IO 초기화 실패:', e);
     toast('Socket.IO 로드 실패. 페이지를 새로고침하세요.', true);
@@ -419,6 +431,15 @@ function updateAgentUI(d) {
     document.getElementById('device-list').innerHTML =
       '<span class="dim-text">시리얼 포트를 먼저 연결하세요</span>';
   }
+}
+
+function doPairAgent() {
+  const input = document.getElementById('pair-code');
+  const code  = (input?.value || '').trim().toUpperCase();
+  if (!code) { toast('접속 코드를 입력하세요.', true); return; }
+  const status = document.getElementById('pair-status');
+  if (status) status.textContent = '연결 중...';
+  socket.emit('browser_pair', { code });
 }
 
 // ── Tabs ──────────────────────────────────────────────────────────────

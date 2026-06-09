@@ -41,15 +41,22 @@
 <!-- Agent setup guide (shown when disconnected) -->
 <div id="setup-banner" class="setup-banner" style="display:none">
   <div class="setup-steps">
-    <strong>에이전트 설정 방법</strong>
+    <strong>에이전트 연결</strong>
     <ol>
       <li>
         <a class="btn-sm primary" id="banner-btn-exe" href="dist/woorinet_remote_diag_agent.exe" download>⬇ woorinet_remote_diag_agent.exe 다운로드</a>
       </li>
-      <li>Windows PC에서 실행:<br>
-        <code id="setup-cmd">woorinet_remote_diag_agent.exe</code>
+      <li>Windows PC에서 실행 후 발급받은 접속 코드 입력</li>
+      <li>
+        아래에 동일한 접속 코드를 입력하여 연결하세요.<br>
+        <div class="pair-input-row" style="margin-top:8px;display:flex;gap:6px;align-items:center;">
+          <input id="pair-code" type="text" placeholder="XXXX-XXXX-XXXX"
+                 style="font-family:monospace;text-transform:uppercase;padding:4px 8px;width:180px;"
+                 onkeydown="if(event.key==='Enter') doPairAgent()">
+          <button class="btn-sm primary" onclick="doPairAgent()">연결</button>
+        </div>
+        <div id="pair-status" style="margin-top:6px;font-size:13px;"></div>
       </li>
-      <li>서버 URL 입력 후 에이전트가 연결되면 이 안내가 사라집니다.</li>
     </ol>
   </div>
 </div>
