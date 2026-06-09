@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"sync"
@@ -66,6 +67,14 @@ func (s *SocketIO) Connect(rawURL, socketPath string) error {
 	dialer := websocket.Dialer{
 		TLSClientConfig:  &tls.Config{},
 		HandshakeTimeout: 15 * time.Second,
+		// TCP keepalive: NAT/방화벽이 유휴 연결을 조용히 끊는 문제 방지
+		NetDial: func(network, addr string) (net.Conn, error) {
+			nd := &net.Dialer{
+				Timeout:   15 * time.Second,
+				KeepAlive: 30 * time.Second, // 30초마다 OS 레벨 keepalive 프로브
+			}
+			return nd.Dial(network, addr)
+		},
 	}
 
 	conn, _, err := dialer.Dial(u.String(), http.Header{})
