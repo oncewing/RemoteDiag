@@ -33,8 +33,8 @@ echo [inject] EXPIRE_DATE: %EXPIRE_DATE%
 echo [4/4] Building...
 set GOOS=windows
 set GOARCH=amd64
-if not exist ..\dist mkdir ..\dist
-go build -ldflags="-X 'main.EXPIRE_DATE=%EXPIRE_DATE%' -X 'main.VERSION=1.0.0' -s -w" -o ..\dist\woorinet_remote_diag_agent.exe .
+if not exist ..\dist_go mkdir ..\dist_go
+go build -ldflags="-X 'main.EXPIRE_DATE=%EXPIRE_DATE%' -X 'main.VERSION=1.0.0' -s -w" -o ..\dist_go\woorinet_remote_diag_agent.exe .
 if %errorlevel% neq 0 (
     cd ..
     echo FAILED: go build
@@ -46,8 +46,8 @@ cd ..
 
 echo.
 echo Build complete! (EXPIRE_DATE: %EXPIRE_DATE%)
-if exist dist\woorinet_remote_diag_agent.exe (
-    echo   %~dp0dist\woorinet_remote_diag_agent.exe
+if exist dist_go\woorinet_remote_diag_agent.exe (
+    echo   %~dp0dist_go\woorinet_remote_diag_agent.exe
 ) else (
     echo Build failed.
 )
