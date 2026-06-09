@@ -94,6 +94,12 @@ func (s *SocketIO) readLoop() {
 	for {
 		_, msg, err := s.conn.ReadMessage()
 		if err != nil {
+			if !websocket.IsCloseError(err,
+				websocket.CloseNormalClosure,
+				websocket.CloseGoingAway,
+				websocket.CloseNoStatusReceived) {
+				fmt.Printf("[agent] 연결 오류: %v\n", err)
+			}
 			return
 		}
 
@@ -172,7 +178,11 @@ func (s *SocketIO) Emit(event string, data interface{}) error {
 	if err != nil {
 		return err
 	}
-	return s.sendRaw(append([]byte("42"), payload...))
+	if err := s.sendRaw(append([]byte("42"), payload...)); err != nil {
+		fmt.Printf("[agent] 전송 오류 (%s): %v\n", event, err)
+		return err
+	}
+	return nil
 }
 
 func (s *SocketIO) sendRaw(data []byte) error {

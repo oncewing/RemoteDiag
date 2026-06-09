@@ -29,7 +29,7 @@ func setupHandlers(sio *SocketIO) {
 	})
 
 	sio.OnDisconnect(func() {
-		fmt.Println("[agent] 서버 연결 끊김.")
+		fmt.Printf("[agent] 서버 연결 끊김. (%s)\n", time.Now().Format("15:04:05"))
 		hasSession = false
 	})
 
