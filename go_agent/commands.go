@@ -158,6 +158,19 @@ func handleCommand(sio *SocketIO, raw json.RawMessage) {
 		result.Success = true
 		result.Message = "kmsg 수집 시작됨"
 
+	// ── kmsg ─────────────────────────────────────────────────────────
+	case "kmsg_get":
+		stdout, stderr, err := runADBTimeout(30, "-s", cmd.Serial, "shell", "dmesg")
+		if err != nil {
+			result.Error = err.Error()
+		} else if stderr != "" && stdout == "" {
+			result.Success = false
+			result.Error = stderr
+		} else {
+			result.Success = true
+			result.Data = stdout
+		}
+
 	// ── 로그 스트리밍 ────────────────────────────────────────────────
 	case "adb_logcat_start":
 		result = logcatStart(sio, cmd)
