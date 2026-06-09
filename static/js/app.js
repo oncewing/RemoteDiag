@@ -904,6 +904,27 @@ function stopKmsg() {
   document.getElementById('kmsg-status').textContent = '■ 정지';
 }
 
+async function refreshKmsg() {
+  if (!_connReady({ needShell: true })) return;
+  const btn = document.getElementById('kmsg-refresh-btn');
+  if (btn) btn.disabled = true;
+
+  if (selectedSrsdIp) {
+    // SRSD 모드: 즉시 1회 폴링
+    await _fetchKmsg();
+  } else {
+    // USB 모드: 정지 후 재시작 (dmesg 재덤프)
+    await sendCommand({ type: 'kmsg_stop', serial: selectedSerial });
+    const term = document.getElementById('term-kmsg');
+    if (term) term.textContent = '';
+    await sendCommand({ type: 'kmsg_start', serial: selectedSerial });
+    kmsgRunning = true;
+    document.getElementById('kmsg-status').textContent = '▶ 실행 중';
+  }
+
+  if (btn) btn.disabled = false;
+}
+
 async function downloadKmsg() {
   if (!_connReady({ needShell: true })) return;
   toast('kmsg 읽는 중...');
