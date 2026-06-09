@@ -159,3 +159,62 @@ func logStop(cmd CmdData) CmdResult {
 		Success: true, Message: "log 스트림 중단",
 	}
 }
+
+// ── kmsg_start / kmsg_stop  (adb shell dmesg 줄 단위 스트리밍) ────────
+
+var kmsgProc = &streamProc{}
+
+func kmsgStart(sio *SocketIO, cmd CmdData) CmdResult {
+	r := CmdResult{ID: cmd.ID, BrowserSID: cmd.BrowserSID}
+
+	kmsgProc.kill()
+
+	proc := exec.Command(adbPath, "-s", cmd.Serial, "shell", "dmesg")
+	stdout, err := proc.StdoutPipe()
+	proc.Stderr = nil
+	if err != nil {
+		r.Success = false
+		r.Error = fmt.Sprintf("kmsg pipe 실패: %v", err)
+		return r
+	}
+	if err := proc.Start(); err != nil {
+		r.Success = false
+		r.Error = fmt.Sprintf("kmsg 시작 실패: %v", err)
+		return r
+	}
+
+	stop := make(chan struct{})
+	kmsgProc.mu.Lock()
+	kmsgProc.cmd = proc
+	kmsgProc.stop = stop
+	kmsgProc.mu.Unlock()
+
+	go func() {
+		scanner := bufio.NewScanner(stdout)
+		for scanner.Scan() {
+			select {
+			case <-stop:
+				proc.Process.Kill()
+				return
+			default:
+			}
+			sio.Emit("log_line", map[string]interface{}{
+				"line":   scanner.Text(),
+				"source": "kmsg",
+			})
+		}
+		proc.Wait()
+	}()
+
+	r.Success = true
+	r.Message = "kmsg 스트림 시작"
+	return r
+}
+
+func kmsgStop(cmd CmdData) CmdResult {
+	kmsgProc.kill()
+	return CmdResult{
+		ID: cmd.ID, BrowserSID: cmd.BrowserSID,
+		Success: true, Message: "kmsg 스트림 중단",
+	}
+}

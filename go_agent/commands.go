@@ -181,6 +181,10 @@ func handleCommand(sio *SocketIO, raw json.RawMessage) {
 		result = logStart(sio, cmd)
 	case "log_stop":
 		result = logStop(cmd)
+	case "kmsg_start":
+		result = kmsgStart(sio, cmd)
+	case "kmsg_stop":
+		result = kmsgStop(cmd)
 
 	default:
 		result.Success = false

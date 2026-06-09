@@ -883,12 +883,24 @@ function startKmsg() {
   if (!_connReady({ needShell: true })) return;
   kmsgRunning = true;
   document.getElementById('kmsg-status').textContent = '▶ 실행 중';
-  _startKmsgPoll();
+  const term = document.getElementById('term-kmsg');
+  if (term) term.textContent = '';
+
+  if (selectedSrsdIp) {
+    // SRSD(네트워크) 모드: 기존 폴링 유지
+    _startKmsgPoll();
+  } else {
+    // USB 모드: 스트리밍 (줄 단위 log_line 이벤트)
+    sendCommand({ type: 'kmsg_start', serial: selectedSerial });
+  }
 }
 
 function stopKmsg() {
   kmsgRunning = false;
   _stopKmsgPoll();
+  if (!selectedSrsdIp) {
+    sendCommand({ type: 'kmsg_stop', serial: selectedSerial });
+  }
   document.getElementById('kmsg-status').textContent = '■ 정지';
 }
 
