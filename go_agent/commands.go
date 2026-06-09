@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 // ── 명령 데이터 구조 ─────────────────────────────────────────────────
@@ -160,13 +161,17 @@ func handleCommand(sio *SocketIO, raw json.RawMessage) {
 
 	// ── kmsg ─────────────────────────────────────────────────────────
 	case "kmsg_get":
-		stdout, stderr, err := runADBTimeout(30, "-s", cmd.Serial, "shell", "dmesg | tail -n 500")
+		stdout, stderr, err := runADBTimeout(30, "-s", cmd.Serial, "shell", "dmesg")
 		if err != nil {
 			result.Error = err.Error()
 		} else if stderr != "" && stdout == "" {
 			result.Success = false
 			result.Error = stderr
 		} else {
+			// Go 쪽에서 마지막 500줄만 유지 (파이프 미지원 장치 대응)
+			if lines := strings.Split(stdout, "\n"); len(lines) > 500 {
+				stdout = strings.Join(lines[len(lines)-500:], "\n")
+			}
 			result.Success = true
 			result.Data = stdout
 		}
