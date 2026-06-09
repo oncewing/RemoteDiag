@@ -35,6 +35,10 @@ func main() {
 		<-sigCh
 		fmt.Println("\n[agent] 종료 신호 수신. 종료 중...")
 		close(shutdown)
+		// WebSocket 연결을 강제 종료 → sio.Wait() 즉시 반환
+		if currentSIO != nil {
+			currentSIO.Disconnect()
+		}
 	}()
 
 	// 만료일 검사
