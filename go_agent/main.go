@@ -30,7 +30,7 @@ var (
 func main() {
 	// 종료 시그널 처리
 	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM, syscall.SIGBREAK)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-sigCh
 		fmt.Println("\n[agent] 종료 신호 수신. 종료 중...")
