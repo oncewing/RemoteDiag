@@ -18,6 +18,10 @@
  *   ctx.deviceInfo                → { serial, port, srsdIp, srsdPort } (getter)
  */
 
+// engine.js 위치(/static/diag/engine.js) 기준으로 서버 루트 경로 계산
+// 예) https://host/remotediag/static/diag/engine.js → /remotediag/
+const _BASE = new URL('../..', import.meta.url).pathname.replace(/\/?$/, '/');
+
 const DiagEngine = (() => {
   let _current   = null;   // 현재 마운트된 컴포넌트
   let _container = null;
@@ -47,7 +51,7 @@ const DiagEngine = (() => {
         serial:   deviceInfo.serial,
         srsdIp:   deviceInfo.srsdIp,
       });
-      const resp = await fetch(`/api/diag-profile?${p}`);
+      const resp = await fetch(`${_BASE}api/diag-profile?${p}`);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       return await resp.json();
     } catch (e) {
