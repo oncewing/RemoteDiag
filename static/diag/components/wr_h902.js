@@ -47,12 +47,16 @@ export default {
   mount(container, ctx) {
     this._ctx = ctx;
     const { model, customer } = ctx.deviceInfo;
-    const deviceLabel = [model, customer].filter(Boolean).join(' | ');
+    const deviceLabel  = [model, customer].filter(Boolean).join(' | ');
+    const profileLabel = ctx.profile?.name || '';
     container.innerHTML = `
       <div class="logcat-controls">
         <button class="btn-sm success" id="diag-run-btn">▶ 점검 시작</button>
         <span id="diag-overall" class="dim-text" style="font-size:12px"></span>
-        ${deviceLabel ? `<span style="margin-left:auto;font-size:11px;color:var(--text-dim)">${deviceLabel}</span>` : ''}
+        <span style="margin-left:auto;text-align:right;line-height:1.4">
+          ${deviceLabel  ? `<span style="font-size:11px;color:var(--accent)">${deviceLabel}</span>` : ''}
+          ${profileLabel ? `<span style="font-size:10px;color:var(--text-dim);display:block">${profileLabel}</span>` : ''}
+        </span>
       </div>
       <div style="flex:1;overflow-y:auto;padding:12px 16px">
         <table id="diag-table" style="width:100%;border-collapse:collapse;font-size:13px">

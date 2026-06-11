@@ -98,6 +98,9 @@ const DiagEngine = (() => {
 
     container.innerHTML = '';
 
+    // ctx에 profile 정보 추가 (컴포넌트가 헤더 표시에 활용)
+    ctx.profile = { id: profile.id, name: profile.name };
+
     // 컴포넌트 동적 로드
     try {
       const mod = await import(`./components/${profile.component}`);

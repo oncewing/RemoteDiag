@@ -569,6 +569,7 @@ async function runAdbShell() {
 
 // 섹션 ID → 로더 함수 매핑
 const SECTION_LOADERS = {
+  'sec-devid':    () => _fetchSectionDeviceId(),
   'sec-at':       () => _fetchSectionAt(),
   'sec-ifconfig': () => _fetchSectionShell('sec-ifconfig', 'ifconfig'),
   'sec-dns':      () => _fetchSectionDns(),
@@ -618,6 +619,25 @@ async function _fetchSectionShell(secId, cmd) {
     const msg = res.stderr || res.error || '오류가 발생했습니다.';
     _setPreContent(`pre-${secId}`, `<span class="t-err">${escapeHtml(msg)}</span>`);
   }
+}
+
+async function _fetchSectionDeviceId() {
+  if (!_connReady({ needShell: true })) return;
+  _setPreContent('pre-sec-devid', '<span class="dim-text">읽는 중...</span>');
+  const [mRes, cRes] = await Promise.all([
+    _shellCmd('cat /sys/devices/soc0/wnet_model', 5, 'sec'),
+    _shellCmd('cat /sys/devices/soc0/customer',   5, 'sec'),
+  ]);
+  const model    = (mRes.stdout || '').trim() || '—';
+  const customer = (cRes.stdout || '').trim() || '—';
+  _setPreContent('pre-sec-devid',
+    `<table class="dns-table">
+       <tr><td class="dns-label">모델명</td>
+           <td class="dns-value">${escapeHtml(model)}</td></tr>
+       <tr><td class="dns-label">고객사 (내부)</td>
+           <td class="dns-value">${escapeHtml(customer)}</td></tr>
+     </table>`
+  );
 }
 
 async function _fetchSectionAt() {
