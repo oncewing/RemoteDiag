@@ -15,7 +15,7 @@
  *   ctx.shellCmd(command, timeout)→ Shell 명령 전송 (Promise)
  *   ctx.connReady(opts)           → 연결 여부 확인 (boolean)
  *   ctx.toast(msg, isError)       → 알림 표시
- *   ctx.deviceInfo                → { serial, port, srsdIp, srsdPort } (getter)
+ *   ctx.deviceInfo                → { serial, port, srsdIp, srsdPort, model } (getter)
  */
 
 // engine.js 위치(/static/diag/engine.js) 기준으로 서버 루트 경로 계산
@@ -25,6 +25,7 @@ const _BASE = new URL('../..', import.meta.url).pathname.replace(/\/?$/, '/');
 const DiagEngine = (() => {
   let _current   = null;   // 현재 마운트된 컴포넌트
   let _container = null;
+  let _model     = '';     // 마지막으로 감지된 모델명
 
   /** app.js 전역을 묶어 ctx 생성 — 매 enter() 호출 시 새로 만든다 */
   function _buildCtx() {
@@ -39,18 +40,26 @@ const DiagEngine = (() => {
           port:     window.selectedPort     || '',
           srsdIp:   window.selectedSrsdIp   || '',
           srsdPort: window.selectedSrsdPort || 5002,
+          model:    _model,
         };
       },
     };
   }
 
-  /** 프로파일 fetch */
-  async function _fetchProfile(deviceInfo) {
+  /** 연결된 단말에서 모델명 취득 (ADB 또는 SRSD shell) */
+  async function _fetchModel(ctx) {
     try {
-      const p = new URLSearchParams({
-        serial:   deviceInfo.serial,
-        srsdIp:   deviceInfo.srsdIp,
-      });
+      const r = await ctx.shellCmd('getprop ro.product.model', 5);
+      return (r.stdout || '').trim();
+    } catch (_) {
+      return '';
+    }
+  }
+
+  /** 프로파일 fetch */
+  async function _fetchProfile(model, deviceInfo) {
+    try {
+      const p = new URLSearchParams({ model, srsdIp: deviceInfo.srsdIp });
       const resp = await fetch(`${_BASE}api/diag-profile?${p}`);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       return await resp.json();
@@ -63,8 +72,14 @@ const DiagEngine = (() => {
   /** 탭 진입 */
   async function enter(container) {
     _container = container;
-    const ctx     = _buildCtx();
-    const profile = await _fetchProfile(ctx.deviceInfo);
+    const ctx = _buildCtx();
+
+    // 연결 중인 경우 모델명 먼저 취득
+    if (ctx.deviceInfo.serial || ctx.deviceInfo.srsdIp) {
+      _model = await _fetchModel(ctx);
+    }
+
+    const profile = await _fetchProfile(_model, ctx.deviceInfo);
 
     // 이전 컴포넌트 정리
     if (_current) {
