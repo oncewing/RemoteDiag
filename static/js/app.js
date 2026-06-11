@@ -14,6 +14,14 @@ let selectedSrsdPort = 5002;     // SRSD 데몬 UDP 포트
 let _srsdLogPollTimer = null;   // SRSD 모드 로그 폴링 타이머
 const SRSD_LOG_POLL_MS = 3000;
 
+// ── engine.js(ES module)에서 let 변수에 접근할 수 있도록 window에 게터 노출 ──
+Object.defineProperties(window, {
+  selectedSerial:   { get: () => selectedSerial,   enumerable: true },
+  selectedPort:     { get: () => selectedPort,     enumerable: true },
+  selectedSrsdIp:   { get: () => selectedSrsdIp,   enumerable: true },
+  selectedSrsdPort: { get: () => selectedSrsdPort, enumerable: true },
+});
+
 // ── 범용 명령 헬퍼 (USB ↔ SRSD 자동 라우팅) ──────────────────────────
 // SRSD 연결 중이면 UDP 경로, 아니면 기존 ADB/시리얼 경로 사용
 
