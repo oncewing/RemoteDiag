@@ -8,7 +8,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # 소스 복사
 COPY server.py config.py generate_cert.py manage_tokens.py ./
-COPY static/ ./static/
+COPY static/      ./static/
+COPY diag_profiles/ ./diag_profiles/
 
 # 업로드 디렉토리 생성
 RUN mkdir -p uploads certs

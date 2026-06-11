@@ -89,6 +89,8 @@ const DiagEngine = (() => {
     }
 
     const profile = await _fetchProfile(ctx.deviceInfo);
+    console.log('[DiagEngine] model:', _model, '| customer:', _customer,
+                '| profile:', profile.id, '→', profile.component);
 
     // 이전 컴포넌트 정리
     if (_current) {
