@@ -368,6 +368,43 @@ def api_me():
     })
 
 
+# -- Diag profile -----------------------------------------------------
+
+DIAG_PROFILES_DIR = Path(__file__).parent / "diag_profiles"
+
+@app.route("/api/diag-profile")
+def api_diag_profile():
+    model    = request.args.get("model",    "").strip()
+    customer = request.args.get("customer", "").strip()
+
+    candidates = []
+    if DIAG_PROFILES_DIR.exists():
+        for path in sorted(DIAG_PROFILES_DIR.glob("*.json")):
+            if path.name == "default.json":
+                continue
+            try:
+                p = json.loads(path.read_text(encoding="utf-8"))
+                candidates.append(p)
+            except Exception:
+                pass
+
+    def _matches(p):
+        m   = p.get("match", {})
+        mok = not m.get("model")    or model    in m["model"]    or "*" in m["model"]
+        cok = not m.get("customer") or customer in m["customer"] or "*" in m["customer"]
+        return mok and cok
+
+    for p in candidates:
+        if _matches(p):
+            return jsonify(p)
+
+    default_path = DIAG_PROFILES_DIR / "default.json"
+    if default_path.exists():
+        return jsonify(json.loads(default_path.read_text(encoding="utf-8")))
+
+    return jsonify({"id": "default", "name": "기본 점검", "component": "basic_table.js"})
+
+
 # -- Static & download ------------------------------------------------
 
 @app.route("/")
