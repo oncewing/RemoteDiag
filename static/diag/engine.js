@@ -26,6 +26,7 @@ const DiagEngine = (() => {
   let _current   = null;   // 현재 마운트된 컴포넌트
   let _container = null;
   let _model     = '';     // 마지막으로 감지된 모델명
+  let _customer  = '';     // 마지막으로 감지된 고객사
 
   /** app.js 전역을 묶어 ctx 생성 — 매 enter() 호출 시 새로 만든다 */
   function _buildCtx() {
@@ -41,25 +42,33 @@ const DiagEngine = (() => {
           srsdIp:   window.selectedSrsdIp   || '',
           srsdPort: window.selectedSrsdPort || 5002,
           model:    _model,
+          customer: _customer,
         };
       },
     };
   }
 
-  /** 연결된 단말에서 모델명 취득 (ADB 또는 SRSD shell) */
-  async function _fetchModel(ctx) {
+  /** 연결된 단말에서 모델명·고객사 취득 */
+  async function _fetchDeviceAttrs(ctx) {
     try {
-      const r = await ctx.shellCmd('getprop ro.product.model', 5);
-      return (r.stdout || '').trim();
+      const [mRes, cRes] = await Promise.all([
+        ctx.shellCmd('cat /sys/devices/soc0/wnet_model', 5),
+        ctx.shellCmd('cat /sys/devices/soc0/customer',   5),
+      ]);
+      _model    = (mRes.stdout || '').trim();
+      _customer = (cRes.stdout || '').trim();
     } catch (_) {
-      return '';
+      _model = _customer = '';
     }
   }
 
   /** 프로파일 fetch */
-  async function _fetchProfile(model, deviceInfo) {
+  async function _fetchProfile(deviceInfo) {
     try {
-      const p = new URLSearchParams({ model, srsdIp: deviceInfo.srsdIp });
+      const p = new URLSearchParams({
+        model:    deviceInfo.model,
+        customer: deviceInfo.customer,
+      });
       const resp = await fetch(`${_BASE}api/diag-profile?${p}`);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       return await resp.json();
@@ -74,12 +83,12 @@ const DiagEngine = (() => {
     _container = container;
     const ctx = _buildCtx();
 
-    // 연결 중인 경우 모델명 먼저 취득
+    // 연결 중인 경우 모델명·고객사 먼저 취득
     if (ctx.deviceInfo.serial || ctx.deviceInfo.srsdIp) {
-      _model = await _fetchModel(ctx);
+      await _fetchDeviceAttrs(ctx);
     }
 
-    const profile = await _fetchProfile(_model, ctx.deviceInfo);
+    const profile = await _fetchProfile(ctx.deviceInfo);
 
     // 이전 컴포넌트 정리
     if (_current) {

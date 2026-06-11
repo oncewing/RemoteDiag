@@ -2,7 +2,8 @@
   "id": "wr_h902",
   "name": "5G 2PORT (WR-H902)",
   "match": {
-    "model": ["WR-H902"]
+    "model":    ["WR-H902"],
+    "customer": ["WR2"]
   },
   "component": "wr_h902.js"
 }
