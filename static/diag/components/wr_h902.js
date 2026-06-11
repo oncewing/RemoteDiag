@@ -21,23 +21,22 @@ const STEPS = [
   { id: 'eth_ping',  label: 'ETH WAN Ping' },
 ];
 
-// ── 공인 IP 판별 ─────────────────────────────────────────────────────
-function _isPublicV4(ip) {
+// ── IP 판별 ──────────────────────────────────────────────────────────
+// ETH WAN IPv4: 형식만 맞으면 OK (사설 포함), 0.0.0.0 / 127.x 제외
+function _isValidEthV4(ip) {
   if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) return false;
-  const [a, b] = ip.split('.').map(Number);
-  if (a === 10) return false;
-  if (a === 172 && b >= 16 && b <= 31) return false;
-  if (a === 192 && b === 168) return false;
-  if (a === 169 && b === 254) return false;
-  if (a === 127) return false;
+  const [a] = ip.split('.').map(Number);
   if (ip === '0.0.0.0') return false;
+  if (a === 127) return false;
   return true;
 }
 
+// ETH WAN IPv6: 공인 대역만 OK (링크로컬 fe80::/10, 유니크로컬 fc::/7, fd::/7 제외)
 function _isPublicV6(ip) {
   if (!ip || !ip.includes(':')) return false;
-  if (ip.startsWith('fe80') || ip.startsWith('fc') || ip.startsWith('fd')) return false;
   if (ip === '::' || ip === '::1') return false;
+  const lo = ip.toLowerCase();
+  if (lo.startsWith('fe80') || lo.startsWith('fc') || lo.startsWith('fd')) return false;
   return true;
 }
 
@@ -311,18 +310,20 @@ export default {
     const eth6M  = ethIfOut.match(/inet6(?:\s+addr:?)?\s*([0-9a-f:]+)(?:\/\d+)?/i);
     const eth6ip = eth6M ? eth6M[1].trim() : '';
 
-    const hasEthPubV4 = _isPublicV4(eth4ip);
+    // IPv4: 사설 포함 유효한 주소면 OK / IPv6: 공인 대역만 OK (사설 IPv6는 표시 안 함)
+    const hasEthV4  = _isValidEthV4(eth4ip);
     const hasEthPubV6 = _isPublicV6(eth6ip);
 
-    if (!hasEthPubV4 && !hasEthPubV6) {
+    if (!hasEthV4 && !hasEthPubV6) {
       fail('eth_ip', eth4ip || eth6ip
-        ? `공인 IP 없음 (${[eth4ip, eth6ip].filter(Boolean).join(', ')})`
+        ? `유효한 IP 없음 (${[eth4ip, eth6ip].filter(Boolean).join(', ')})`
         : 'IP 미할당');
       this._setRow('eth_ping', 'skip', 'IP 없음 — 건너뜀');
     } else {
+      // IPv4는 항상 표시, IPv6는 공인만 표시
       const ethIpLabel = [
-        hasEthPubV4 ? eth4ip : null,
-        hasEthPubV6 ? eth6ip : null,
+        hasEthV4      ? eth4ip : null,
+        hasEthPubV6   ? eth6ip : null,
       ].filter(Boolean).join(' / ');
       this._setRow('eth_ip', 'ok', ethIpLabel);
 
@@ -331,7 +332,7 @@ export default {
       let pingOk = false;
       let pingLabel = '';
 
-      if (hasEthPubV4) {
+      if (hasEthV4) {
         const pr   = await shellCmd('ping -c 3 -W 3 -I eth0.1 8.8.8.8 2>&1');
         const pout = (pr.stdout || '') + (pr.stderr || '');
         pingOk = /bytes from/i.test(pout) ||
