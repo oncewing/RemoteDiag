@@ -72,7 +72,7 @@ const DiagEngine = (() => {
 
     // 컴포넌트 동적 로드
     try {
-      const mod = await import(`/static/diag/components/${profile.component}`);
+      const mod = await import(`./components/${profile.component}`);
       _current  = mod.default;
       _current.mount(container, ctx);
     } catch (e) {
