@@ -53,7 +53,7 @@ const DiagEngine = (() => {
     try {
       const [mRes, cRes] = await Promise.all([
         ctx.shellCmd('cat /sys/devices/soc0/wnet_model', 5),
-        ctx.shellCmd('cat /sys/devices/soc0/customer',   5),
+        ctx.shellCmd('cat /sys/devices/soc0/wnet_customer', 5),
       ]);
       _model    = (mRes.stdout || '').trim();
       _customer = (cRes.stdout || '').trim();

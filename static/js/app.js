@@ -626,7 +626,7 @@ async function _fetchSectionDeviceId() {
   _setPreContent('pre-sec-devid', '<span class="dim-text">읽는 중...</span>');
   const [mRes, cRes] = await Promise.all([
     _shellCmd('cat /sys/devices/soc0/wnet_model', 5, 'sec'),
-    _shellCmd('cat /sys/devices/soc0/customer',   5, 'sec'),
+    _shellCmd('cat /sys/devices/soc0/wnet_customer', 5, 'sec'),
   ]);
   const model    = (mRes.stdout || '').trim() || '—';
   const customer = (cRes.stdout || '').trim() || '—';
