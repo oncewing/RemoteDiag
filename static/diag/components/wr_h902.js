@@ -46,10 +46,13 @@ export default {
 
   mount(container, ctx) {
     this._ctx = ctx;
+    const { model, customer } = ctx.deviceInfo;
+    const deviceLabel = [model, customer].filter(Boolean).join(' | ');
     container.innerHTML = `
       <div class="logcat-controls">
         <button class="btn-sm success" id="diag-run-btn">▶ 점검 시작</button>
         <span id="diag-overall" class="dim-text" style="font-size:12px"></span>
+        ${deviceLabel ? `<span style="margin-left:auto;font-size:11px;color:var(--text-dim)">${deviceLabel}</span>` : ''}
       </div>
       <div style="flex:1;overflow-y:auto;padding:12px 16px">
         <table id="diag-table" style="width:100%;border-collapse:collapse;font-size:13px">
@@ -200,10 +203,17 @@ export default {
     const v4ip    = v4line ? v4line.replace(/^V4:\s*/i, '').trim() : '';
     const v6ip    = v6line ? v6line.replace(/^V6:\s*/i, '').trim() : '';
 
+    // IPv4: 형식 유효 + 0.0.0.0 제외 (사설 IP도 OK)
     const isValidV4 = ip => /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(ip) && ip !== '0.0.0.0';
-    const isValidV6 = ip =>
-      /^[0-9a-f:]+$/i.test(ip) && ip.includes(':') &&
-      ip !== '::' && ip !== '::0' && ip !== '0:0:0:0:0:0:0:0';
+    // IPv6: 공인 대역만 OK (링크로컬 fe80::/10, 유니크로컬 fc::/7 fd::/7 제외)
+    const isValidV6 = ip => {
+      if (!/^[0-9a-f:]+$/i.test(ip) || !ip.includes(':')) return false;
+      if (ip === '::' || ip === '::0' || ip === '::1' || ip === '0:0:0:0:0:0:0:0') return false;
+      const lo = ip.toLowerCase();
+      if (lo.startsWith('fe80')) return false;
+      if (lo.startsWith('fc') || lo.startsWith('fd')) return false;
+      return true;
+    };
 
     const hasV4 = isValidV4(v4ip);
     const hasV6 = isValidV6(v6ip);
