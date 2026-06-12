@@ -164,7 +164,7 @@ function hideTokenOverlay() {
 
 function doTokenConnect() {
   const input  = document.getElementById('token-code');
-  const code   = (input?.value || '').trim().toUpperCase();
+  const code   = (input?.value || '').trim();
   const errEl  = document.getElementById('token-error');
   const status = document.getElementById('token-status');
   errEl.style.display = 'none';
@@ -416,7 +416,7 @@ function updateAgentUI(d) {
 
 function doPairAgent() {
   const input = document.getElementById('pair-code');
-  const code  = (input?.value || '').trim().toUpperCase();
+  const code  = (input?.value || '').trim();
   if (!code) { toast('접속 코드를 입력하세요.', true); return; }
   const status = document.getElementById('pair-status');
   if (status) status.textContent = '연결 중...';

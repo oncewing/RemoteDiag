@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 TOKENS_FILE = Path(__file__).parent / "tokens.json"
-_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"   # 혼동 문자 제외
+_CHARS = "0123456789"
 
 # ── 저장소 ──────────────────────────────────────────────────────────────
 
@@ -31,7 +31,7 @@ def _save(tokens: dict):
     )
 
 def _gen_code() -> str:
-    return "-".join("".join(random.choices(_CHARS, k=4)) for _ in range(3))
+    return "".join(random.choices(_CHARS, k=6))
 
 # ── 출력 헬퍼 ───────────────────────────────────────────────────────────
 

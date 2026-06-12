@@ -74,3 +74,9 @@ venv/
 Thumbs.db
 .DS_Store
 .claude
+
+_build_version_expire.txt
+go_agent/agent.exe
+go_agent/remotediag-agent.exe
+make_rc_manual_r2.py
+pyarmor.bug.log
