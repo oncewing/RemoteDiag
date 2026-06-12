@@ -89,7 +89,7 @@ window.addEventListener('DOMContentLoaded', () => {
         currentUser  = d.username;
         currentPerms = d.permissions || [];
         applyPermissions();
-        hideLogin();
+        hideTokenOverlay();
       }
       updateAgentUI(d);
       if (d.connected && !wasConnected) {
@@ -117,14 +117,17 @@ window.addEventListener('DOMContentLoaded', () => {
     socket.on('log_upload_result',     (d) => onLogUploadResult(d));
 
     socket.on('pair_result', (d) => {
-      const status = document.getElementById('pair-status');
+      const status = document.getElementById('token-status');
+      const errEl  = document.getElementById('token-error');
       if (!d.success) {
-        if (status) status.textContent = '❌ ' + d.error;
-        toast(d.error, true);
+        if (errEl)  { errEl.textContent = d.error; errEl.style.display = 'block'; }
+        if (status) status.textContent = '';
       } else if (d.waiting) {
+        if (errEl)  errEl.style.display = 'none';
         if (status) status.textContent = '⏳ 에이전트 연결 대기 중...';
       } else if (d.connected) {
         if (status) status.textContent = '✅ 연결됨';
+        // agent_status 이벤트에서 hideTokenOverlay() 호출됨
       }
     });
   } catch (e) {
@@ -132,26 +135,16 @@ window.addEventListener('DOMContentLoaded', () => {
     toast('Socket.IO 로드 실패. 페이지를 새로고침하세요.', true);
   }
 
-  fetch('api/me')
-    .then(r => {
-      if (!r.ok) throw new Error('unauth');
-      return r.json();
-    })
-    .then(me => {
-      currentUser  = me.username;
-      currentPerms = me.permissions || [];
-      applyPermissions();
-      hideLogin();
-    })
-    .catch(() => showLogin());
+  // 항상 토큰 입력 화면으로 시작
+  showTokenOverlay();
 
   fetch('api/server-info').then(r => r.json()).then(info => {
-    const exeBtn       = document.getElementById('btn-download-exe');
-    const bannerExeBtn = document.getElementById('banner-btn-exe');
+    const exeBtn     = document.getElementById('btn-download-exe');
+    const tokenDlBtn = document.getElementById('token-download-btn');
     if (!info.exe_ready) {
-      [exeBtn, bannerExeBtn].forEach(b => {
+      [exeBtn, tokenDlBtn].forEach(b => {
         if (!b) return;
-        b.textContent  = '⬇ woorinet_remote_diag_agent.exe (미빌드)';
+        b.textContent  = '⬇ 에이전트 (미빌드)';
         b.title        = 'build_agent.bat 실행 후 dist/woorinet_remote_diag_agent.exe를 서버에 복사하세요.';
         b.style.opacity = '0.5';
       });
@@ -159,50 +152,30 @@ window.addEventListener('DOMContentLoaded', () => {
   }).catch(() => {});
 });
 
-// ── Login / Logout ────────────────────────────────────────────────────
-function showLogin() {
-  document.getElementById('login-overlay').style.display = 'flex';
+// ── Token overlay ─────────────────────────────────────────────────────
+function showTokenOverlay() {
+  document.getElementById('token-overlay').style.display = 'flex';
 }
-function hideLogin() {
-  document.getElementById('login-overlay').style.display = 'none';
+function hideTokenOverlay() {
+  document.getElementById('token-overlay').style.display = 'none';
   const label = document.getElementById('user-label');
   if (label) label.textContent = currentUser ? `👤 ${currentUser}` : '';
 }
 
-async function doLogin() {
-  const username = document.getElementById('login-user').value.trim();
-  const password = document.getElementById('login-pass').value;
-  const errEl    = document.getElementById('login-error');
+function doTokenConnect() {
+  const input  = document.getElementById('token-code');
+  const code   = (input?.value || '').trim().toUpperCase();
+  const errEl  = document.getElementById('token-error');
+  const status = document.getElementById('token-status');
   errEl.style.display = 'none';
 
-  if (!username || !password) {
-    errEl.textContent   = '사용자명과 비밀번호를 입력하세요.';
+  if (!code) {
+    errEl.textContent   = '접속 코드를 입력하세요.';
     errEl.style.display = 'block';
     return;
   }
-
-  const res = await fetch('api/login', {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ username, password }),
-  });
-  const data = await res.json();
-  if (!res.ok) {
-    errEl.textContent   = data.error || '로그인 실패';
-    errEl.style.display = 'block';
-    return;
-  }
-
-  currentUser  = data.username;
-  currentPerms = data.permissions || [];
-  applyPermissions();
-  hideLogin();
-  document.getElementById('login-pass').value = '';
-  // 로그인 후 소켓 재연결 → 새 세션 쿠키로 handshake
-  if (socket) {
-    socket.disconnect();
-    socket.connect();
-  }
+  status.textContent = '연결 중...';
+  socket.emit('browser_pair', { code });
 }
 
 async function doLogout() {
@@ -229,7 +202,7 @@ async function doLogout() {
   currentPerms = [];
   agentConnected = false;
   applyPermissions();
-  showLogin();
+  showTokenOverlay();
   document.getElementById('user-label').textContent        = '';
   document.getElementById('device-list').innerHTML         =
     '<span class="dim-text">시리얼 포트를 먼저 연결하세요</span>';

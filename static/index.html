@@ -8,15 +8,25 @@
 </head>
 <body>
 
-<!-- Login overlay -->
-<div id="login-overlay" class="login-overlay">
+<!-- Token overlay -->
+<div id="token-overlay" class="login-overlay">
   <div class="login-box">
     <div class="login-logo">⚙ <span style="font-size:18px">Woorinet RemoteDiag</span></div>
-    <div id="login-error" class="login-error" style="display:none"></div>
-    <input id="login-user" class="login-input" type="text" placeholder="사용자명" autocomplete="username">
-    <input id="login-pass" class="login-input" type="password" placeholder="비밀번호" autocomplete="current-password"
-           onkeydown="if(event.key==='Enter') doLogin()">
-    <button class="login-btn" onclick="doLogin()">로그인</button>
+    <div style="margin-bottom:16px;text-align:center">
+      <a id="token-download-btn" class="login-btn"
+         href="dist/woorinet_remote_diag_agent.exe" download
+         style="display:inline-block;text-decoration:none;background:var(--blue,#4a9eff);margin-bottom:0">
+        ⬇ 에이전트 다운로드
+      </a>
+    </div>
+    <div id="token-error" class="login-error" style="display:none"></div>
+    <input id="token-code" class="login-input" type="text"
+           placeholder="접속 코드 (XXXX-XXXX-XXXX)"
+           style="font-family:monospace;text-transform:uppercase;letter-spacing:1px"
+           autocomplete="off"
+           onkeydown="if(event.key==='Enter') doTokenConnect()">
+    <button class="login-btn" onclick="doTokenConnect()">연결</button>
+    <div id="token-status" style="margin-top:10px;font-size:13px;color:var(--text-dim,#aaa);text-align:center;min-height:18px"></div>
   </div>
 </div>
 
