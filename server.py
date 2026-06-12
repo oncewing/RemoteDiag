@@ -565,10 +565,8 @@ def on_browser_hello(_data=None):
     permissions = session.get("permissions", [])
     ip          = _client_ip()
 
-    if username:
-        _browser_auth[browser_sid] = {"username": username, "permissions": permissions, "ip": ip}
-    else:
-        _browser_auth.pop(browser_sid, None)
+    # 토큰 페어링 기반 인증 — 로그인 세션 없이도 브라우저로 등록
+    _browser_auth[browser_sid] = {"username": username or "guest", "permissions": permissions, "ip": ip}
 
     # 이미 페어링된 에이전트가 살아 있는지 확인
     agent_sid = _browser_agent.get(browser_sid)
@@ -694,10 +692,15 @@ def on_agent_hello(data):
 
     # 브라우저가 먼저 code 입력하고 대기 중이면 즉시 페어링
     b_sid = _pending_browser.pop(code, None)
-    if b_sid and b_sid in _browser_auth:
+    if b_sid:
         _pair(b_sid, agent_sid)
-        socketio.emit("agent_status",  {"connected": True, "info": info}, room=b_sid)
-        socketio.emit("pair_result",   {"success": True, "connected": True, "info": info}, room=b_sid)
+        socketio.emit("agent_status", {
+            "connected":   True,
+            "info":        info,
+            "username":    "token",
+            "permissions": ALL_PERMISSIONS,
+        }, room=b_sid)
+        socketio.emit("pair_result", {"success": True, "connected": True, "info": info}, room=b_sid)
         print("[server] 대기 브라우저 즉시 페어링: {} ↔ {}".format(b_sid[:8], agent_sid[:8]))
 
 
@@ -760,10 +763,6 @@ def _check_denylist(cmd: str) -> str | None:
 def on_browser_pair(data):
     """브라우저가 접속 코드를 입력하여 에이전트와 명시적 페어링."""
     browser_sid = request.sid
-    if not _browser_auth.get(browser_sid):
-        emit("pair_result", {"success": False, "error": "로그인이 필요합니다."})
-        return
-
     code = str((data or {}).get("code", "")).strip().upper()
     if not code:
         emit("pair_result", {"success": False, "error": "접속 코드를 입력하세요."})
@@ -803,7 +802,12 @@ def on_browser_pair(data):
         _pair(browser_sid, agent_sid)
         info = _agents[agent_sid]
         emit("pair_result", {"success": True, "connected": True, "info": info})
-        socketio.emit("agent_status", {"connected": True, "info": info}, room=browser_sid)
+        socketio.emit("agent_status", {
+            "connected":   True,
+            "info":        info,
+            "username":    "token",
+            "permissions": ALL_PERMISSIONS,
+        }, room=browser_sid)
         print("[server] Browser 즉시 페어링: {} ↔ {} (code: {})".format(
             browser_sid[:8], agent_sid[:8], code))
     else:
@@ -816,10 +820,6 @@ def on_browser_pair(data):
 @socketio.on("command")
 def on_command(data):
     browser_sid = request.sid
-    if not _browser_auth.get(browser_sid):
-        emit("result", {"id": data.get("id"), "success": False,
-                        "error": "로그인이 필요합니다."})
-        return
     agent_sid = _browser_agent.get(browser_sid)
     if not agent_sid or agent_sid not in _agents:
         emit("result", {"id": data.get("id"), "success": False,
@@ -832,7 +832,7 @@ def on_command(data):
         cmd_str = str(data.get("cmd", "") or data.get("command", "")).strip()
         blocked = _check_denylist(cmd_str)
         if blocked:
-            username = _browser_auth[browser_sid].get("username", "?")
+            username = _browser_auth.get(browser_sid, {}).get("username", "?")
             print("[server] 명령 차단 [{}] ({}) : {}".format(
                 cmd_type, username, cmd_str[:80]))
             emit("result", {"id": data.get("id"), "success": False,
@@ -983,10 +983,6 @@ def on_controller_cmd(data):
 @socketio.on("remote_control_request")
 def on_remote_control_request(_data=None):
     browser_sid = request.sid
-    auth = _browser_auth.get(browser_sid)
-    if not auth:
-        emit("remote_control_ack", {"active": False, "error": "로그인 필요"})
-        return
 
     # 이미 요청 대기 중이거나 활성 세션인 경우 중복 요청 차단
     if browser_sid in _browser_controller or browser_sid in _rc_active:
