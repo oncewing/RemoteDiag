@@ -5,5 +5,6 @@
     "model":    ["WR-H902"],
     "customer": ["WR2"]
   },
-  "component": "wr_h902.js"
+  "component": "wr_h902.js",
+  "devinfo_component": "default.js"
 }

@@ -23,12 +23,9 @@
 const _BASE = new URL('../..', import.meta.url).pathname.replace(/\/?$/, '/');
 
 const DiagEngine = (() => {
-  let _current   = null;   // 현재 마운트된 컴포넌트
+  let _current   = null;
   let _container = null;
-  let _model     = '';     // 마지막으로 감지된 모델명
-  let _customer  = '';     // 마지막으로 감지된 고객사
 
-  /** app.js 전역을 묶어 ctx 생성 — 매 enter() 호출 시 새로 만든다 */
   function _buildCtx() {
     return {
       atCmd:    (cmd, timeout)  => window._atCmd(cmd, timeout, 'diag'),
@@ -41,25 +38,11 @@ const DiagEngine = (() => {
           port:     window.selectedPort     || '',
           srsdIp:   window.selectedSrsdIp   || '',
           srsdPort: window.selectedSrsdPort || 5002,
-          model:    _model,
-          customer: _customer,
+          model:    window.selectedModel    || '',
+          customer: window.selectedCustomer || '',
         };
       },
     };
-  }
-
-  /** 연결된 단말에서 모델명·고객사 취득 */
-  async function _fetchDeviceAttrs(ctx) {
-    try {
-      const [mRes, cRes] = await Promise.all([
-        ctx.shellCmd('cat /sys/devices/soc0/wnet_model', 5),
-        ctx.shellCmd('cat /sys/devices/soc0/wnet_customer', 5),
-      ]);
-      _model    = (mRes.stdout || '').trim();
-      _customer = (cRes.stdout || '').trim();
-    } catch (_) {
-      _model = _customer = '';
-    }
   }
 
   /** 프로파일 fetch */
@@ -81,22 +64,14 @@ const DiagEngine = (() => {
   /** 탭 진입 */
   async function enter(container) {
     _container = container;
+
+    // 이미 컴포넌트가 마운트된 상태면 결과 유지 (재마운트 안 함)
+    if (_current) return;
+
     const ctx = _buildCtx();
-
-    // 연결 중인 경우 모델명·고객사 먼저 취득
-    if (ctx.deviceInfo.serial || ctx.deviceInfo.srsdIp) {
-      await _fetchDeviceAttrs(ctx);
-    }
-
     const profile = await _fetchProfile(ctx.deviceInfo);
-    console.log('[DiagEngine] model:', _model, '| customer:', _customer,
+    console.log('[DiagEngine] model:', ctx.deviceInfo.model, '| customer:', ctx.deviceInfo.customer,
                 '| profile:', profile.id, '→', profile.component);
-
-    // 이전 컴포넌트 정리
-    if (_current) {
-      _current.unmount?.();
-      _current = null;
-    }
 
     container.innerHTML = '';
 
@@ -115,13 +90,18 @@ const DiagEngine = (() => {
     }
   }
 
-  /** 탭 이탈 */
-  function leave() {
+  /** 탭 이탈 — 결과 유지를 위해 unmount 호출하지 않음 */
+  function leave() {}
+
+  /** 명시적 초기화 (단말 변경 등 필요 시) */
+  function reset() {
     _current?.unmount?.();
     _current = null;
+    if (_container) _container.innerHTML = '';
+    console.log('[DiagEngine] reset');
   }
 
-  return { enter, leave };
+  return { enter, leave, reset };
 })();
 
 window.DiagEngine = DiagEngine;

@@ -1,0 +1,10 @@
+{
+  "id": "wr_h912k_wr2",
+  "name": "5G 2PORT (WR-H912K)",
+  "match": {
+    "model":    ["WR-H912K"],
+    "customer": ["WR2"]
+  },
+  "component": "wr_h912k_wr2.js",
+  "devinfo_component": "default.js"
+}

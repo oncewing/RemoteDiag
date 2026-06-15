@@ -45,7 +45,7 @@ var _encSecure = []byte{
 
 // ldflags 주입 대상: VERSION, EXPIRE_DATE 만 (민감하지 않음)
 var (
-	VERSION     = "1.0.0"
+	VERSION     = "1.0.1"
 	EXPIRE_DATE = ""
 )
 

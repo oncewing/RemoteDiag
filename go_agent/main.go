@@ -42,7 +42,7 @@ func main() {
 	fmt.Println("==================================================")
 	fmt.Println()
 	fmt.Println("  관리자에게 발급받은 접속 코드를 입력하세요.")
-	fmt.Println("  예) 123456")
+//	fmt.Println("  예) 123456")
 	fmt.Println()
 
 	reader := bufio.NewReader(os.Stdin)

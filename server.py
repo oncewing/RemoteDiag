@@ -414,8 +414,6 @@ def index():
 @app.route("/download/woorinet_remote_diag_agent.exe")
 @app.route("/dist/woorinet_remote_diag_agent.exe")
 def download_agent_exe():
-    if not session.get("username"):
-        abort(401)
     for candidate in [
         Path(__file__).parent / "dist_go" / "woorinet_remote_diag_agent.exe",
         Path(__file__).parent / "dist" / "woorinet_remote_diag_agent.exe",
@@ -540,6 +538,9 @@ def on_disconnect():
         del _agents[sid]
         if b_sid:
             socketio.emit("agent_status", {"connected": False}, room=b_sid)
+            # 에이전트 재연결 시 자동 페어링을 위해 브라우저를 대기열에 재등록
+            if code:
+                _pending_browser[code] = b_sid
         print("[server] Agent disconnected: {}".format(sid[:8]))
         return
 

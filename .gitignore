@@ -18,7 +18,7 @@ rc_tokens.json
 build/
 dev/
 dist/*
-!dist/woorinet_remote_diag_agent.exe
+!dist/remote_control.exe
 dist_go/*
 !dist_go/woorinet_remote_diag_agent.exe
 # 빌드 전처리 임시 파일
