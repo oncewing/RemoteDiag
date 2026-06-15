@@ -42,7 +42,7 @@ func main() {
 	fmt.Println("==================================================")
 	fmt.Println()
 	fmt.Println("  관리자에게 발급받은 접속 코드를 입력하세요.")
-	fmt.Println("  예) AB12-CD34-EF56")
+//	fmt.Println("  예) 123456")
 	fmt.Println()
 
 	reader := bufio.NewReader(os.Stdin)
@@ -51,7 +51,7 @@ func main() {
 	if err != nil {
 		return
 	}
-	accessCode = strings.TrimSpace(strings.ToUpper(input))
+	accessCode = strings.TrimSpace(input)
 	if accessCode == "" {
 		fmt.Println("\n[agent] 접속 코드가 입력되지 않았습니다. 종료합니다.")
 		return

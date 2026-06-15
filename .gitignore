@@ -18,7 +18,7 @@ rc_tokens.json
 build/
 dev/
 dist/*
-!dist/woorinet_remote_diag_agent.exe
+!dist/remote_control.exe
 dist_go/*
 !dist_go/woorinet_remote_diag_agent.exe
 # 빌드 전처리 임시 파일
@@ -74,3 +74,9 @@ venv/
 Thumbs.db
 .DS_Store
 .claude
+
+_build_version_expire.txt
+go_agent/agent.exe
+go_agent/remotediag-agent.exe
+make_rc_manual_r2.py
+pyarmor.bug.log

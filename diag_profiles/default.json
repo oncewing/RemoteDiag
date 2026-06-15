@@ -1,5 +1,6 @@
 {
   "id": "default",
   "name": "기본 점검",
-  "component": "basic_table.js"
+  "component": "basic_table.js",
+  "devinfo_component": "default.js"
 }

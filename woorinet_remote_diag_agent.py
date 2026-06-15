@@ -23,7 +23,7 @@ import serial.tools.list_ports
 import socketio as sio_module
 
 # ── 빌드 시 설정값 ───────────────────────────────────────────────────
-VERSION            = "1.0.0"                         # 버전
+VERSION            = "1.0.1"                         # 버전
 SERVER_URL         = "wss://support.woori-net.com"   # 빌드 시 서버 주소 고정 (nginx SSL)
 SERVER_SOCKET_PATH = "/remotediag/socket.io"
 EXPIRE_DATE        = ""          # 비워두면 빌드 시 자동으로 빌드일+1개월 적용
@@ -1179,7 +1179,6 @@ def main():
     print("=" * 50)
     print()
     print("  관리자에게 발급받은 접속 코드를 입력하세요.")
-    print("  예) AB12-CD34-EF56")
     print()
     try:
         ACCESS_CODE = input("  접속 코드: ").strip().upper()

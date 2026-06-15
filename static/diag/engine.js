@@ -15,14 +15,17 @@
  *   ctx.shellCmd(command, timeout)→ Shell 명령 전송 (Promise)
  *   ctx.connReady(opts)           → 연결 여부 확인 (boolean)
  *   ctx.toast(msg, isError)       → 알림 표시
- *   ctx.deviceInfo                → { serial, port, srsdIp, srsdPort } (getter)
+ *   ctx.deviceInfo                → { serial, port, srsdIp, srsdPort, model } (getter)
  */
 
+// engine.js 위치(/static/diag/engine.js) 기준으로 서버 루트 경로 계산
+// 예) https://host/remotediag/static/diag/engine.js → /remotediag/
+const _BASE = new URL('../..', import.meta.url).pathname.replace(/\/?$/, '/');
+
 const DiagEngine = (() => {
-  let _current   = null;   // 현재 마운트된 컴포넌트
+  let _current   = null;
   let _container = null;
 
-  /** app.js 전역을 묶어 ctx 생성 — 매 enter() 호출 시 새로 만든다 */
   function _buildCtx() {
     return {
       atCmd:    (cmd, timeout)  => window._atCmd(cmd, timeout, 'diag'),
@@ -35,6 +38,8 @@ const DiagEngine = (() => {
           port:     window.selectedPort     || '',
           srsdIp:   window.selectedSrsdIp   || '',
           srsdPort: window.selectedSrsdPort || 5002,
+          model:    window.selectedModel    || '',
+          customer: window.selectedCustomer || '',
         };
       },
     };
@@ -44,10 +49,10 @@ const DiagEngine = (() => {
   async function _fetchProfile(deviceInfo) {
     try {
       const p = new URLSearchParams({
-        serial:   deviceInfo.serial,
-        srsdIp:   deviceInfo.srsdIp,
+        model:    deviceInfo.model,
+        customer: deviceInfo.customer,
       });
-      const resp = await fetch(`/api/diag-profile?${p}`);
+      const resp = await fetch(`${_BASE}api/diag-profile?${p}`);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       return await resp.json();
     } catch (e) {
@@ -59,20 +64,23 @@ const DiagEngine = (() => {
   /** 탭 진입 */
   async function enter(container) {
     _container = container;
-    const ctx     = _buildCtx();
-    const profile = await _fetchProfile(ctx.deviceInfo);
 
-    // 이전 컴포넌트 정리
-    if (_current) {
-      _current.unmount?.();
-      _current = null;
-    }
+    // 이미 컴포넌트가 마운트된 상태면 결과 유지 (재마운트 안 함)
+    if (_current) return;
+
+    const ctx = _buildCtx();
+    const profile = await _fetchProfile(ctx.deviceInfo);
+    console.log('[DiagEngine] model:', ctx.deviceInfo.model, '| customer:', ctx.deviceInfo.customer,
+                '| profile:', profile.id, '→', profile.component);
 
     container.innerHTML = '';
 
+    // ctx에 profile 정보 추가 (컴포넌트가 헤더 표시에 활용)
+    ctx.profile = { id: profile.id, name: profile.name };
+
     // 컴포넌트 동적 로드
     try {
-      const mod = await import(`/static/diag/components/${profile.component}`);
+      const mod = await import(`./components/${profile.component}`);
       _current  = mod.default;
       _current.mount(container, ctx);
     } catch (e) {
@@ -82,13 +90,18 @@ const DiagEngine = (() => {
     }
   }
 
-  /** 탭 이탈 */
-  function leave() {
+  /** 탭 이탈 — 결과 유지를 위해 unmount 호출하지 않음 */
+  function leave() {}
+
+  /** 명시적 초기화 (단말 변경 등 필요 시) */
+  function reset() {
     _current?.unmount?.();
     _current = null;
+    if (_container) _container.innerHTML = '';
+    console.log('[DiagEngine] reset');
   }
 
-  return { enter, leave };
+  return { enter, leave, reset };
 })();
 
 window.DiagEngine = DiagEngine;

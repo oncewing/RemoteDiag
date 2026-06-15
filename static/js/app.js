@@ -3,6 +3,8 @@
 // ── State ─────────────────────────────────────────────────────────────
 let selectedSerial      = '';
 let selectedPort        = '';
+let selectedModel       = '';
+let selectedCustomer    = '';
 let agentConnected      = false;
 let _wusbdEnableOrig    = null;   // 포트 열 때 읽은 원래 WUSBDENABLE 값
 const _devicePortMap    = {};     // serial → port (IMEI 매칭 결과)
@@ -13,6 +15,16 @@ let selectedSrsdPort = 5002;     // SRSD 데몬 UDP 포트
 
 let _srsdLogPollTimer = null;   // SRSD 모드 로그 폴링 타이머
 const SRSD_LOG_POLL_MS = 3000;
+
+// ── engine.js(ES module)에서 let 변수에 접근할 수 있도록 window에 게터 노출 ──
+Object.defineProperties(window, {
+  selectedSerial:   { get: () => selectedSerial,   enumerable: true },
+  selectedPort:     { get: () => selectedPort,     enumerable: true },
+  selectedSrsdIp:   { get: () => selectedSrsdIp,   enumerable: true },
+  selectedSrsdPort: { get: () => selectedSrsdPort, enumerable: true },
+  selectedModel:    { get: () => selectedModel,    enumerable: true },
+  selectedCustomer: { get: () => selectedCustomer, enumerable: true },
+});
 
 // ── 범용 명령 헬퍼 (USB ↔ SRSD 자동 라우팅) ──────────────────────────
 // SRSD 연결 중이면 UDP 경로, 아니면 기존 ADB/시리얼 경로 사용
@@ -81,7 +93,7 @@ window.addEventListener('DOMContentLoaded', () => {
         currentUser  = d.username;
         currentPerms = d.permissions || [];
         applyPermissions();
-        hideLogin();
+        hideTokenOverlay();
       }
       updateAgentUI(d);
       if (d.connected && !wasConnected) {
@@ -109,41 +121,35 @@ window.addEventListener('DOMContentLoaded', () => {
     socket.on('log_upload_result',     (d) => onLogUploadResult(d));
 
     socket.on('pair_result', (d) => {
-      const status = document.getElementById('pair-status');
+      const errEl = document.getElementById('token-error');
       if (!d.success) {
-        if (status) status.textContent = '❌ ' + d.error;
-        toast(d.error, true);
-      } else if (d.waiting) {
-        if (status) status.textContent = '⏳ 에이전트 연결 대기 중...';
-      } else if (d.connected) {
-        if (status) status.textContent = '✅ 연결됨';
+        if (errEl) { errEl.textContent = d.error; errEl.style.display = 'block'; }
+        return;
       }
+      // 유효한 코드 확인 → step2로 전환
+      const step1  = document.getElementById('token-step1');
+      const step2  = document.getElementById('token-step2');
+      const status = document.getElementById('token-status');
+      if (step1) step1.style.display = 'none';
+      if (step2) step2.style.display = 'block';
+      if (d.waiting  && status) status.textContent = '⏳ 에이전트 연결 대기 중...';
+      if (d.connected && status) status.textContent = '✅ 연결됨';
     });
   } catch (e) {
     console.error('Socket.IO 초기화 실패:', e);
     toast('Socket.IO 로드 실패. 페이지를 새로고침하세요.', true);
   }
 
-  fetch('api/me')
-    .then(r => {
-      if (!r.ok) throw new Error('unauth');
-      return r.json();
-    })
-    .then(me => {
-      currentUser  = me.username;
-      currentPerms = me.permissions || [];
-      applyPermissions();
-      hideLogin();
-    })
-    .catch(() => showLogin());
+  // 항상 토큰 입력 화면으로 시작
+  showTokenOverlay();
 
   fetch('api/server-info').then(r => r.json()).then(info => {
-    const exeBtn       = document.getElementById('btn-download-exe');
-    const bannerExeBtn = document.getElementById('banner-btn-exe');
+    const exeBtn     = document.getElementById('btn-download-exe');
+    const tokenDlBtn = document.getElementById('token-download-btn');
     if (!info.exe_ready) {
-      [exeBtn, bannerExeBtn].forEach(b => {
+      [exeBtn, tokenDlBtn].forEach(b => {
         if (!b) return;
-        b.textContent  = '⬇ woorinet_remote_diag_agent.exe (미빌드)';
+        b.textContent  = '⬇ 에이전트 (미빌드)';
         b.title        = 'build_agent.bat 실행 후 dist/woorinet_remote_diag_agent.exe를 서버에 복사하세요.';
         b.style.opacity = '0.5';
       });
@@ -151,50 +157,41 @@ window.addEventListener('DOMContentLoaded', () => {
   }).catch(() => {});
 });
 
-// ── Login / Logout ────────────────────────────────────────────────────
-function showLogin() {
-  document.getElementById('login-overlay').style.display = 'flex';
+// ── Token overlay ─────────────────────────────────────────────────────
+function showTokenOverlay() {
+  // step1(코드 입력)으로 초기화
+  const step1 = document.getElementById('token-step1');
+  const step2 = document.getElementById('token-step2');
+  const errEl = document.getElementById('token-error');
+  const status = document.getElementById('token-status');
+  const input  = document.getElementById('token-code');
+  if (step1) step1.style.display = 'block';
+  if (step2) step2.style.display = 'none';
+  if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+  if (status) status.textContent = '';
+  if (input)  input.value = '';
+  document.getElementById('token-overlay').style.display = 'flex';
 }
-function hideLogin() {
-  document.getElementById('login-overlay').style.display = 'none';
+function hideTokenOverlay() {
+  document.getElementById('token-overlay').style.display = 'none';
   const label = document.getElementById('user-label');
   if (label) label.textContent = currentUser ? `👤 ${currentUser}` : '';
 }
 
-async function doLogin() {
-  const username = document.getElementById('login-user').value.trim();
-  const password = document.getElementById('login-pass').value;
-  const errEl    = document.getElementById('login-error');
+function doTokenConnect() {
+  const input  = document.getElementById('token-code');
+  const code   = (input?.value || '').trim();
+  const errEl  = document.getElementById('token-error');
+  const status = document.getElementById('token-status');
   errEl.style.display = 'none';
 
-  if (!username || !password) {
-    errEl.textContent   = '사용자명과 비밀번호를 입력하세요.';
+  if (!code) {
+    errEl.textContent   = '접속 코드를 입력하세요.';
     errEl.style.display = 'block';
     return;
   }
-
-  const res = await fetch('api/login', {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ username, password }),
-  });
-  const data = await res.json();
-  if (!res.ok) {
-    errEl.textContent   = data.error || '로그인 실패';
-    errEl.style.display = 'block';
-    return;
-  }
-
-  currentUser  = data.username;
-  currentPerms = data.permissions || [];
-  applyPermissions();
-  hideLogin();
-  document.getElementById('login-pass').value = '';
-  // 로그인 후 소켓 재연결 → 새 세션 쿠키로 handshake
-  if (socket) {
-    socket.disconnect();
-    socket.connect();
-  }
+  status.textContent = '연결 중...';
+  socket.emit('browser_pair', { code });
 }
 
 async function doLogout() {
@@ -221,7 +218,7 @@ async function doLogout() {
   currentPerms = [];
   agentConnected = false;
   applyPermissions();
-  showLogin();
+  showTokenOverlay();
   document.getElementById('user-label').textContent        = '';
   document.getElementById('device-list').innerHTML         =
     '<span class="dim-text">시리얼 포트를 먼저 연결하세요</span>';
@@ -435,7 +432,7 @@ function updateAgentUI(d) {
 
 function doPairAgent() {
   const input = document.getElementById('pair-code');
-  const code  = (input?.value || '').trim().toUpperCase();
+  const code  = (input?.value || '').trim();
   if (!code) { toast('접속 코드를 입력하세요.', true); return; }
   const status = document.getElementById('pair-status');
   if (status) status.textContent = '연결 중...';
@@ -448,7 +445,8 @@ function switchTab(id) {
 
   // 이탈 처리
   if (prevTab === 'kmsg' && id !== 'kmsg') _stopKmsgPoll();
-  if (prevTab === 'diag' && id !== 'diag') window.DiagEngine?.leave();
+  if (prevTab === 'diag'     && id !== 'diag')     window.DiagEngine?.leave();
+  if (prevTab === 'adb-info' && id !== 'adb-info') window.DevInfoEngine?.leave();
 
   document.querySelectorAll('.tab').forEach(t =>
     t.classList.toggle('active', t.dataset.tab === id));
@@ -460,8 +458,9 @@ function switchTab(id) {
   }
 
   // 진입 처리
-  if (id === 'kmsg' && kmsgRunning) _startKmsgPoll();
-  if (id === 'diag') window.DiagEngine?.enter(document.getElementById('diag-mount'));
+  if (id === 'kmsg')     _startKmsgPoll();
+  if (id === 'diag')     window.DiagEngine?.enter(document.getElementById('diag-mount'));
+  if (id === 'adb-info') window.DevInfoEngine?.enter(document.getElementById('devinfo-mount'));
 }
 
 // ── Refresh helpers ───────────────────────────────────────────────────
@@ -495,6 +494,7 @@ function applyDeviceList(list) {
   const matched = filtered.find(d => d.status === 'device');
   if (matched && selectedSerial !== matched.serial) {
     selectedSerial = matched.serial;
+    _readDeviceAttrs();
   }
 
   el.innerHTML = filtered.map(d => `
@@ -517,6 +517,39 @@ function selectDevice(serial, status) {
       el.querySelector('.d-serial')?.textContent === serial));
   appendLine('term-adb', `# 디바이스 선택: ${serial} (${status})`, 't-dim');
   toast(`선택: ${serial}`);
+  if (status === 'device') _readDeviceAttrs();
+}
+
+async function _readDeviceAttrs() {
+  try {
+    const [mRes, cRes] = await Promise.all([
+      _shellCmd('cat /sys/devices/soc0/wnet_model', 5, 'devattr'),
+      _shellCmd('cat /sys/devices/soc0/wnet_customer', 5, 'devattr'),
+    ]);
+    selectedModel    = (mRes.stdout || '').trim();
+    selectedCustomer = (cRes.stdout || '').trim();
+  } catch (_) {
+    selectedModel = selectedCustomer = '';
+  }
+  console.log('[DevAttr] model:', selectedModel, '| customer:', selectedCustomer);
+  window.DiagEngine?.reset();
+  window.DevInfoEngine?.reset();
+  _remountActiveEngine();
+}
+
+function _clearDeviceAttrs() {
+  selectedModel = selectedCustomer = '';
+  window.DiagEngine?.reset();
+  window.DevInfoEngine?.reset();
+  _remountActiveEngine();
+}
+
+function _remountActiveEngine() {
+  const activeTab = document.querySelector('.tab.active')?.dataset.tab;
+  if (activeTab === 'diag')
+    window.DiagEngine?.enter(document.getElementById('diag-mount'));
+  if (activeTab === 'adb-info')
+    window.DevInfoEngine?.enter(document.getElementById('devinfo-mount'));
 }
 
 async function closeDevice(serial) {
@@ -558,148 +591,6 @@ async function runAdbShell() {
 }
 
 // ── Device Info Sections ──────────────────────────────────────────────
-
-// 섹션 ID → 로더 함수 매핑
-const SECTION_LOADERS = {
-  'sec-at':       () => _fetchSectionAt(),
-  'sec-ifconfig': () => _fetchSectionShell('sec-ifconfig', 'ifconfig'),
-  'sec-dns':      () => _fetchSectionDns(),
-  'sec-mem':      () => _fetchSectionShell('sec-mem', 'cat /proc/meminfo'),
-  'sec-ps':       () => _fetchSectionShell('sec-ps', 'ps'),
-};
-
-// 헤더 클릭: 열 때 데이터 로드, 닫을 때는 그냥 닫기
-function toggleSection(secId) {
-  const body  = document.getElementById(secId);
-  const arrow = document.getElementById(`arrow-${secId}`);
-  if (!body) return;
-  const opening = body.style.display === 'none';
-  body.style.display = opening ? '' : 'none';
-  if (arrow) arrow.textContent = opening ? '▼' : '▶';
-  if (opening && SECTION_LOADERS[secId]) {
-    SECTION_LOADERS[secId]();
-  }
-}
-
-// 새로고침 버튼: 열고 + 데이터 다시 로드
-function refreshSection(secId) {
-  const body  = document.getElementById(secId);
-  const arrow = document.getElementById(`arrow-${secId}`);
-  if (body) body.style.display = '';
-  if (arrow) arrow.textContent = '▼';
-  if (SECTION_LOADERS[secId]) SECTION_LOADERS[secId]();
-}
-
-function _setPreContent(preId, html) {
-  const el = document.getElementById(preId);
-  if (el) el.innerHTML = html;
-}
-
-function _setPreText(preId, text) {
-  const el = document.getElementById(preId);
-  if (el) el.textContent = text.replace(/\r/g, '').trimEnd();
-}
-
-async function _fetchSectionShell(secId, cmd) {
-  if (!_connReady({ needShell: true })) return;
-  _setPreContent(`pre-${secId}`, '<span class="dim-text">읽는 중...</span>');
-  const res = await _shellCmd(cmd, 30, 'sec');
-  if (res.success && res.stdout) {
-    _setPreText(`pre-${secId}`, res.stdout);
-  } else {
-    const msg = res.stderr || res.error || '오류가 발생했습니다.';
-    _setPreContent(`pre-${secId}`, `<span class="t-err">${escapeHtml(msg)}</span>`);
-  }
-}
-
-async function _fetchSectionAt() {
-  if (!_connReady({ needAt: true })) return;
-  _setPreContent('pre-sec-at', '<span class="dim-text">읽는 중...</span>');
-  const lines = [];
-  const r1 = await _atCmd('AT$$DBS', 10, 'sec');
-  lines.push('▶ AT$$DBS');
-  lines.push(r1.response || r1.error || '(응답 없음)');
-  lines.push('');
-  const r2 = await _atCmd('AT+CGDCONT?', 10, 'sec');
-  lines.push('▶ AT+CGDCONT?');
-  lines.push(r2.response || r2.error || '(응답 없음)');
-  _setPreText('pre-sec-at', lines.join('\n'));
-}
-
-function _renderDnsmasqConf(raw) {
-  const parsed = {};
-  for (const line of raw.split('\n')) {
-    const t = line.trim();
-    if (t.startsWith('dhcp-range=')) {
-      const parts = t.slice('dhcp-range='.length).split(',');
-      if (parts.length >= 4) {
-        const hasIface = isNaN(parts[0].charAt(0));
-        if (hasIface) {
-          [parsed.dhcpIface, parsed.dhcpStart, parsed.dhcpEnd, parsed.dhcpMask, parsed.dhcpLease]
-            = [parts[0], parts[1], parts[2], parts[3], parts[4] || ''];
-        } else {
-          [parsed.dhcpStart, parsed.dhcpEnd, parsed.dhcpMask, parsed.dhcpLease]
-            = [parts[0], parts[1], parts[2], parts[3]];
-        }
-      }
-    } else if (t.startsWith('dhcp-option-force=6,')) {
-      parsed.dns = t.slice('dhcp-option-force=6,'.length).trim();
-    } else if (t.startsWith('dhcp-option-force=26,')) {
-      parsed.mtu = t.slice('dhcp-option-force=26,'.length).trim();
-    }
-  }
-
-  function fmtLease(s) {
-    const n = parseInt(s, 10);
-    if (isNaN(n)) return s;
-    if (n >= 86400) return `${Math.round(n / 86400)}일 (${n}초)`;
-    if (n >= 3600)  return `${Math.round(n / 3600)}시간 (${n}초)`;
-    if (n >= 60)    return `${Math.round(n / 60)}분 (${n}초)`;
-    return `${n}초`;
-  }
-
-  function row(label, value) {
-    return `<tr><td class="dns-label">${label}</td><td class="dns-value">${escapeHtml(value)}</td></tr>`;
-  }
-
-  const rows = [];
-  if (parsed.dhcpStart) rows.push(row('IP 범위', `${parsed.dhcpStart} ~ ${parsed.dhcpEnd}`));
-  if (parsed.dhcpMask)  rows.push(row('서브넷 마스크', parsed.dhcpMask));
-  if (parsed.dhcpLease) rows.push(row('임대 시간', fmtLease(parsed.dhcpLease)));
-  if (parsed.dns)       rows.push(row('DNS 서버', parsed.dns));
-
-  const summary = rows.length
-    ? `<table class="dns-table">${rows.join('')}</table>`
-    : '<span class="dim-text">파싱 가능한 항목 없음</span>';
-
-  return `<div class="dns-summary">${summary}</div>`;
-}
-
-async function _fetchSectionDns() {
-  if (!_connReady({ needShell: true })) return;
-  _setPreContent('pre-sec-dns', '<span class="dim-text">읽는 중...</span>');
-  const r = await _shellCmd('cat /var/run/data/dnsmasq.conf.bridge0', 30, 'sec');
-  if (!r.success) {
-    _setPreContent('pre-sec-dns', `<span class="t-err">${escapeHtml(r.error || '오류')}</span>`);
-    return;
-  }
-  const text = (r.stdout || '') + (r.stderr ? '\n[stderr]\n' + r.stderr : '');
-  _setPreContent('pre-sec-dns', _renderDnsmasqConf(text));
-}
-
-// 전체 새로고침: 열려 있는 섹션만 다시 로드
-async function loadAllDeviceInfo() {
-  if (!_connReady({ needShell: true })) return;
-  const statusEl = document.getElementById('info-status');
-  if (statusEl) statusEl.textContent = '읽는 중...';
-  await Promise.all(Object.keys(SECTION_LOADERS).map(id => SECTION_LOADERS[id]()));
-  if (statusEl) statusEl.textContent = '완료';
-  setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2000);
-}
-
-// 하위 호환용 (index.html onclick에서 직접 호출)
-function loadSectionShell(secId, cmd) { return _fetchSectionShell(secId, cmd); }
-function loadSectionAt()               { return _fetchSectionAt(); }
 
 // ── Logs tab ──────────────────────────────────────────────────────────
 function _stopSrsdLogPoll() {
@@ -958,6 +849,7 @@ function applyPortList(ports, open) {
   if (cur) sel.value = cur;
   document.getElementById('port-status').textContent =
     open?.length ? `열린 포트: ${open.join(', ')}` : '';
+
 }
 
 
@@ -1031,6 +923,7 @@ async function openPort() {
       selectedSerial = matchRes.serial;
       if (devRes.success) applyDeviceList(devRes.data);
       toast(`${port} ↔ ${matchRes.serial} 자동 매칭 (${attempt}회 시도)`);
+      _readDeviceAttrs();
       break;
     }
 
@@ -1238,6 +1131,7 @@ async function srsdConnect() {
     _srsdSetStatus(`✓ ${ip}:${port} 연결됨`, 'var(--green)');
     toast(`네트워크 연결 성공: ${ip}`);
     _setSidebarMode('network');
+    _readDeviceAttrs();
   } else {
     selectedSrsdIp = '';
     const err = res.error || res.response || '응답 없음';
@@ -1253,6 +1147,7 @@ function srsdDisconnect() {
   _srsdSetStatus('해제됨', 'var(--text-dim)');
   toast('네트워크 연결 해제');
   _setSidebarMode('none');
+  _clearDeviceAttrs();
 }
 
 // ── Toast ─────────────────────────────────────────────────────────────
