@@ -89,16 +89,28 @@ window.addEventListener('DOMContentLoaded', () => {
     socket.on('agent_status', (d) => {
       const wasConnected = agentConnected;
       agentConnected = d.connected;
-      if (d.username && !currentUser) {
-        currentUser  = d.username;
-        currentPerms = d.permissions || [];
-        applyPermissions();
+      if (d.connected) {
+        if (d.username && !currentUser) {
+          currentUser  = d.username;
+          currentPerms = d.permissions || [];
+          applyPermissions();
+        }
         hideTokenOverlay();
-      }
-      updateAgentUI(d);
-      if (d.connected && !wasConnected) {
-        refreshDevices();
-        refreshPorts();
+        updateAgentUI(d);
+        if (!wasConnected) {
+          refreshDevices();
+          refreshPorts();
+        }
+      } else if (wasConnected) {
+        // 연결 중이었다가 끊긴 경우 — 팝업 후 토큰 입력 화면으로 전환
+        const reason = d.reason || '에이전트 연결이 종료되었습니다.';
+        updateAgentUI(d);
+        currentUser  = null;
+        currentPerms = [];
+        setTimeout(() => {
+          alert('[에이전트 종료]\n\n' + reason + '\n\n접속 코드를 다시 입력하세요.');
+          showTokenOverlay();
+        }, 100);
       }
     });
 

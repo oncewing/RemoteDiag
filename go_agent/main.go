@@ -13,6 +13,7 @@ import (
 
 var (
 	accessCode  string
+	allowMulti  bool          // 다중 브라우저 접속 허용 여부
 	shutdown    = make(chan struct{})
 	shutdownMu  sync.Once
 	retryDelay  time.Duration // 다음 재연결까지 대기 시간 (차단 시 설정)
@@ -77,6 +78,16 @@ func main() {
 		fmt.Println("\n[agent] 접속 코드가 입력되지 않았습니다. 종료합니다.")
 		waitEnter()
 		return
+	}
+
+	fmt.Print("  다중 브라우저 접속을 허용하시겠습니까? (y/n): ")
+	multiInput, _ := reader.ReadString('\n')
+	multiInput = strings.TrimSpace(strings.ToLower(multiInput))
+	allowMulti = multiInput == "y" || multiInput == "yes"
+	if allowMulti {
+		fmt.Println("  → 여러 브라우저에서 동시 접속이 허용됩니다.")
+	} else {
+		fmt.Println("  → 단일 브라우저만 접속이 허용됩니다.")
 	}
 	fmt.Println()
 
