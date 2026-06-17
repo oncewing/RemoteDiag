@@ -254,7 +254,7 @@ def _start_countdown(remaining_sec: int):
     def _run():
         last_display = ""
         while not _shutdown.is_set() and not stop.is_set() and sio.connected:
-            rem = int(_session_end_time - time.time())
+            rem = -int(-(_session_end_time - time.time()) // 1)  # ceiling: 59.x → 60
             if rem <= 0:
                 break
             msg = _fmt(rem)
@@ -349,6 +349,10 @@ def on_agent_kicked(data):
     print(f"  {reason}")
     print("=" * 50)
     _shutdown.set()
+    try:
+        input("\n  Enter 키를 누르면 닫힙니다.")
+    except (EOFError, KeyboardInterrupt):
+        pass
 
 
 # ── Command dispatcher ───────────────────────────────────────────────

@@ -3,6 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -67,8 +70,21 @@ func setupHandlers(sio *SocketIO) {
 		fmt.Printf("  %s\n", d.Reason)
 		fmt.Println("==================================================")
 
-		// 영구 거부 사유 → 재시도 없이 종료
 		reason := d.Reason
+		if contains(reason, "차단") {
+			// 대기 시간을 main loop에 전달 — 핸들러에서 직접 대기하면 main loop와 경쟁 발생
+			waitSec := 60
+			if m := regexp.MustCompile(`(\d+)초`).FindStringSubmatch(reason); len(m) > 1 {
+				if n, err := strconv.Atoi(m[1]); err == nil {
+					waitSec = n
+				}
+			}
+			retryDelay = time.Duration(waitSec) * time.Second
+			sio.Disconnect()
+			return
+		}
+
+		// 영구 거부 사유 → 재시도 없이 종료
 		if contains(reason, "다른 기기") ||
 			contains(reason, "사용이 완료") ||
 			contains(reason, "유효하지 않은") ||
@@ -89,6 +105,7 @@ func setupHandlers(sio *SocketIO) {
 		fmt.Println("==================================================")
 		fmt.Printf("  세션 종료: %s\n", d.Reason)
 		fmt.Println("==================================================")
+		closeShutdown()
 		sio.Disconnect()
 	})
 
@@ -173,10 +190,12 @@ func startCountdown(sio *SocketIO) {
 			return
 		}
 
-		rem := time.Until(sessionEndTime)
-		if rem <= 0 {
+		rawRem := time.Until(sessionEndTime)
+		if rawRem <= 0 {
 			break
 		}
+		// ceiling: 59.x초 → 60초로 올림 (타이밍 지연으로 60초가 59초로 표시되는 것 방지)
+		rem := time.Duration(math.Ceil(rawRem.Seconds())) * time.Second
 
 		msg := fmtRemaining(rem)
 		if msg != last {

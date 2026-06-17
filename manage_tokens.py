@@ -14,6 +14,18 @@ from pathlib import Path
 TOKENS_FILE = Path(__file__).parent / "tokens.json"
 _CHARS = "0123456789"
 
+ALL_PERMISSIONS = ["adb-shell", "adb-info", "at", "logs", "kmsg", "remote", "diag", "guide"]
+PERM_LABELS = {
+    "adb-shell": "ADB Shell",
+    "adb-info":  "디바이스 정보",
+    "at":        "AT 명령",
+    "logs":      "로그 수집",
+    "kmsg":      "커널 로그",
+    "remote":    "원격 제어",
+    "diag":      "자동점검",
+    "guide":     "가이드",
+}
+
 # ── 저장소 ──────────────────────────────────────────────────────────────
 
 def _load() -> dict:
@@ -31,7 +43,7 @@ def _save(tokens: dict):
     )
 
 def _gen_code() -> str:
-    return "".join(random.choices(_CHARS, k=6))
+    return "".join(random.choices(_CHARS, k=7))
 
 # ── 출력 헬퍼 ───────────────────────────────────────────────────────────
 
@@ -102,8 +114,11 @@ def _show_list(tokens: dict, title="코드 목록"):
             max_u   = info.get("max_uses", 1)
             used_u  = info.get("use_count", 0)
             uses    = f"{used_u}/{max_u}회"
+        perms    = info.get("permissions", ALL_PERMISSIONS)
+        perm_str = "전체" if len(perms) >= len(ALL_PERMISSIONS) else ", ".join(perms)
         print(f"  {code:<16}  {expiry:<12}  {minutes:>6}  {uses:<6}  "
               f"{_status_color(st)}  {note}")
+        print(f"  {'':16}  권한: {perm_str}")
     print()
 
 # ── 메뉴: 코드 생성 ─────────────────────────────────────────────────────
@@ -161,6 +176,28 @@ def menu_create():
     # 메모
     note = input("  메모 (사용자명 등): ").strip()
 
+    # 권한
+    print()
+    print("  권한 설정:")
+    for i, (perm, label) in enumerate(PERM_LABELS.items(), 1):
+        print(f"    {i}. {perm:<12} {label}")
+    val = input("\n  부여할 권한 번호 (전체: Enter, 예: 1,2,3): ").strip()
+    if not val:
+        permissions = list(ALL_PERMISSIONS)
+    else:
+        perm_keys = list(PERM_LABELS.keys())
+        permissions = []
+        for s in val.split(","):
+            s = s.strip()
+            try:
+                idx = int(s) - 1
+                if 0 <= idx < len(perm_keys):
+                    permissions.append(perm_keys[idx])
+            except ValueError:
+                pass
+        if not permissions:
+            permissions = list(ALL_PERMISSIONS)
+
     # 생성
     tokens = _load()
     code = _gen_code()
@@ -176,6 +213,7 @@ def menu_create():
         "use_count":      0,
         "in_use":         False,
         "note":           note,
+        "permissions":    permissions,
         "used":           False,
         "first_used_at":  None,
         "expires_at":     None,
@@ -196,6 +234,8 @@ def menu_create():
     print(f"   사용 횟수  :  {uses_str}")
     if note:
         print(f"   메모      :  {note}")
+    perm_str = "전체" if len(permissions) >= len(ALL_PERMISSIONS) else ", ".join(permissions)
+    print(f"   권한      :  {perm_str}")
     print(SEP)
     print()
     print("   이 코드를 사용자에게 전달하세요.")
@@ -327,6 +367,60 @@ def _is_unusable(info: dict) -> bool:
             return True
     return False
 
+# ── 메뉴: 권한 변경 ─────────────────────────────────────────────────────
+
+def menu_change_permissions():
+    tokens = _load()
+    _show_list(tokens, "권한 변경")
+    if not tokens:
+        _pause()
+        return
+
+    print()
+    code = input("  권한을 변경할 코드 (취소: Enter): ").strip().upper()
+    if not code:
+        return
+
+    if code not in tokens:
+        _err(f"코드를 찾을 수 없습니다: {code}")
+        _pause()
+        return
+
+    current = tokens[code].get("permissions", ALL_PERMISSIONS)
+    current_str = "전체" if len(current) >= len(ALL_PERMISSIONS) else ", ".join(current)
+    print(f"\n  현재 권한: {current_str}")
+    print()
+    print("  권한 목록:")
+    for i, (perm, label) in enumerate(PERM_LABELS.items(), 1):
+        mark = "✓" if perm in current else " "
+        print(f"    {i}. [{mark}] {perm:<12} {label}")
+
+    val = input("\n  부여할 권한 번호 (전체: Enter, 예: 1,2,3): ").strip()
+    if not val:
+        permissions = list(ALL_PERMISSIONS)
+    else:
+        perm_keys = list(PERM_LABELS.keys())
+        permissions = []
+        for s in val.split(","):
+            s = s.strip()
+            try:
+                idx = int(s) - 1
+                if 0 <= idx < len(perm_keys):
+                    permissions.append(perm_keys[idx])
+            except ValueError:
+                pass
+        if not permissions:
+            _err("유효한 번호를 입력하세요.")
+            _pause()
+            return
+
+    tokens[code]["permissions"] = permissions
+    _save(tokens)
+    perm_str = "전체" if len(permissions) >= len(ALL_PERMISSIONS) else ", ".join(permissions)
+    _ok(f"권한 변경 완료: {code} → {perm_str}")
+    _pause()
+
+
 # ── 메뉴: 만료·소진 코드 일괄 삭제 ─────────────────────────────────────
 
 def menu_purge():
@@ -391,11 +485,12 @@ def main():
         print()
         print("   1.  코드 생성")
         print("   2.  코드 목록 조회")
-        print("   3.  코드 폐기           (재사용 불가 처리)")
-        print("   4.  코드 삭제           (목록에서 완전 삭제)")
-        print("   5.  만료·소진 일괄 삭제  (사용 불가 코드 정리)")
-        print("   6.  전체 삭제")
-        print("   7.  사용 중 잠금 해제   (비정상 종료 후 복구)")
+        print("   3.  권한 변경")
+        print("   4.  코드 폐기           (재사용 불가 처리)")
+        print("   5.  코드 삭제           (목록에서 완전 삭제)")
+        print("   6.  만료·소진 일괄 삭제  (사용 불가 코드 정리)")
+        print("   7.  전체 삭제")
+        print("   8.  사용 중 잠금 해제   (비정상 종료 후 복구)")
         print()
         print("   0.  종료")
         print(SEP)
@@ -403,11 +498,12 @@ def main():
 
         if   choice == "1": menu_create()
         elif choice == "2": menu_list()
-        elif choice == "3": menu_revoke()
-        elif choice == "4": menu_delete()
-        elif choice == "5": menu_purge()
-        elif choice == "6": menu_delete_all()
-        elif choice == "7": menu_unlock()
+        elif choice == "3": menu_change_permissions()
+        elif choice == "4": menu_revoke()
+        elif choice == "5": menu_delete()
+        elif choice == "6": menu_purge()
+        elif choice == "7": menu_delete_all()
+        elif choice == "8": menu_unlock()
         elif choice == "0":
             _clear()
             print("\n  종료합니다.\n")

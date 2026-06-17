@@ -19,8 +19,8 @@
         관리자에게 발급받은 접속 코드를 입력하세요.
       </p>
       <div id="token-error" class="login-error" style="display:none"></div>
-      <input id="token-code" class="login-input" type="text" maxlength="6" 
-             placeholder="6자리 숫자"
+      <input id="token-code" class="login-input" type="text" maxlength="7"
+             placeholder="7자리 숫자"
              style="font-family:monospace;letter-spacing: 4px;text-align:center;margin-left: 3px;width: 178px;"
              autocomplete="off"
              onkeydown="if(event.key==='Enter') doTokenConnect()">
@@ -75,7 +75,7 @@
       <!--<li>
         아래에 동일한 접속 코드를 입력하여 연결하세요.<br>
         <div class="pair-input-row" style="margin-top:8px;display:flex;gap:6px;align-items:center;">
-          <input id="pair-code" type="text" placeholder="6자리 숫자"
+          <input id="pair-code" type="text" placeholder="7자리 숫자"
                  style="font-family:monospace;padding:4px 8px;width:120px;"
                  onkeydown="if(event.key==='Enter') doPairAgent()">
           <button class="btn-sm primary" onclick="doPairAgent()">연결</button>
