@@ -16,15 +16,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from flask import Flask, send_from_directory, jsonify, request, Response, abort, session
+from flask import Flask, send_from_directory, jsonify, request, Response, abort
 from flask_socketio import SocketIO, emit, join_room
-from werkzeug.security import generate_password_hash, check_password_hash
 
 import config
 
 app = Flask(__name__, static_folder="static")
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "remotediag-secret-key-change-me")
-app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=24)
 
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet",
                     logger=False, engineio_logger=False,
@@ -36,11 +34,9 @@ _agents        = {}   # agent_sid  -> {platform, node, python, ip}
 _browser_auth  = {}   # browser_sid -> {username, permissions, ip}
 _browser_agent = {}   # browser_sid -> agent_sid  (1:1 페어링)
 _agent_browser = {}   # agent_sid  -> browser_sid (역방향)
-_users_path      = Path(__file__).parent / "users.json"
 _tokens_path     = Path(__file__).parent / "tokens.json"
-_rc_tokens_path  = Path(__file__).parent / "rc_tokens.json"
 _agent_tokens    = {}    # agent_sid -> code (활성 세션)
-_ctrl_rc_tokens  = {}    # ctrl_sid  -> rc_code (활성 RC 세션)
+_ctrl_watching_code = {}  # ctrl_sid -> code (컨트롤러가 감시하는 접속 코드)
 _pending_browser = {}    # code -> browser_sid (브라우저가 먼저 code 입력 시 대기)
 
 # ── 브루트포스 방어 ───────────────────────────────────────────────────
@@ -97,13 +93,6 @@ def _reset_in_use_on_start():
         _save_tokens(tokens)
         print("[server] in_use 토큰 초기화: {}건 (서버 재시작)".format(len(changed)))
 
-    rc_tokens = _load_rc_tokens()
-    rc_changed = [c for c, i in rc_tokens.items() if i.get("in_use")]
-    for code in rc_changed:
-        rc_tokens[code]["in_use"] = False
-    if rc_changed:
-        _save_rc_tokens(rc_tokens)
-        print("[server] RC in_use 토큰 초기화: {}건 (서버 재시작)".format(len(rc_changed)))
 
 
 def _cleanup_orphaned_tokens():
@@ -225,6 +214,8 @@ def _burn_token(code: str, ip: str = ""):
     tokens = _load_tokens()
     if code not in tokens or tokens[code].get("used"):
         return
+    if not tokens[code].get("in_use"):
+        return  # 이미 소각됨 (disconnect + timer 이중 호출 방지)
 
     # 세션 잠금 해제 및 세션 필드 초기화
     tokens[code]["in_use"]        = False
@@ -272,100 +263,6 @@ def _session_timer(agent_sid: str, code: str, remaining_seconds: int):
         print("[server] 세션 시간 초과 종료: {} (코드: {})".format(agent_sid[:8], code))
 
 
-# -- RC Token management ----------------------------------------------
-
-def _load_rc_tokens() -> dict:
-    try:
-        return json.loads(_rc_tokens_path.read_text(encoding="utf-8"))
-    except FileNotFoundError:
-        return {}
-    except Exception:
-        return {}
-
-def _save_rc_tokens(tokens: dict):
-    _rc_tokens_path.write_text(
-        json.dumps(tokens, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
-
-def _burn_rc_token(code: str):
-    """RC 세션 종료 처리: in_use 해제, use_count 증가."""
-    tokens = _load_rc_tokens()
-    if code not in tokens or tokens[code].get("used"):
-        return
-    tokens[code]["in_use"] = False
-    if not tokens[code].get("unlimited_uses"):
-        max_uses  = tokens[code].get("max_uses", 1)
-        use_count = tokens[code].get("use_count", 0) + 1
-        tokens[code]["use_count"] = use_count
-        if use_count >= max_uses:
-            tokens[code]["used"] = True
-    _save_rc_tokens(tokens)
-    print("[server] RC 토큰 세션 종료: {}".format(code))
-
-
-# -- User management --------------------------------------------------
-
-def _load_users() -> dict:
-    try:
-        return json.loads(_users_path.read_text(encoding="utf-8"))
-    except Exception:
-        return {}
-
-def _save_users(users: dict):
-    _users_path.write_text(
-        json.dumps(users, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
-
-def _init_users():
-    if not _users_path.exists():
-        users = {
-            "admin": {
-                "password_hash": generate_password_hash("admin"),
-                "permissions": ALL_PERMISSIONS,
-            },
-            "user": {
-                "password_hash": generate_password_hash("user"),
-                "permissions": BASE_PERMISSIONS,
-            },
-        }
-        _save_users(users)
-        print("[server] users.json 생성 완료")
-        print("         기본 계정: admin / admin  (전체 권한)")
-        print("         기본 계정: user  / user   (디바이스 정보, AT Command, 가이드)")
-
-
-# -- Auth API ---------------------------------------------------------
-
-@app.route("/api/login", methods=["POST"])
-def api_login():
-    data = request.get_json(silent=True) or {}
-    username = str(data.get("username", "")).strip()
-    password = str(data.get("password", ""))
-
-    users = _load_users()
-    user  = users.get(username)
-    if not user or not check_password_hash(user["password_hash"], password):
-        return jsonify({"error": "사용자명 또는 비밀번호가 올바르지 않습니다."}), 401
-
-    session.permanent = True
-    session["username"]    = username
-    session["permissions"] = user.get("permissions", BASE_PERMISSIONS)
-    return jsonify({"username": username, "permissions": session["permissions"]})
-
-@app.route("/api/logout", methods=["POST"])
-def api_logout():
-    session.clear()
-    return jsonify({"ok": True})
-
-@app.route("/api/me")
-def api_me():
-    username = session.get("username")
-    if not username:
-        return jsonify({"error": "로그인이 필요합니다."}), 401
-    return jsonify({
-        "username":    username,
-        "permissions": session.get("permissions", BASE_PERMISSIONS),
-    })
 
 
 # -- Diag profile -----------------------------------------------------
@@ -515,9 +412,7 @@ def on_disconnect():
     # ── 컨트롤러 끊김 ──────────────────────────────────────────────
     if sid in _controllers:
         del _controllers[sid]
-        rc_code = _ctrl_rc_tokens.pop(sid, None)
-        if rc_code:
-            _burn_rc_token(rc_code)
+        _ctrl_watching_code.pop(sid, None)
         b_sid = _controller_browser.pop(sid, None)
         if b_sid:
             _browser_controller.pop(b_sid, None)
@@ -562,12 +457,9 @@ def on_disconnect():
 def on_browser_hello(_data=None):
     join_room("browsers")
     browser_sid = request.sid
-    username    = session.get("username")
-    permissions = session.get("permissions", [])
     ip          = _client_ip()
 
-    # 토큰 페어링 기반 인증 — 로그인 세션 없이도 브라우저로 등록
-    _browser_auth[browser_sid] = {"username": username or "guest", "permissions": permissions, "ip": ip}
+    _browser_auth[browser_sid] = {"username": "guest", "permissions": [], "ip": ip}
 
     # 이미 페어링된 에이전트가 살아 있는지 확인
     agent_sid = _browser_agent.get(browser_sid)
@@ -575,13 +467,11 @@ def on_browser_hello(_data=None):
         _unpair_browser(browser_sid)
         agent_sid = None
 
-    # 자동 페어링 제거 — browser_pair 이벤트로 명시적 페어링
-
     emit("agent_status", {
         "connected":   agent_sid is not None,
         "info":        _agents.get(agent_sid, {}),
-        "username":    username,
-        "permissions": permissions,
+        "username":    None,
+        "permissions": [],
     })
     emit("remote_control_ack", {"active": browser_sid in _rc_active})
 
@@ -695,11 +585,14 @@ def on_agent_hello(data):
     b_sid = _pending_browser.pop(code, None)
     if b_sid:
         _pair(b_sid, agent_sid)
+        permissions = tokens[code].get("permissions", ALL_PERMISSIONS)
+        if b_sid in _browser_auth:
+            _browser_auth[b_sid]["permissions"] = permissions
         socketio.emit("agent_status", {
             "connected":   True,
             "info":        info,
             "username":    "token",
-            "permissions": ALL_PERMISSIONS,
+            "permissions": permissions,
         }, room=b_sid)
         socketio.emit("pair_result", {"success": True, "connected": True, "info": info}, room=b_sid)
         print("[server] 대기 브라우저 즉시 페어링: {} ↔ {}".format(b_sid[:8], agent_sid[:8]))
@@ -764,9 +657,15 @@ def _check_denylist(cmd: str) -> str | None:
 def on_browser_pair(data):
     """브라우저가 접속 코드를 입력하여 에이전트와 명시적 페어링."""
     browser_sid = request.sid
+    client_ip   = request.environ.get("HTTP_X_FORWARDED_FOR", request.remote_addr or "").split(",")[0].strip()
     code = str((data or {}).get("code", "")).strip().upper()
     if not code:
         emit("pair_result", {"success": False, "error": "접속 코드를 입력하세요."})
+        return
+
+    if _is_blocked(client_ip):
+        remaining = int(_failed_attempts[client_ip]["blocked_until"] - time.time())
+        emit("pair_result", {"success": False, "error": f"너무 많은 시도. {remaining}초 후 재시도하세요."})
         return
 
     # 이미 페어링된 경우
@@ -778,13 +677,16 @@ def on_browser_pair(data):
     tokens = _load_tokens()
     token  = tokens.get(code)
     if not token:
+        _record_failure(client_ip)
         emit("pair_result", {"success": False, "error": "유효하지 않은 접속 코드입니다."})
         return
     if token.get("used"):
+        _record_failure(client_ip)
         emit("pair_result", {"success": False, "error": "이미 사용이 완료된 접속 코드입니다."})
         return
     try:
         if datetime.date.today() > datetime.date.fromisoformat(token["expiry"]):
+            _record_failure(client_ip)
             emit("pair_result", {"success": False, "error": "만료된 접속 코드입니다."})
             return
     except Exception:
@@ -802,12 +704,14 @@ def on_browser_pair(data):
         # 즉시 페어링
         _pair(browser_sid, agent_sid)
         info = _agents[agent_sid]
+        permissions = token.get("permissions", ALL_PERMISSIONS)
+        _browser_auth[browser_sid]["permissions"] = permissions
         emit("pair_result", {"success": True, "connected": True, "info": info})
         socketio.emit("agent_status", {
             "connected":   True,
             "info":        info,
             "username":    "token",
-            "permissions": ALL_PERMISSIONS,
+            "permissions": permissions,
         }, room=browser_sid)
         print("[server] Browser 즉시 페어링: {} ↔ {} (code: {})".format(
             browser_sid[:8], agent_sid[:8], code))
@@ -853,71 +757,37 @@ def on_result(data):
 
 @socketio.on("controller_hello")
 def on_controller_hello(data=None):
-    ctrl_sid    = request.sid
-    username    = session.get("username")
-    permissions = session.get("permissions", [])
-    client_ip   = _client_ip()
-    is_local    = client_ip in ("127.0.0.1", "::1", "localhost")
+    ctrl_sid  = request.sid
+    client_ip = _client_ip()
 
-    if not is_local:
-        # ID/PW 로그인 + remote 권한 확인
-        if not username:
-            emit("controller_error", {"message": "로그인이 필요합니다."})
-            print("[server] Controller 거절 (미인증): {}".format(ctrl_sid[:8]))
-            return
-        if "remote" not in permissions:
-            emit("controller_error", {"message": "remote 권한이 없습니다."})
-            print("[server] Controller 거절 (권한 없음): {} ({})".format(ctrl_sid[:8], username))
-            return
+    def _rc_reject(msg, record_fail=False):
+        emit("controller_error", {"message": msg})
+        if record_fail:
+            _record_failure(client_ip)
+        socketio.start_background_task(_delayed_disconnect, ctrl_sid)
 
-        # RC 접속 코드 검증
-        def _rc_reject(msg, record_fail=False):
-            emit("controller_error", {"message": msg})
-            if record_fail:
-                _record_failure(client_ip)
-            socketio.start_background_task(_delayed_disconnect, ctrl_sid)
+    if _is_blocked(client_ip):
+        remaining = int(_failed_attempts[client_ip]["blocked_until"] - time.time())
+        _rc_reject("너무 많은 시도로 차단되었습니다. {}초 후 재시도하세요.".format(remaining))
+        return
 
-        rc_code = str((data or {}).get("code", "")).strip().upper()
-        if not rc_code:
-            _rc_reject("RC 접속 코드가 필요합니다.")
-            print("[server] Controller 거절 (RC 코드 없음): {}".format(ctrl_sid[:8]))
-            return
+    code = str((data or {}).get("code", "")).strip().upper()
+    if not code:
+        _rc_reject("접속 코드가 필요합니다.")
+        return
 
-        if _is_blocked(client_ip):
-            remaining = int(_failed_attempts[client_ip]["blocked_until"] - time.time())
-            _rc_reject("너무 많은 시도로 차단되었습니다. {}초 후 재시도하세요.".format(remaining))
-            return
+    # 해당 코드로 현재 연결된 에이전트가 있는지 확인
+    agent_sid = next((sid for sid, c in _agent_tokens.items() if c == code), None)
+    if not agent_sid or agent_sid not in _agents:
+        _rc_reject("해당 코드로 연결된 에이전트가 없습니다.", record_fail=True)
+        print("[server] Controller 거절 (에이전트 없음): code={}".format(code))
+        return
 
-        rc_tokens = _load_rc_tokens()
-        rc_token  = rc_tokens.get(rc_code)
-
-        if not rc_token:
-            _rc_reject("유효하지 않은 RC 접속 코드입니다.", record_fail=True)
-            print("[server] Controller 거절 (RC 코드 불일치): {}".format(ctrl_sid[:8]))
-            return
-        if rc_token.get("used"):
-            _rc_reject("이미 사용이 완료된 RC 접속 코드입니다.")
-            return
-        if rc_token.get("in_use"):
-            _rc_reject("RC 접속 코드가 현재 다른 곳에서 사용 중입니다.")
-            return
-        try:
-            if datetime.date.today() > datetime.date.fromisoformat(rc_token["expiry"]):
-                _rc_reject("만료된 RC 접속 코드입니다.")
-                return
-        except Exception:
-            pass
-
-        # RC 토큰 활성화
-        rc_tokens[rc_code]["in_use"] = True
-        _save_rc_tokens(rc_tokens)
-        _ctrl_rc_tokens[ctrl_sid] = rc_code
-        _record_success(client_ip)
-        print("[server] Controller RC 코드 확인: {} ({})".format(ctrl_sid[:8], rc_code))
-
-    _controllers[ctrl_sid] = {"username": username or "local"}
+    _record_success(client_ip)
+    _controllers[ctrl_sid] = {}
+    _ctrl_watching_code[ctrl_sid] = code
     emit("controller_ready", {"ok": True})
-    print("[server] Controller connected: {} ({})".format(ctrl_sid[:8], username or "local"))
+    print("[server] Controller connected: {} watching code={}".format(ctrl_sid[:8], code))
 
 @socketio.on("controller_accept")
 def on_controller_accept(_data=None):
@@ -990,8 +860,19 @@ def on_remote_control_request(_data=None):
         emit("remote_control_ack", {"active": False, "error": "이미 원격 제어 요청이 진행 중입니다."})
         return
 
-    # 미페어링 컨트롤러 탐색
-    ctrl_sid = next((c for c in _controllers if c not in _controller_browser), None)
+    # 브라우저가 연결된 에이전트의 접속 코드 확인
+    agent_sid = _browser_agent.get(browser_sid)
+    if not agent_sid:
+        emit("remote_control_ack", {"active": False, "error": "에이전트가 연결되지 않았습니다."})
+        return
+    code = _agent_tokens.get(agent_sid)
+    if not code:
+        emit("remote_control_ack", {"active": False, "error": "접속 코드 정보가 없습니다."})
+        return
+
+    # 이 코드를 감시하는 미페어링 컨트롤러 탐색
+    ctrl_sid = next((c for c, wc in _ctrl_watching_code.items()
+                     if wc == code and c not in _controller_browser), None)
     if ctrl_sid is None:
         emit("remote_control_ack",
              {"active": False, "error": "원격 제어 서비스가 실행 중이지 않습니다."})
@@ -999,9 +880,8 @@ def on_remote_control_request(_data=None):
 
     _controller_browser[ctrl_sid] = browser_sid
     _browser_controller[browser_sid] = ctrl_sid
-    socketio.emit("remote_control_request",
-                  {"username": auth["username"]}, room=ctrl_sid)
-    print("[server] RC request: {} -> ctrl={}".format(auth["username"], ctrl_sid[:8]))
+    socketio.emit("remote_control_request", {"code": code}, room=ctrl_sid)
+    print("[server] RC request: code={} -> ctrl={}".format(code, ctrl_sid[:8]))
 
 @socketio.on("remote_result")
 def on_remote_result(data):
@@ -1110,8 +990,6 @@ def _get_local_ip():
 
 
 def main():
-    _init_users()
-
     local_ip    = _get_local_ip()
     public_port = getattr(config, "PUBLIC_PORT", config.PORT)
     print("\n" + "=" * 55)

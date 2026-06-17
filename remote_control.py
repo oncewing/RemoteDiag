@@ -1,23 +1,16 @@
 #!/usr/bin/env python3
 """RemoteDiag 원격 제어 CLI.
 
-로컬(Docker 내부)이나 외부 PC 어디서든 실행 가능.
-외부 실행 시 로그인 인증을 거쳐 세션 쿠키로 WebSocket 연결.
+접속 코드를 입력하면 해당 에이전트 세션에 원격 제어로 연결됩니다.
 
 사용 예:
-  # 외부 PC (기본)
   python remote_control.py
-
-  # 서버 URL 직접 지정
   python remote_control.py --server https://support.woori-net.com
-
-  # Docker 내부 직접 연결 (로그인 불필요)
-  python remote_control.py --local
+  python remote_control.py --local   # Docker 내부 직접 연결
 """
 
 import sys
 import argparse
-import getpass
 import threading
 import socketio
 
@@ -81,7 +74,7 @@ def on_controller_error(data):
 @sio.on("remote_control_request")
 def on_rc_request(data):
     global _req_username
-    _req_username = data.get("username", "?")
+    _req_username = data.get("code", data.get("username", "?"))
     _request_event.set()
 
 
@@ -142,33 +135,6 @@ def _send(cmd_type, command, timeout=30):
     _result_event.wait(timeout=timeout)
 
 
-def _login(server_url, path, username, password):
-    """HTTP로 로그인하여 세션 쿠키를 반환한다."""
-    try:
-        import requests as _req
-    except ImportError:
-        print("[오류] requests 패키지가 필요합니다: pip install requests")
-        sys.exit(1)
-
-    login_url = server_url + path + "/api/login"
-    try:
-        s = _req.Session()
-        resp = s.post(login_url,
-                      json={"username": username, "password": password},
-                      timeout=10,
-                      verify=True)
-        if resp.status_code == 200:
-            data = resp.json()
-            if data.get("username"):
-                return s.cookies.get_dict()
-            print("[오류] 로그인 실패: {}".format(data.get("error", "자격 증명 오류")))
-        else:
-            print("[오류] 서버 응답 {}".format(resp.status_code))
-    except Exception as e:
-        print("[오류] 로그인 요청 실패: {}".format(e))
-    return None
-
-
 # ── Control loop ───────────────────────────────────────────────────────
 
 def run():
@@ -189,7 +155,7 @@ def run():
             continue
 
         print("\n" + "=" * 50)
-        print("  원격 제어 요청 수신: {}".format(username))
+        print("  원격 제어 요청 수신 (접속 코드: {})".format(username))
         print("=" * 50)
 
         try:
@@ -246,77 +212,42 @@ def run():
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="RemoteDiag 원격 제어 CLI",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""예시:
-  python remote_control.py                          # 기본 (공개 서버)
-  python remote_control.py --server https://...     # 서버 직접 지정
-  python remote_control.py --local                  # Docker 내부 직접 연결
-  python remote_control.py --user admin             # 사용자명 미리 지정"""
-    )
-    parser.add_argument("--server",  default=DEFAULT_SERVER,
+    parser = argparse.ArgumentParser(description="RemoteDiag 원격 제어 CLI")
+    parser.add_argument("--server", default=DEFAULT_SERVER,
                         help="서버 URL (기본: {})".format(DEFAULT_SERVER))
-    parser.add_argument("--path",    default=DEFAULT_PATH,
+    parser.add_argument("--path",   default=DEFAULT_PATH,
                         help="nginx 경로 접두사 (기본: {})".format(DEFAULT_PATH))
-    parser.add_argument("--user",    default=None, help="사용자명")
-    parser.add_argument("--local",   action="store_true",
-                        help="로컬 서버 직접 연결 — Docker 내부 실행용 (인증 불필요)")
+    parser.add_argument("--local",  action="store_true",
+                        help="로컬 서버 직접 연결 — Docker 내부 실행용")
     args = parser.parse_args()
 
-    # 로컬/외부 모드 결정
     if args.local:
         server_url  = LOCAL_SERVER
         socket_path = LOCAL_PATH + "/socket.io"
-        cookie_str  = None
     else:
         server_url  = args.server
         socket_path = args.path + "/socket.io"
 
-        # 로그인 자격 증명 입력
-        print("=" * 50)
-        print("  RemoteDiag 원격 제어")
-        print("  서버: {}".format(server_url))
-        print("=" * 50)
-        print()
-
-        username = args.user or input("사용자명: ").strip()
-        if not username:
-            print("[오류] 사용자명을 입력하세요.")
-            sys.exit(1)
-
-        try:
-            password = getpass.getpass("비밀번호: ")
-        except (EOFError, KeyboardInterrupt):
-            sys.exit(0)
-
-        print("\n로그인 중...")
-        cookies = _login(server_url, args.path, username, password)
-        if not cookies:
-            sys.exit(1)
-
-        cookie_str = "; ".join("{}={}".format(k, v) for k, v in cookies.items())
-        print("로그인 완료.\n")
-
     print("=" * 50)
     print("  RemoteDiag 원격 제어")
-    print("  서버: {}{}".format(server_url, socket_path))
+    print("  서버: {}".format(server_url))
     print("=" * 50 + "\n")
 
     try:
-        print("서버에 연결 중...")
+        access_code = input("접속 코드: ").strip().upper()
+        if not access_code:
+            print("[오류] 접속 코드를 입력하세요.")
+            sys.exit(1)
+    except (EOFError, KeyboardInterrupt):
+        sys.exit(0)
 
+    try:
+        print("\n서버에 연결 중...")
         conn_err = [None]
 
         def _do_connect():
             try:
-                connect_kwargs = {
-                    "transports":    ["websocket"],
-                    "socketio_path": socket_path,
-                }
-                if cookie_str:
-                    connect_kwargs["headers"] = {"Cookie": cookie_str}
-                sio.connect(server_url, **connect_kwargs)
+                sio.connect(server_url, transports=["websocket"], socketio_path=socket_path)
             except Exception as e:
                 conn_err[0] = e
 
@@ -330,16 +261,8 @@ def main():
             print("[오류] 연결 시간 초과. 서버가 실행 중인지 확인하세요.")
             sys.exit(1)
 
-        if args.local:
-            rc_code = ""
-        else:
-            rc_code = input("RC 접속 코드: ").strip().upper()
-            if not rc_code:
-                print("[오류] RC 접속 코드를 입력하세요.")
-                sys.exit(1)
-
         _ready_event.clear()
-        sio.emit("controller_hello", {"code": rc_code})
+        sio.emit("controller_hello", {"code": access_code})
 
         if not _ready_event.wait(timeout=5):
             print("[오류] 서버 응답 없음.")
@@ -348,7 +271,7 @@ def main():
         if not _ready_ok or not sio.connected:
             sys.exit(1)
 
-        print("서버 등록 완료.\n")
+        print("서버 등록 완료. 원격 제어 요청 대기 중...\n")
         run()
 
     except KeyboardInterrupt:
