@@ -25,9 +25,10 @@ func setupHandlers(sio *SocketIO) {
 	sio.OnConnect(func() {
 		fmt.Printf("[agent] 서버 연결됨: %s\n", SERVER_URL)
 		sio.Emit("agent_hello", map[string]interface{}{
-			"code":     accessCode,
-			"platform": "Windows",
-			"version":  VERSION,
+			"code":        accessCode,
+			"platform":    "Windows",
+			"version":     VERSION,
+			"allow_multi": allowMulti,
 		})
 	})
 

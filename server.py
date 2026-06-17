@@ -32,12 +32,13 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet",
 
 _agents        = {}   # agent_sid  -> {platform, node, python, ip}
 _browser_auth  = {}   # browser_sid -> {username, permissions, ip}
-_browser_agent = {}   # browser_sid -> agent_sid  (1:1 페어링)
-_agent_browser = {}   # agent_sid  -> browser_sid (역방향)
+_browser_agent = {}   # browser_sid -> agent_sid
+_agent_browser = {}   # agent_sid  -> set[browser_sid] (1:N 페어링)
+_agent_allow_multi = {}  # agent_sid -> bool (다중 브라우저 허용 여부)
 _tokens_path     = Path(__file__).parent / "tokens.json"
 _agent_tokens    = {}    # agent_sid -> code (활성 세션)
 _ctrl_watching_code = {}  # ctrl_sid -> code (컨트롤러가 감시하는 접속 코드)
-_pending_browser = {}    # code -> browser_sid (브라우저가 먼저 code 입력 시 대기)
+_pending_browser = {}    # code -> set[browser_sid] (에이전트 연결 전 대기 브라우저)
 
 # ── 브루트포스 방어 ───────────────────────────────────────────────────
 _FAIL_MAX    = 5     # IP당 최대 실패 횟수
@@ -137,26 +138,32 @@ def _client_ip():
 
 
 def _pair(browser_sid, agent_sid):
-    """브라우저 ↔ 에이전트 1:1 페어링 등록."""
+    """브라우저 ↔ 에이전트 1:N 페어링 등록."""
     _browser_agent[browser_sid] = agent_sid
-    _agent_browser[agent_sid]   = browser_sid
+    _agent_browser.setdefault(agent_sid, set()).add(browser_sid)
     b_ip = _browser_auth.get(browser_sid, {}).get("ip", "?")
     a_ip = _agents.get(agent_sid, {}).get("ip", "?")
-    print("[server] 페어링: browser={}({}) ↔ agent={}({})".format(
-        browser_sid[:8], b_ip, agent_sid[:8], a_ip))
+    print("[server] 페어링: browser={}({}) ↔ agent={}({}) (총 {}개 브라우저)".format(
+        browser_sid[:8], b_ip, agent_sid[:8], a_ip,
+        len(_agent_browser.get(agent_sid, set()))))
 
 
 def _unpair_browser(browser_sid):
     agent_sid = _browser_agent.pop(browser_sid, None)
     if agent_sid:
-        _agent_browser.pop(agent_sid, None)
+        browsers = _agent_browser.get(agent_sid)
+        if browsers:
+            browsers.discard(browser_sid)
+            if not browsers:
+                _agent_browser.pop(agent_sid, None)
 
 
 def _unpair_agent(agent_sid):
-    browser_sid = _agent_browser.pop(agent_sid, None)
-    if browser_sid:
-        _browser_agent.pop(browser_sid, None)
-    return browser_sid   # 페어링됐던 브라우저 SID 반환
+    browser_sids = _agent_browser.pop(agent_sid, set())
+    for b_sid in browser_sids:
+        _browser_agent.pop(b_sid, None)
+    _agent_allow_multi.pop(agent_sid, None)
+    return browser_sids   # 페어링됐던 브라우저 SID set 반환
 
 
 def _find_unpaired_browser(ip):
@@ -252,9 +259,11 @@ def _session_timer(agent_sid: str, code: str, remaining_seconds: int):
     _burn_token(code, ip)
     if agent_sid in _agents:
         minutes = remaining_seconds // 60
-        socketio.emit("agent_kicked",
-                      {"reason": "세션 시간({})분이 초과되었습니다.".format(minutes)},
-                      room=agent_sid)
+        reason  = "세션 시간 {}분이 초과되었습니다.".format(minutes)
+        socketio.emit("agent_kicked", {"reason": reason}, room=agent_sid)
+        # 연결된 브라우저에도 종료 이유 전달
+        for b_sid in _agent_browser.get(agent_sid, set()):
+            socketio.emit("agent_status", {"connected": False, "reason": reason}, room=b_sid)
         _ev.sleep(0.5)
         try:
             socketio.server.disconnect(agent_sid)
@@ -429,14 +438,15 @@ def on_disconnect():
         code = _agent_tokens.pop(sid, None)
         if code:
             _burn_token(code, ip)   # 1회 토큰 소각 / 무제한 토큰 세션 초기화
-        b_sid = _unpair_agent(sid)
+        browser_sids = _unpair_agent(sid)
         del _agents[sid]
-        if b_sid:
-            socketio.emit("agent_status", {"connected": False}, room=b_sid)
-            # 에이전트 재연결 시 자동 페어링을 위해 브라우저를 대기열에 재등록
-            if code:
-                _pending_browser[code] = b_sid
-        print("[server] Agent disconnected: {}".format(sid[:8]))
+        for b_sid in browser_sids:
+            socketio.emit("agent_status", {
+                "connected": False,
+                "reason": "에이전트 연결이 종료되었습니다.",
+            }, room=b_sid)
+        print("[server] Agent disconnected: {} (브라우저 {}개 알림)".format(
+            sid[:8], len(browser_sids)))
         return
 
     # ── 브라우저 끊김 ──────────────────────────────────────────────
@@ -446,10 +456,9 @@ def on_disconnect():
         _controller_browser.pop(ctrl_sid, None)
         socketio.emit("session_ended", {}, room=ctrl_sid)
     _rc_active.discard(sid)
-    # 페어링 대기 정리
-    pending_code = next((c for c, b in list(_pending_browser.items()) if b == sid), None)
-    if pending_code:
-        _pending_browser.pop(pending_code, None)
+    # 대기열에서 제거
+    for browsers in _pending_browser.values():
+        browsers.discard(sid)
     # 에이전트 페어링 해제
     _unpair_browser(sid)
 
@@ -570,8 +579,9 @@ def on_agent_hello(data):
     # ── 접속 허용 ───────────────────────────────────────────────────
     _record_success(ip)   # 성공 시 실패 기록 초기화
     info["ip"] = ip
-    _agents[agent_sid]       = info
-    _agent_tokens[agent_sid] = code
+    _agents[agent_sid]            = info
+    _agent_tokens[agent_sid]      = code
+    _agent_allow_multi[agent_sid] = bool(info.pop("allow_multi", False))
 
     emit("agent_accepted", {
         "expires_in_minutes": remaining_sec // 60,
@@ -580,12 +590,21 @@ def on_agent_hello(data):
 
     # 세션 타이머 (시간 초과 시 자동 종료 + 소각)
     socketio.start_background_task(_session_timer, agent_sid, code, remaining_sec)
+    allow_multi = _agent_allow_multi[agent_sid]
+    print("[server] Agent allow_multi={}: {}".format(allow_multi, agent_sid[:8]))
 
-    # 브라우저가 먼저 code 입력하고 대기 중이면 즉시 페어링
-    b_sid = _pending_browser.pop(code, None)
-    if b_sid:
+    # 대기 중인 브라우저 자동 페어링
+    waiting = _pending_browser.pop(code, set())
+    permissions = tokens[code].get("permissions", ALL_PERMISSIONS)
+    for b_sid in list(waiting):
+        if not allow_multi and _agent_browser.get(agent_sid):
+            # 단일 모드: 이미 페어링된 브라우저가 있으면 나머지 거절
+            socketio.emit("pair_result", {
+                "success": False,
+                "error": "에이전트가 단일 연결 모드입니다. 이미 다른 브라우저가 연결되었습니다."
+            }, room=b_sid)
+            continue
         _pair(b_sid, agent_sid)
-        permissions = tokens[code].get("permissions", ALL_PERMISSIONS)
         if b_sid in _browser_auth:
             _browser_auth[b_sid]["permissions"] = permissions
         socketio.emit("agent_status", {
@@ -595,7 +614,7 @@ def on_agent_hello(data):
             "permissions": permissions,
         }, room=b_sid)
         socketio.emit("pair_result", {"success": True, "connected": True, "info": info}, room=b_sid)
-        print("[server] 대기 브라우저 즉시 페어링: {} ↔ {}".format(b_sid[:8], agent_sid[:8]))
+        print("[server] 대기 브라우저 자동 페어링: {} ↔ {}".format(b_sid[:8], agent_sid[:8]))
 
 
 # ── Shell 명령 거부 목록 ─────────────────────────────────────────────
@@ -692,34 +711,36 @@ def on_browser_pair(data):
     except Exception:
         pass
 
-    # 이미 다른 브라우저가 이 코드로 대기 중인 경우
-    if code in _pending_browser and _pending_browser[code] != browser_sid:
-        emit("pair_result", {"success": False, "error": "해당 코드는 이미 다른 세션에서 대기 중입니다."})
-        return
-
-    # Agent가 이미 연결되어 있는지 확인
+    # Agent 연결 여부 확인
     agent_sid = next((sid for sid, c in _agent_tokens.items() if c == code), None)
 
-    if agent_sid and agent_sid in _agents:
-        # 즉시 페어링
-        _pair(browser_sid, agent_sid)
-        info = _agents[agent_sid]
-        permissions = token.get("permissions", ALL_PERMISSIONS)
-        _browser_auth[browser_sid]["permissions"] = permissions
-        emit("pair_result", {"success": True, "connected": True, "info": info})
-        socketio.emit("agent_status", {
-            "connected":   True,
-            "info":        info,
-            "username":    "token",
-            "permissions": permissions,
-        }, room=browser_sid)
-        print("[server] Browser 즉시 페어링: {} ↔ {} (code: {})".format(
-            browser_sid[:8], agent_sid[:8], code))
-    else:
-        # Agent 대기 등록
-        _pending_browser[code] = browser_sid
+    if not agent_sid or agent_sid not in _agents:
+        # 에이전트 미연결 → 대기 등록 (에이전트 연결 시 자동 페어링)
+        _pending_browser.setdefault(code, set()).add(browser_sid)
         emit("pair_result", {"success": True, "waiting": True})
         print("[server] Browser 대기 등록: code={} browser={}".format(code, browser_sid[:8]))
+        return
+
+    # 다중 브라우저 허용 여부 확인
+    allow_multi = _agent_allow_multi.get(agent_sid, False)
+    if not allow_multi and _agent_browser.get(agent_sid):
+        emit("pair_result", {"success": False, "error": "에이전트가 단일 연결 모드입니다.\n이미 다른 브라우저가 연결되어 있습니다."})
+        return
+
+    # 즉시 페어링
+    _pair(browser_sid, agent_sid)
+    info = _agents[agent_sid]
+    permissions = token.get("permissions", ALL_PERMISSIONS)
+    _browser_auth[browser_sid]["permissions"] = permissions
+    emit("pair_result", {"success": True, "connected": True, "info": info})
+    socketio.emit("agent_status", {
+        "connected":   True,
+        "info":        info,
+        "username":    "token",
+        "permissions": permissions,
+    }, room=browser_sid)
+    print("[server] Browser 즉시 페어링: {} ↔ {} (code: {} allow_multi={})".format(
+        browser_sid[:8], agent_sid[:8], code, allow_multi))
 
 
 @socketio.on("command")
@@ -906,14 +927,12 @@ def on_remote_control_end(_data=None):
 
 @socketio.on("logcat_line")
 def on_logcat_line(data):
-    b = _agent_browser.get(request.sid)
-    if b:
+    for b in _agent_browser.get(request.sid, set()):
         socketio.emit("logcat_line", data, room=b)
 
 @socketio.on("log_line")
 def on_log_line(data):
-    b = _agent_browser.get(request.sid)
-    if b:
+    for b in _agent_browser.get(request.sid, set()):
         socketio.emit("log_line", data, room=b)
 
 _SAFE_NAME_RE = __import__("re").compile(r"[^\w\-.]")
@@ -965,14 +984,12 @@ def on_log_upload_data(data):
 
 @socketio.on("device_update")
 def on_device_update(data):
-    b = _agent_browser.get(request.sid)
-    if b:
+    for b in _agent_browser.get(request.sid, set()):
         socketio.emit("device_update", data, room=b)
 
 @socketio.on("port_update")
 def on_port_update(data):
-    b = _agent_browser.get(request.sid)
-    if b:
+    for b in _agent_browser.get(request.sid, set()):
         socketio.emit("port_update", data, room=b)
 
 
