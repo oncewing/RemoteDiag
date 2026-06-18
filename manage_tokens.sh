@@ -6,7 +6,7 @@ CONTAINER="remotediag"
 SCRIPT="/app/manage_tokens.py"
 
 if sudo docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^${CONTAINER}$"; then
-    sudo docker exec -it ${CONTAINER} python3 ${SCRIPT}
+    sudo docker exec -it -e TERM=xterm ${CONTAINER} sh -c "stty sane; python3 ${SCRIPT}"
 else
     DIR="$(cd "$(dirname "$0")" && pwd)"
     python3 "${DIR}/manage_tokens.py"
