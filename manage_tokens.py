@@ -9,6 +9,8 @@ import json
 import os
 import random
 import sys
+import urllib.request
+import urllib.error
 from pathlib import Path
 
 TOKENS_FILE = Path(__file__).parent / "tokens.json"
@@ -475,6 +477,51 @@ def menu_delete_all():
     _ok(f"전체 {count}개 코드 삭제 완료.")
     _pause()
 
+# ── 메뉴: 연결 강제 종료 ────────────────────────────────────────────────
+
+def menu_kick():
+    tokens = _load_tokens()
+    active = {code: info for code, info in tokens.items() if info.get("in_use")}
+    _show_list(active, "연결 강제 종료 (현재 연결 중인 코드)")
+
+    if not active:
+        print("\n  현재 연결 중인 세션이 없습니다.")
+        input("\n  Enter 키를 누르면 돌아갑니다.")
+        return
+
+    code = input("  종료할 코드 (취소: Enter): ").strip().upper()
+    if not code:
+        return
+    if code not in active:
+        _err("해당 코드는 현재 연결 중이 아닙니다.")
+        input("  Enter 키를 누르면 돌아갑니다.")
+        return
+
+    confirm = input(f"  코드 [{code}] 연결을 강제 종료합니다. 계속하시겠습니까? (y/N): ").strip().lower()
+    if confirm != "y":
+        print("  취소했습니다.")
+        return
+
+    try:
+        req = urllib.request.Request(
+            f"http://127.0.0.1:3004/api/admin/kick/{code}",
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            result = json.loads(resp.read())
+        if result.get("ok"):
+            _ok(f"코드 [{code}] 강제 종료 완료.")
+        else:
+            _err(f"실패: {result.get('error', '알 수 없는 오류')}")
+    except urllib.error.HTTPError as e:
+        body = json.loads(e.read())
+        _err(f"실패: {body.get('error', str(e))}")
+    except Exception as e:
+        _err(f"서버 연결 오류: {e}")
+
+    input("  Enter 키를 누르면 돌아갑니다.")
+
+
 # ── 메인 메뉴 ───────────────────────────────────────────────────────────
 
 def main():
@@ -490,6 +537,7 @@ def main():
         print("   6.  만료·소진 일괄 삭제  (사용 불가 코드 정리)")
         print("   7.  전체 삭제")
         print("   8.  사용 중 잠금 해제   (비정상 종료 후 복구)")
+        print("   9.  연결 강제 종료      (현재 연결 중인 세션 끊기)")
         print()
         print("   0.  종료")
         print(SEP)
@@ -503,6 +551,7 @@ def main():
         elif choice == "6": menu_purge()
         elif choice == "7": menu_delete_all()
         elif choice == "8": menu_unlock()
+        elif choice == "9": menu_kick()
         elif choice == "0":
             _clear()
             print("\n  종료합니다.\n")
