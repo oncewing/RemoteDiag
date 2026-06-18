@@ -644,7 +644,7 @@ def on_agent_hello(data):
 
     # 대기 중인 브라우저 자동 페어링
     waiting = _pending_browser.pop(code, set())
-    permissions = tokens[code].get("permissions", ALL_PERMISSIONS)
+    permissions = [p for p in tokens[code].get("permissions", ALL_PERMISSIONS) if p != "remote"]
     for b_sid in list(waiting):
         if not allow_multi and _agent_browser.get(agent_sid):
             # 단일 모드: 이미 페어링된 브라우저가 있으면 나머지 거절
@@ -779,7 +779,7 @@ def on_browser_pair(data):
     # 즉시 페어링
     _pair(browser_sid, agent_sid)
     info = _agents[agent_sid]
-    permissions = token.get("permissions", ALL_PERMISSIONS)
+    permissions = [p for p in token.get("permissions", ALL_PERMISSIONS) if p != "remote"]
     _browser_auth[browser_sid]["permissions"] = permissions
     emit("pair_result", {"success": True, "connected": True, "info": info})
     socketio.emit("agent_status", {
