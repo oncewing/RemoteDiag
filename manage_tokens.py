@@ -14,14 +14,13 @@ from pathlib import Path
 TOKENS_FILE = Path(__file__).parent / "tokens.json"
 _CHARS = "0123456789"
 
-ALL_PERMISSIONS = ["adb-shell", "adb-info", "at", "logs", "kmsg", "remote", "diag", "guide"]
+ALL_PERMISSIONS = ["adb-shell", "adb-info", "at", "logs", "kmsg", "diag", "guide"]
 PERM_LABELS = {
     "adb-shell": "ADB Shell",
     "adb-info":  "디바이스 정보",
     "at":        "AT 명령",
     "logs":      "로그 수집",
     "kmsg":      "커널 로그",
-    "remote":    "원격 제어",
     "diag":      "자동점검",
     "guide":     "가이드",
 }

@@ -7,7 +7,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 소스 복사
-COPY server.py config.py generate_cert.py manage_tokens.py ./
+COPY server.py config.py generate_cert.py manage_tokens.py check_connections.py ./
 COPY static/ ./static/
 
 # 업로드 디렉토리 생성
