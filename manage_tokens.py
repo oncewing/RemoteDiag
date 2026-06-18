@@ -13,6 +13,11 @@ import urllib.request
 import urllib.error
 from pathlib import Path
 
+try:
+    import readline  # noqa: F401  — input()에서 백스페이스·방향키 활성화
+except ImportError:
+    pass
+
 TOKENS_FILE = Path(__file__).parent / "tokens.json"
 _CHARS = "0123456789"
 
