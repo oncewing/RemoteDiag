@@ -439,6 +439,31 @@ def api_admin_connections():
     })
 
 
+@app.route("/api/admin/kick/<code>", methods=["POST"])
+def api_admin_kick(code):
+    """특정 토큰의 연결 강제 종료 — 로컬호스트 전용."""
+    client_ip = (request.environ.get("HTTP_X_REAL_IP") or
+                 request.environ.get("HTTP_X_FORWARDED_FOR", "").split(",")[0].strip() or
+                 request.remote_addr or "")
+    if client_ip not in ("127.0.0.1", "::1", "localhost", ""):
+        abort(403)
+
+    agent_sid = next((sid for sid, c in _agent_tokens.items() if c == code), None)
+    if not agent_sid or agent_sid not in _agents:
+        return jsonify({"ok": False, "error": "해당 토큰의 활성 연결이 없습니다."}), 404
+
+    reason = "관리자에 의해 연결이 강제 종료되었습니다."
+    socketio.emit("agent_kicked", {"reason": reason}, room=agent_sid)
+    for b_sid in list(_agent_browser.get(agent_sid, set())):
+        socketio.emit("agent_status", {"connected": False, "reason": reason}, room=b_sid)
+
+    ip = _agents.get(agent_sid, {}).get("ip", "")
+    _burn_token(code, ip)
+    socketio.start_background_task(_delayed_disconnect, agent_sid)
+    print("[server] 관리자 강제 종료: code={} agent={}".format(code, agent_sid[:8]))
+    return jsonify({"ok": True, "code": code})
+
+
 @app.route("/api/server-info")
 def server_info():
     exe_ready = (Path(__file__).parent / "dist_go" / "woorinet_remote_diag_agent.exe").exists() or \
