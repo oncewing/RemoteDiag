@@ -480,7 +480,7 @@ def menu_delete_all():
 # ── 메뉴: 연결 강제 종료 ────────────────────────────────────────────────
 
 def menu_kick():
-    tokens = _load_tokens()
+    tokens = _load()
     active = {code: info for code, info in tokens.items() if info.get("in_use")}
     _show_list(active, "연결 강제 종료 (현재 연결 중인 코드)")
 
