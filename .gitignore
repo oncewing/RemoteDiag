@@ -48,6 +48,7 @@ make_rc_manual.js
 *.docx
 !WN_RemoteDiag_User-Manual_R1.0.docx
 !WN_RemoteDiag_User-Manual_R2.0.docx
+!WN_RemoteDiag_User-Manual_R3.0.docx
 !WN_RemoteDiag_remote-control-manual_R2.0.docx
 package.json
 
