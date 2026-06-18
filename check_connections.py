@@ -20,7 +20,7 @@ DIM    = "\033[2m"
 
 def color(text, c): return f"{c}{text}{RESET}"
 
-def main():
+def fetch_and_print():
     try:
         with urllib.request.urlopen(URL, timeout=3) as resp:
             data = json.loads(resp.read())
@@ -83,7 +83,9 @@ def main():
     print(color("=" * 58, BOLD))
     print()
 
-    # 자동 갱신 모드
+def main():
+    fetch_and_print()
+
     if "--watch" in sys.argv or "-w" in sys.argv:
         import time
         interval = 5
@@ -92,12 +94,10 @@ def main():
             while True:
                 time.sleep(interval)
                 print("\033[2J\033[H", end="")  # 화면 지우기
-                main.__wrapped__()
+                fetch_and_print()
         except KeyboardInterrupt:
             print("\n  종료.\n")
             sys.exit(0)
-
-main.__wrapped__ = main
 
 if __name__ == "__main__":
     main()
