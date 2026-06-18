@@ -49,6 +49,13 @@ RemoteDiag/
 
 ### Go 에이전트 빌드 (Linux에서 Windows exe 크로스 컴파일)
 ```bash
+# 기본: 빌드일로부터 1달 후 만료일 자동 설정
+cd go_agent && make build
+
+# 만료일 직접 지정
+cd go_agent && make build EXPIRE_DATE=2026-12-31
+
+# 만료일 없이 빌드 (개발 모드)
 cd go_agent
 GOOS=windows GOARCH=amd64 go build -o ../dist_go/woorinet_remote_diag_agent.exe .
 ```
