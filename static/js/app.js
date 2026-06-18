@@ -250,18 +250,36 @@ function hasPermission(perm) {
   return currentPerms.includes(perm);
 }
 
+// ADB 없이 AT만 사용 가능한 탭 목록
+const AT_ONLY_TABS = new Set(['at', 'guide']);
+
 function applyPermissions() {
-  const allTabs = ['adb-info', 'diag', 'at', 'adb-shell', 'logs', 'kmsg', 'remote', 'guide'];
+  applyConnectionState();
+  applyGuidePermissions();
+}
+
+function applyConnectionState() {
+  const allTabs = ['adb-info', 'diag', 'at', 'adb-shell', 'logs', 'kmsg', 'guide'];
+  const atOnlyMode = selectedPort && !selectedSerial;  // 포트 열림 + ADB 없음
+
   allTabs.forEach(tabId => {
     const el = document.querySelector(`.tab[data-tab="${tabId}"]`);
-    if (el) el.style.display = hasPermission(tabId) ? '' : 'none';
+    if (!el) return;
+    const permitted = hasPermission(tabId);
+    const available = !atOnlyMode || AT_ONLY_TABS.has(tabId);
+    el.style.display = (permitted && available) ? '' : 'none';
   });
 
-  applyGuidePermissions();
-
-  // 첫 번째 접근 가능한 탭으로 이동
-  const first = allTabs.find(t => hasPermission(t));
-  if (first) switchTab(first);
+  // 현재 탭이 숨겨졌으면 첫 번째 접근 가능한 탭으로 이동
+  const visibleTabs = allTabs.filter(t => {
+    const el = document.querySelector(`.tab[data-tab="${t}"]`);
+    return el && el.style.display !== 'none';
+  });
+  const currentPanel = document.querySelector('.panel.active');
+  const currentTabId = currentPanel?.id?.replace('panel-', '');
+  if (!visibleTabs.includes(currentTabId) && visibleTabs.length) {
+    switchTab(visibleTabs[0]);
+  }
 }
 
 function applyGuidePermissions() {
@@ -935,6 +953,7 @@ async function openPort() {
       selectedSerial = matchRes.serial;
       if (devRes.success) applyDeviceList(devRes.data);
       toast(`${port} ↔ ${matchRes.serial} 자동 매칭 (${attempt}회 시도)`);
+      applyConnectionState();  // ADB 연결 성공 → 전체 탭 표시
       _readDeviceAttrs();
       break;
     }
@@ -945,8 +964,9 @@ async function openPort() {
   }
 
   if (!matchRes || !matchRes.success) {
-    deviceEl.innerHTML = '<span class="dim-text">매칭 실패 — 단말기 연결을 확인하세요</span>';
-    toast('IMEI 매칭 실패 (5회 시도)', true);
+    deviceEl.innerHTML = '<span class="dim-text">매칭 실패 — AT Command만 사용 가능합니다</span>';
+    toast('ADB 연결 실패 — AT Command 탭만 사용 가능합니다', true);
+    applyConnectionState();  // ADB 없음 → AT 전용 탭만 표시
   }
 }
 
@@ -971,6 +991,7 @@ async function closePort() {
       '<span class="dim-text">시리얼 포트를 먼저 연결하세요</span>';
     selectedSerial = '';
     _setSidebarMode('none');
+    applyConnectionState();  // 포트 닫힘 → 탭 상태 초기화
     toast(res.message);
     sendCommand({ type: 'at_ports' }, 'refresh_ports').then(r => {
       if (r.success !== false) applyPortList(r.data, r.open);

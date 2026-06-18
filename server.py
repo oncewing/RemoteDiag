@@ -191,7 +191,7 @@ def _find_unpaired_agent(ip):
             fallback = a_sid
     return fallback
 
-ALL_PERMISSIONS  = ["adb-shell", "adb-info", "at", "logs", "kmsg", "remote", "diag", "guide"]
+ALL_PERMISSIONS  = ["adb-shell", "adb-info", "at", "logs", "kmsg", "diag", "guide"]
 BASE_PERMISSIONS = ["adb-info", "at", "diag", "guide"]
 
 
@@ -388,6 +388,55 @@ def api_log_upload():
 
     return jsonify({"success": True, "path": rel_path,
                     "files": saved, "count": len(saved)})
+
+
+@app.route("/api/admin/connections")
+def api_admin_connections():
+    """현재 연결 상태 조회 — 로컬호스트 전용."""
+    client_ip = (request.environ.get("HTTP_X_REAL_IP") or
+                 request.environ.get("HTTP_X_FORWARDED_FOR", "").split(",")[0].strip() or
+                 request.remote_addr or "")
+    if client_ip not in ("127.0.0.1", "::1", "localhost", ""):
+        abort(403)
+
+    now = datetime.datetime.utcnow()
+    tokens = _load_tokens()
+    agents = []
+    for a_sid, info in _agents.items():
+        code = _agent_tokens.get(a_sid, "")
+        browser_sids = _agent_browser.get(a_sid, set())
+        pending = _pending_browser.get(code, set())
+
+        # 세션 만료까지 남은 시간 계산
+        remaining_min = None
+        token = tokens.get(code, {})
+        expires_at = token.get("expires_at")
+        if expires_at:
+            try:
+                exp = datetime.datetime.fromisoformat(expires_at)
+                diff = (exp - now).total_seconds()
+                remaining_min = max(0, int(diff // 60))
+            except Exception:
+                pass
+
+        agents.append({
+            "code":          code,
+            "ip":            info.get("ip", ""),
+            "platform":      info.get("platform", ""),
+            "version":       info.get("version", ""),
+            "allow_multi":   _agent_allow_multi.get(a_sid, False),
+            "browsers":      len(browser_sids),
+            "pending":       len(pending),
+            "remaining_min": remaining_min,
+            "expiry":        token.get("expiry", ""),
+        })
+
+    return jsonify({
+        "agents":          agents,
+        "total_agents":    len(agents),
+        "total_browsers":  sum(len(v) for v in _agent_browser.values()),
+        "total_pending":   sum(len(v) for v in _pending_browser.values()),
+    })
 
 
 @app.route("/api/server-info")

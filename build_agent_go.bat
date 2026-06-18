@@ -26,9 +26,18 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-echo [3/4] Computing VERSION and EXPIRE_DATE...
+echo [3/4] Setting EXPIRE_DATE...
 cd ..
-python _build_inject.py
+
+:: 만료일 직접 입력 (공백이면 자동: 빌드일 +1개월)
+set INPUT_EXPIRE=
+set /p INPUT_EXPIRE="  만료일 입력 (YYYY-MM-DD, 공백=자동+1개월): "
+
+if "%INPUT_EXPIRE%"=="" (
+    python _build_inject.py
+) else (
+    python _build_inject.py --expire "%INPUT_EXPIRE%"
+)
 if %errorlevel% neq 0 (
     echo FAILED: _build_inject.py
     pause
@@ -53,9 +62,11 @@ if %errorlevel% neq 0 (
 cd ..
 
 echo.
-echo Build complete! (EXPIRE_DATE: %EXPIRE_DATE%)
+echo Build complete!
+echo   VERSION     : %VERSION%
+echo   EXPIRE_DATE : %EXPIRE_DATE%
 if exist dist_go\woorinet_remote_diag_agent.exe (
-    echo   %~dp0dist_go\woorinet_remote_diag_agent.exe
+    echo   Output: %~dp0dist_go\woorinet_remote_diag_agent.exe
 ) else (
     echo Build failed.
 )
