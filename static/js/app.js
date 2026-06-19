@@ -964,10 +964,73 @@ async function openPort() {
   }
 
   if (!matchRes || !matchRes.success) {
-    deviceEl.innerHTML = '<span class="dim-text">매칭 실패 — AT Command만 사용 가능합니다</span>';
-    toast('ADB 연결 실패 — AT Command 탭만 사용 가능합니다', true);
-    applyConnectionState();  // ADB 없음 → AT 전용 탭만 표시
+    // AT$OPENADB 폴백 시도
+    const opened = await _tryOpenADB(port, deviceEl);
+    if (!opened) {
+      deviceEl.innerHTML = '<span class="dim-text">매칭 실패 — AT Command만 사용 가능합니다</span>';
+      toast('ADB 연결 실패 — AT Command 탭만 사용 가능합니다', true);
+      applyConnectionState();
+    }
   }
+}
+
+// AT$OPENADB 폴백 시퀀스
+async function _tryOpenADB(port, deviceEl) {
+  deviceEl.innerHTML = '<span class="dim-text">AT$OPENADB 시도 중...</span>';
+
+  // (0) UNLOCK
+  const unlockRes = await sendCommand({ type: 'at_command', port, command: 'AT!UNLOCK=2,"W353"', timeout: 5 });
+  if (!(unlockRes.response || '').includes('OK')) {
+    return false;
+  }
+
+  // (1) ATI로 IMEI 추출
+  const atiRes = await sendCommand({ type: 'at_command', port, command: 'ATI', timeout: 5 });
+  const imeiMatch = (atiRes.response || '').match(/(\d{14,15})/);
+  if (!imeiMatch) {
+    toast('ATI IMEI 추출 실패', true);
+    return false;
+  }
+  const imei8 = imeiMatch[1].slice(-8);
+
+  // (2) AT$OPENADB 시도 — 패스워드 1 먼저
+  const candidates = [`Wnet@${imei8}`, `W-net${imei8}`];
+  let adbOpened = false;
+  for (const pw of candidates) {
+    deviceEl.innerHTML = `<span class="dim-text">AT$OPENADB 시도 중 (${pw})...</span>`;
+    const res = await sendCommand({ type: 'at_command', port, command: `AT$OPENADB=on,${pw}`, timeout: 10 });
+    if ((res.response || '').includes('$OPENADB:ON')) {
+      adbOpened = true;
+      toast(`AT$OPENADB 성공 (${pw}) — 재부팅 대기 중...`);
+      break;
+    }
+  }
+
+  if (!adbOpened) {
+    return false;
+  }
+
+  // (3) reboot 발생 — 완료까지 대기 (최대 60초, 5초 간격)
+  const MAX_REBOOT_WAIT = 12;
+  for (let i = 1; i <= MAX_REBOOT_WAIT; i++) {
+    deviceEl.innerHTML = `<span class="dim-text">재부팅 대기 중... (${i * 5}s / ${MAX_REBOOT_WAIT * 5}s)</span>`;
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    const devRes = await sendCommand({ type: 'adb_devices' }, 'refresh_devices');
+    const matchRes = await sendCommand({ type: 'at_match_device', port }, 'at_match');
+    if (matchRes.success && matchRes.serial) {
+      Object.keys(_devicePortMap).forEach(s => { if (_devicePortMap[s] === port) delete _devicePortMap[s]; });
+      _devicePortMap[matchRes.serial] = port;
+      selectedSerial = matchRes.serial;
+      if (devRes.success) applyDeviceList(devRes.data);
+      toast(`${port} ↔ ${matchRes.serial} 자동 매칭 (AT$OPENADB)`);
+      applyConnectionState();
+      _readDeviceAttrs();
+      return true;
+    }
+  }
+
+  return false;
 }
 
 async function closePort() {
