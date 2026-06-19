@@ -140,11 +140,23 @@ func main() {
 		delay := retryDelay
 		retryDelay = 0
 		if delay > 0 {
-			// 차단 상태 — 자동 재시도 없이 안내만 표시
-			fmt.Printf("[agent] %.0f초 후 프로그램을 다시 실행하여 재시도하세요.\n", delay.Seconds())
-			fmt.Println("[agent] 종료.")
-			waitEnter()
-			return
+			if delay >= 60*time.Second {
+				// 장기 차단 — 자동 재시도 없이 안내만 표시
+				fmt.Printf("[agent] %.0f초 후 프로그램을 다시 실행하여 재시도하세요.\n", delay.Seconds())
+				fmt.Println("[agent] 종료.")
+				waitEnter()
+				return
+			}
+			// 단기 대기 (타이밍 레이스 등) — 대기 후 자동 재시도
+			fmt.Printf("[agent] %.0f초 후 재시도...\n", delay.Seconds())
+			select {
+			case <-shutdown:
+				fmt.Println("[agent] 종료.")
+				waitEnter()
+				return
+			case <-time.After(delay):
+			}
+			continue
 		}
 		fmt.Println("[agent] 3초 후 재시도...")
 		select {
