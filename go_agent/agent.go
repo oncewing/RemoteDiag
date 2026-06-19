@@ -86,13 +86,17 @@ func setupHandlers(sio *SocketIO) {
 		}
 
 		// 영구 거부 사유 → 재시도 없이 종료
-		if contains(reason, "다른 기기") ||
-			contains(reason, "사용이 완료") ||
+		if contains(reason, "사용이 완료") ||
 			contains(reason, "유효하지 않은") ||
 			contains(reason, "만료") {
 			fatalReject = true
 			fmt.Println("[agent] 재연결을 중단합니다.")
 			closeShutdown()
+		}
+		// 다른 기기 사용 중 → 서버 disconnect 처리 타이밍 레이스일 수 있으므로 잠시 후 재시도
+		if contains(reason, "다른 기기") {
+			fmt.Println("[agent] 잠시 후 재시도합니다...")
+			retryDelay = 5 * time.Second
 		}
 		sio.Disconnect()
 	})
