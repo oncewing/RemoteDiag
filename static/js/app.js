@@ -188,6 +188,18 @@ function hideTokenOverlay() {
   document.getElementById('token-overlay').style.display = 'none';
   const label = document.getElementById('user-label');
   if (label) label.textContent = currentUser ? `👤 ${currentUser}` : '';
+  showDriverGuide();
+}
+
+function showDriverGuide() {
+  const overlay = document.getElementById('driver-guide-overlay');
+  if (!overlay) return;
+  overlay.style.display = 'flex';
+}
+
+function closeDriverGuide() {
+  const overlay = document.getElementById('driver-guide-overlay');
+  if (overlay) overlay.style.display = 'none';
 }
 
 function doTokenConnect() {
@@ -981,6 +993,7 @@ async function _tryOpenADB(port, deviceEl) {
   // (0) UNLOCK
   const unlockRes = await sendCommand({ type: 'at_command', port, command: 'AT!UNLOCK=2,"W353"', timeout: 5 });
   if (!(unlockRes.response || '').includes('OK')) {
+    toast('UNLOCK 실패 — ADB 열기 중단', true);
     return false;
   }
 
@@ -988,12 +1001,12 @@ async function _tryOpenADB(port, deviceEl) {
   const atiRes = await sendCommand({ type: 'at_command', port, command: 'ATI', timeout: 5 });
   const imeiMatch = (atiRes.response || '').match(/(\d{14,15})/);
   if (!imeiMatch) {
-    toast('ATI IMEI 추출 실패', true);
+    toast('ATI IMEI 추출 실패 — ADB 열기 중단', true);
     return false;
   }
   const imei8 = imeiMatch[1].slice(-8);
 
-  // (2) AT$OPENADB 시도 — 패스워드 1 먼저
+  // (2) AT$OPENADB 시도 — 패스워드 순서대로
   const candidates = [`Wnet@${imei8}`, `W-net${imei8}`];
   let adbOpened = false;
   for (const pw of candidates) {
@@ -1007,14 +1020,24 @@ async function _tryOpenADB(port, deviceEl) {
   }
 
   if (!adbOpened) {
+    toast('AT$OPENADB 실패 — 두 패스워드 모두 응답 없음', true);
     return false;
   }
 
   // (3) reboot 발생 — 완료까지 대기 (최대 60초, 5초 간격)
   const MAX_REBOOT_WAIT = 12;
+  const baudrate = parseInt(document.getElementById('baud-select').value) || 115200;
+  let portReopened = false;
   for (let i = 1; i <= MAX_REBOOT_WAIT; i++) {
     deviceEl.innerHTML = `<span class="dim-text">재부팅 대기 중... (${i * 5}s / ${MAX_REBOOT_WAIT * 5}s)</span>`;
     await new Promise(resolve => setTimeout(resolve, 5000));
+
+    // 포트가 아직 재오픈 안 됐으면 닫고 다시 열기
+    if (!portReopened) {
+      await sendCommand({ type: 'at_close', port });
+      const reopenRes = await sendCommand({ type: 'at_open', port, baudrate });
+      if (reopenRes.success) portReopened = true;
+    }
 
     const devRes = await sendCommand({ type: 'adb_devices' }, 'refresh_devices');
     const matchRes = await sendCommand({ type: 'at_match_device', port }, 'at_match');
