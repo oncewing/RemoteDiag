@@ -358,6 +358,33 @@
   </main>
 </div>
 
+<!-- Driver install guide popup -->
+<div id="driver-guide-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:2000;align-items:center;justify-content:center;">
+  <div style="background:var(--bg2,#1e1e2e);border:1px solid var(--border,#333);border-radius:10px;padding:28px 32px;max-width:480px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,0.6)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <h2 style="margin:0;font-size:16px;color:var(--accent,#4a9eff)">🔌 드라이버 설치 확인</h2>
+      <button onclick="closeDriverGuide()" style="background:none;border:none;color:var(--text-dim,#aaa);font-size:18px;cursor:pointer;padding:0 4px">✕</button>
+    </div>
+    <p style="font-size:12px;color:var(--text-dim,#aaa);margin:0 0 16px">단말기를 처음 연결하는 경우 아래 절차를 확인하세요.</p>
+    <ol style="margin:0 0 20px;padding-left:20px;line-height:2;font-size:13px">
+      <li>PC <strong>장치 관리자</strong>에서 <strong>모뎀</strong> 항목을 확인합니다.
+        <div style="font-size:11px;color:var(--text-dim,#aaa);margin-top:2px">예: Qualcomm HS-USB Modem 90DB</div>
+      </li>
+      <li>모뎀이 보이지 않으면, 장치를 PC에서 분리한 후 드라이버를 설치합니다.
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+          <a href="static/driver/modem/qud.win.1.1_installer_10061.1.zip" download class="btn-sm primary" style="text-decoration:none;font-size:12px">⬇ Modem Driver</a>
+          <a href="static/driver/adb/QUD.WIN.1.1_Installer_ADB_driver.zip" download class="btn-sm primary" style="text-decoration:none;font-size:12px">⬇ ADB Driver</a>
+        </div>
+      </li>
+      <li>드라이버 설치 완료 후 장치를 다시 연결합니다.</li>
+      <li><strong>장치 관리자</strong>에서 모뎀 항목이 정상 인식되는지 확인합니다.</li>
+    </ol>
+    <div style="text-align:right">
+      <button onclick="closeDriverGuide()" class="btn-sm success" style="min-width:80px">확인</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script src="static/js/socket.io.min.js"></script>

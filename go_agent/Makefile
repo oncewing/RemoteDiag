@@ -6,6 +6,6 @@ OUTPUT      := ../dist_go/woorinet_remote_diag_agent.exe
 
 build:
 	GOOS=windows GOARCH=amd64 go build \
-		-ldflags="-X main.EXPIRE_DATE=$(EXPIRE_DATE) -X main.VERSION=$(VERSION)" \
+		-ldflags="-s -w -X main.EXPIRE_DATE=$(EXPIRE_DATE) -X main.VERSION=$(VERSION)" \
 		-o $(OUTPUT) .
 	@echo "빌드 완료: $(OUTPUT)  [만료일: $(EXPIRE_DATE) / 버전: $(VERSION)]"
