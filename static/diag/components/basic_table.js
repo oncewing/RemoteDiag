@@ -8,12 +8,37 @@ const STEPS = [
   { id: 'imei',    label: 'IMEI 확인' },
   { id: 'phone',   label: 'PHONE 번호 확인' },
   { id: 'usim',    label: 'USIM 인식' },
+  { id: 'band',    label: 'BAND 설정' },
   { id: 'rmnet4',  label: 'RMNET IPv4 IP 확인' },
   { id: 'rmnet6',  label: 'RMNET IPv6 IP 확인' },
   { id: 'bridge0', label: 'BRIDGE0 인터페이스 확인' },
   { id: 'ping4',   label: 'IPv4 Ping (8.8.8.8)' },
   { id: 'ping6',   label: 'IPv6 Ping (2001:4860:4860::8888)' },
 ];
+
+// ── BAND 파싱 ─────────────────────────────────────────────────────────
+function _parseBandPref(response, bandPrefix) {
+  const m = response.match(/\*WBANDPREF\s*:\s*([^\r\n]+)/i);
+  if (!m) return null;
+  const hexGroups = [];
+  for (const part of m[1].split(',')) {
+    const s = part.trim();
+    if (/^PRIORITY/i.test(s)) break;
+    const hex = s.replace(/^0x/i, '');
+    if (hex.length === 16 && /^[0-9a-f]+$/i.test(hex)) hexGroups.push(hex);
+  }
+  const bands = [];
+  for (let g = 0; g < hexGroups.length; g++) {
+    const hi = parseInt(hexGroups[g].slice(0, 8), 16);
+    const lo = parseInt(hexGroups[g].slice(8, 16), 16);
+    const base = g * 64;
+    for (let bit = 0; bit < 32; bit++) {
+      if ((lo >>> bit) & 1) bands.push(base + bit + 1);
+      if ((hi >>> bit) & 1) bands.push(base + bit + 33);
+    }
+  }
+  return bands.length ? bands.sort((a, b) => a - b).map(b => bandPrefix + b).join(', ') : null;
+}
 
 export default {
   _ctx: null,
@@ -89,7 +114,11 @@ export default {
     dot.textContent = s.icon;
     dot.style.color = s.color;
     if (text !== undefined) {
-      msg.textContent = text;
+      if (typeof text === 'object' && text.html) {
+        msg.innerHTML = text.html;
+      } else {
+        msg.textContent = text;
+      }
       msg.style.color = state === 'fail' ? 'var(--red)'
                       : state === 'ok'   ? 'var(--green)'
                       : 'var(--text-dim)';
@@ -177,7 +206,28 @@ export default {
       fail('usim', `USIM 오류 (${usimVal})`);
     }
 
-    // ── 4. RMNET IP (V4 / V6) ────────────────────────────────────────
+    // ── 4. BAND 설정 ─────────────────────────────────────────────────
+    this._setRow('band', 'running', '확인 중...');
+    try {
+      const rLte = await atCmd('AT*WBANDPREF=LTE', 5);
+      const isErr = (r) => !r.response || r.response.toUpperCase().includes('ERROR');
+      if (isErr(rLte)) {
+        const rFb = await atCmd('AT$$BANDPREF?', 5);
+        const bandLine = (rFb.response || '').split(/\r?\n|\r/).map(l => l.trim()).find(l => /^B\d/i.test(l));
+        this._setRow('band', 'ok', { html: `LTE: ${bandLine ? bandLine.replace(/\s+/g, ', ') : '없음'}` });
+      } else {
+        const rNsa = await atCmd('AT*WBANDPREF=NSA', 5);
+        const rSa  = await atCmd('AT*WBANDPREF=SA',  5);
+        const lte = _parseBandPref(rLte.response, 'B') || '없음';
+        const nsa = rNsa.response ? (_parseBandPref(rNsa.response, 'n') || '없음') : '—';
+        const sa  = rSa.response  ? (_parseBandPref(rSa.response,  'n') || '없음') : '—';
+        this._setRow('band', 'ok', { html: `LTE: ${lte}<br>NSA: ${nsa}<br>SA: &nbsp;${sa}` });
+      }
+    } catch (e) {
+      this._setRow('band', 'warn', String(e));
+    }
+
+    // ── 5. RMNET IP (V4 / V6) ────────────────────────────────────────
     this._setRow('rmnet4', 'running', '확인 중...');
     this._setRow('rmnet6', 'running', '확인 중...');
     const ipRes   = await atCmd('AT*WWANIP?', 5);
