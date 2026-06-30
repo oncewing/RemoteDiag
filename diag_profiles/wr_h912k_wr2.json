@@ -6,5 +6,5 @@
     "customer": ["WR2"]
   },
   "component": "wr_h912k_wr2.js",
-  "devinfo_component": "default.js"
+  "devinfo_component": "wr_h912k_wr2.js"
 }

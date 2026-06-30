@@ -565,7 +565,7 @@ function selectDevice(serial, status) {
 async function _readDeviceAttrs() {
   try {
     const [mRes, cRes] = await Promise.all([
-      _shellCmd('cat /sys/devices/soc0/wnet_model', 5, 'devattr'),
+      _shellCmd('cat /sys/devices/soc0/wnet_model 2>/dev/null || cat /var/tmp/model_name 2>/dev/null || true', 5, 'devattr'),
       _shellCmd('cat /sys/devices/soc0/wnet_customer', 5, 'devattr'),
     ]);
     selectedModel    = (mRes.stdout || '').trim();
@@ -574,6 +574,7 @@ async function _readDeviceAttrs() {
     selectedModel = selectedCustomer = '';
   }
   console.log('[DevAttr] model:', selectedModel, '| customer:', selectedCustomer);
+  _updateHeaderDeviceLabel();
   window.DiagEngine?.reset();
   window.DevInfoEngine?.reset();
   _remountActiveEngine();
@@ -581,9 +582,17 @@ async function _readDeviceAttrs() {
 
 function _clearDeviceAttrs() {
   selectedModel = selectedCustomer = '';
+  _updateHeaderDeviceLabel();
   window.DiagEngine?.reset();
   window.DevInfoEngine?.reset();
   _remountActiveEngine();
+}
+
+function _updateHeaderDeviceLabel() {
+  const el = document.getElementById('header-device-label');
+  if (!el) return;
+  const parts = [selectedModel, selectedCustomer].filter(Boolean);
+  el.textContent = parts.length ? parts.join(' | ') : '';
 }
 
 function _remountActiveEngine() {
