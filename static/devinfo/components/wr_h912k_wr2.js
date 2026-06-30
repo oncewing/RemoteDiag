@@ -1,7 +1,7 @@
 /**
- * 디바이스 정보 — 기본 컴포넌트
+ * 디바이스 정보 — WR-H912K / WR-2 컴포넌트
  *
- * 섹션: 단말 식별 정보 / 모뎀 정보 / 네트워크 / DNS / 메모리 / 프로세스
+ * default.js 섹션 + BAND 정보 (LTE / NSA / SA)
  */
 
 function _esc(str) {
@@ -55,9 +55,12 @@ function _renderDnsmasqConf(raw) {
 }
 
 // ── BAND 파싱 ─────────────────────────────────────────────────────────
+// LTE:  *WBANDPREF:0xHHHHHHHHHHHHHHHH,PRIORITY:...
+// NSA/SA: *WBANDPREF:0xHHHHHHHHHHHHHHHH,HHHHHHHHHHHHHHHH,...  (이후 그룹은 0x 없음)
+// prefix: LTE='B', NSA/SA='n'
 function _parseBandPref(response, bandPrefix) {
   const m = response.match(/\*WBANDPREF\s*:\s*([^\r\n]+)/i);
-  if (!m) return null;
+  if (!m) return '(파싱 실패)';
   const hexGroups = [];
   for (const part of m[1].split(',')) {
     const s = part.trim();
@@ -75,11 +78,10 @@ function _parseBandPref(response, bandPrefix) {
       if ((hi >>> bit) & 1) bands.push(base + bit + 33);
     }
   }
-  return bands.length ? bands.sort((a, b) => a - b).map(b => bandPrefix + b).join(', ') : null;
+  return bands.length ? bands.sort((a, b) => a - b).map(b => bandPrefix + b).join(', ') : '없음';
 }
 
 // ── 섹션 정의 ─────────────────────────────────────────────────────────
-// { id, title, load(ctx) → Promise }
 function _err(c, secId, msg) {
   _setContent(c, secId, `<span class="t-err">${_esc(msg)}</span>`);
 }
@@ -134,8 +136,11 @@ function _sections(ctx) {
           const isError = (r) => !r.response || r.response.toUpperCase().includes('ERROR');
 
           if (isError(rLte)) {
+            // 폴백: AT$$BANDPREF?
             const rFb = await ctx.atCmd('AT$$BANDPREF?', 5);
-            const lines = (rFb.response || '').split(/\r?\n|\r/).map(l => l.trim()).filter(Boolean);
+            const fbResp = rFb.response || '';
+            // 0x... 줄 다음 줄에 "B1 B5" 형태의 LTE 밴드 정보
+            const lines = fbResp.split(/\r?\n|\r/).map(l => l.trim()).filter(Boolean);
             const bandLine = lines.find(l => /^B\d/i.test(l));
             const lte = bandLine ? bandLine.replace(/\s+/g, ', ') : (rFb.error || '(응답 없음)');
             _setContent(c, 'band',
@@ -251,7 +256,6 @@ export default {
     const secs      = _sections(ctx);
     this._secs      = secs;
 
-    // 이전 이벤트 리스너 정리
     this._ac?.abort();
     this._ac = new AbortController();
     const signal = this._ac.signal;
@@ -278,22 +282,21 @@ export default {
           </div>`).join('')}
       </div>`;
 
-    // 이벤트 위임
     container.addEventListener('click', e => {
       const hdr = e.target.closest('[data-sec]');
       const ref = e.target.closest('[data-refresh]');
       if (ref) {
         e.stopPropagation();
-        const id  = ref.dataset.refresh;
-        const sec = secs.find(s => s.id === id);
+        const id    = ref.dataset.refresh;
+        const sec   = secs.find(s => s.id === id);
         const body  = container.querySelector(`#di-body-${id}`);
         const arrow = container.querySelector(`#di-arrow-${id}`);
         if (body)  { body.style.display = ''; body.dataset.open = '1'; }
-        if (arrow) arrow.textContent  = '▼';
+        if (arrow) arrow.textContent = '▼';
         if (sec) sec.load(container);
       } else if (hdr) {
-        const id  = hdr.dataset.sec;
-        const sec = secs.find(s => s.id === id);
+        const id      = hdr.dataset.sec;
+        const sec     = secs.find(s => s.id === id);
         const opening = _toggle(container, id);
         if (opening && sec) sec.load(container);
       }
@@ -305,7 +308,7 @@ export default {
   },
 
   async _refreshAll() {
-    const ctx     = this._ctx;
+    const ctx      = this._ctx;
     const statusEl = this._container?.querySelector('#di-status');
     if (!ctx.connReady({ needShell: true })) return;
     if (statusEl) statusEl.textContent = '읽는 중...';

@@ -162,9 +162,12 @@ export default {
 
     // ── 3. USIM 상태 ─────────────────────────────────────────────────
     this._setRow('usim', 'running', '확인 중...');
-    const usimRes  = await atCmd('AT*WSTAT?', 5);
+    let usimRes  = await atCmd('AT*WSTAT?', 5);
+    if ((usimRes.response || '').toUpperCase().includes('ERROR')) {
+      usimRes = await atCmd('AT$$STAT?', 5);
+    }
     const usimResp = (usimRes.response || '').toUpperCase();
-    const wstatM   = (usimRes.response || '').match(/\*WSTAT\s*:\s*([^\r\n]+)/i);
+    const wstatM   = (usimRes.response || '').match(/(?:\*WSTAT|\$\$STAT)\s*:\s*([^\r\n]+)/i);
     const usimVal  = wstatM ? wstatM[1].trim() : (usimRes.response || '').trim();
     if (usimResp.includes('READY') || usimResp.includes('TESTCARD')) {
       this._setRow('usim', 'ok', usimVal);
